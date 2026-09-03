@@ -1,0 +1,49 @@
+name: Primitive Support Snapshot
+
+on:
+  push:
+    branches:
+      - main
+      - structural_realignment
+      - 'structural_realignment_propagation*'
+      - 'feature/**'
+      - 'optimisation/**'
+    paths:
+      - 'src/ESPressio_PrimitiveReceiverRegistry.hpp'
+      - 'src/ESPressio_PrimitiveSupportSnapshot.hpp'
+      - 'src/ESPressio_Mesh.hpp'
+      - 'tests/primitive_support_snapshot_test.cpp'
+      - '.github/workflows/primitive-support-snapshot.yml'
+  pull_request:
+    paths:
+      - 'src/ESPressio_PrimitiveReceiverRegistry.hpp'
+      - 'src/ESPressio_PrimitiveSupportSnapshot.hpp'
+      - 'src/ESPressio_Mesh.hpp'
+      - 'tests/primitive_support_snapshot_test.cpp'
+      - '.github/workflows/primitive-support-snapshot.yml'
+
+jobs:
+  host-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Primitive
+      - name: Build primitive support snapshot regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src
+          ESPressio-Mesh/tests/primitive_support_snapshot_test.cpp
+          -o primitive_support_snapshot_test
+      - name: Run primitive support snapshot regression
+        run: ./primitive_support_snapshot_test
