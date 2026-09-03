@@ -2,7 +2,7 @@
 
 ## Status
 
-**TRANCHE IN PROGRESS — ARCHITECTURE PASS / IMPLEMENTATION READY. SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED. MESH MEMBERSHIP, DELIVERY/DEDUP, RETENTION, LIVENESS, PRE-AUTH ADMISSION, AUTHENTICATED PROMOTION, RADIO PEER/DISCOVERY LIFECYCLE, EXTERNAL PRIMITIVE RECEIVERS, DETERMINISTIC ADVERTISED PRIMITIVE-SUPPORT SNAPSHOTS, PROTECTED TRAFFIC GOVERNANCE, FINITE CONTROL-WORK LIFETIME AND POLICY-DRIVEN BOUNDED ACTIVE LIVENESS PROBING ARE VALIDATED.**
+**TRANCHE IN PROGRESS — ARCHITECTURE PASS / IMPLEMENTATION READY. SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED. MESH MEMBERSHIP, DELIVERY/DEDUP, RETENTION, LIVENESS, PRE-AUTH ADMISSION, AUTHENTICATED PROMOTION, RADIO PEER/DISCOVERY LIFECYCLE, EXTERNAL PRIMITIVE RECEIVERS, DETERMINISTIC ADVERTISED PRIMITIVE-SUPPORT SNAPSHOTS, PROTECTED TRAFFIC GOVERNANCE, FINITE CONTROL-WORK LIFETIME, POLICY-DRIVEN BOUNDED ACTIVE LIVENESS PROBING AND BOUNDED DIRECTED COMPLETE-TOPOLOGY SNAPSHOTS ARE VALIDATED.**
 
 This file is the authoritative implementation-tranche handoff for the tranche originating in `ESPressio-Mesh`. The architecture below is frozen. Implementation may choose bounded internal mechanics only where they do not alter public/distributed semantics, ownership, dependency direction, wire compatibility, authentication/identity semantics, locked bounds or Policy. If a genuine architectural omission/conflict is exposed, stop and ask Simon Stuart.
 
@@ -25,24 +25,24 @@ Affected propagation branches:
 - `ESPressio-Command`: `structural_realignment_propagation_ESPressio-Mesh`
 - `ESPressio-Event`: `structural_realignment_propagation_ESPressio-Mesh`
 
-`ESPressio-MeshAdapters` is architecturally required but not yet implemented/branched in this tranche. Create/verify its matching propagation branch when adapter work starts.
+`ESPressio-MeshAdapters` remains architecturally required but is not yet implemented/branched in this tranche. Create/verify its matching propagation branch when adapter work starts.
 
-Authoritative correction from Simon: the repository is **`ESPressio-Primitive` (singular)**. Policy references to `ESPressio-Primitives` are typos.
+Authoritative correction from Simon: repository name is **`ESPressio-Primitive` (singular)**. Policy references to `ESPressio-Primitives` are typos.
 
 ---
 
 # 2. Mandatory Policy rules
 
-- Ordinary libraries must not call platform/hardware APIs directly. Use the appropriate ESPressio abstraction; hardware concretes belong in platform/technology repositories.
-- Reuse existing ESPressio abstractions instead of duplicating them.
-- Avoid all circular dependencies, including optional ones. If one appears necessary, stop and ask Simon.
-- Keep cross-library propagation isolated to the branches above; participating manifests, jobs/tests, examples, docs and source dependency references must target matching propagation branches.
+- Ordinary libraries must not call platform/hardware APIs directly. Use the correct ESPressio abstraction; hardware concretes belong in platform/technology repositories.
+- Reuse existing ESPressio abstractions rather than duplicating them.
+- Avoid every circular dependency, including optional ones. If one appears necessary, stop and ask Simon.
+- Keep cross-library propagation isolated to the branches above. Participating manifests, jobs/tests, examples, docs and source references must target matching propagation branches.
 - Add useful Arduino IDE and PlatformIO demos for public-facing discrete components where appropriate.
-- Keep docs and IDE-compatible doc comments synchronized with changed APIs.
-- If Actions begins failing almost immediately because the monthly task/job budget is exhausted, record that explicitly and stop treating CI as correctness evidence until reset; switch to recursive self-review. **No budget-exhaustion symptom has occurred.**
-- Internal diagnostics use ESPressio-Logging and remain compile-switchable; inspect current Logging API before instrumenting.
-- Optional callbacks use ESPressio-Observable multi-observer semantics; optional Observable→Event bridges live with their source subsystem.
-- Maintain this `TRANCHE_HANDOFF.MD` on the operative Mesh branch while incomplete; update after meaningful branch/dependency/code/validation/decision/correction changes. At full completion offer the final handoff to Simon for download, then delete it from Git.
+- Keep documentation and IDE-compatible doc comments synchronized with APIs.
+- If Actions starts failing almost immediately because the monthly task/job budget is exhausted, explicitly record it and stop treating CI as correctness evidence until reset; switch to recursive self-review. **No budget-exhaustion symptom has occurred.**
+- Internal diagnostics use `ESPressio-Logging` and remain compile-switchable; inspect current Logging API before instrumentation.
+- Optional callback surfaces use `ESPressio-Observable` multi-observer semantics; optional Observable→Event bridges live with their source subsystem.
+- Maintain this `TRANCHE_HANDOFF.MD` on the operative Mesh branch while incomplete and update it after meaningful code/branch/dependency/validation/decision/correction changes. At full completion offer the final handoff to Simon for download, then delete it from Git.
 - Do not change version numbering merely because of tranche work.
 - Do not preserve legacy behavior unless Simon explicitly requests it.
 
@@ -50,7 +50,7 @@ Authoritative correction from Simon: the repository is **`ESPressio-Primitive` (
 
 # 3. Frozen architecture
 
-## 3.1 Dependency/layering
+## 3.1 Layering
 
 - `ESPressio-System`: foundational platform-neutral identities/types/services; owns canonical `DeviceIdentifier`.
 - `ESPressio-Primitive`: dependency-neutral conceptual-message vocabulary only (`ConceptualMessageId`, `CorrelationId`, `PrimitiveFamilyId`, `PrimitiveProtocolVersion`, `ContractFingerprint`, minimal helpers/contracts).
@@ -66,7 +66,7 @@ Authoritative correction from Simon: the repository is **`ESPressio-Primitive` (
 
 - `DeviceIdentifier`: exact 16 B, nonzero valid, System-owned, permanent/transport-independent, never authentication.
 - `MeshIdentifier`: exact nonzero 16 B application-supplied Mesh identity.
-- `MembershipIncarnation`: exact nonzero 16 B participation-instance identity; partition/radio restart does not inherently change it. FastRejoin may retain it only with authenticated continuity evidence.
+- `MembershipIncarnation`: exact nonzero 16 B participation-instance identity; partition/Radio restart does not inherently change it. FastRejoin may retain it only with authenticated continuity evidence.
 - `MeshNodeAlias`: uint16 Mesh-local routing handle only.
 - `RadioIdentifier`: uint8; 0 invalid, 1–254 usable, 255 reserved; node-local and unrecycled during one incarnation.
 - `MeshMessageId`: uint64, nonzero, monotonic/nonwrapping, scoped by authenticated source DeviceIdentifier + MembershipIncarnation. Retries/routes/fragments retain it; selective-multicast recipients each get one; Broadcast retains one throughout flood.
@@ -109,7 +109,7 @@ Authenticated NodeProfile ultimately contains DeviceIdentifier, CanonicalName, C
 
 Admission progression: Unknown → Discovered → Authenticating → Validating → Joining → Active. Cheap compatibility checks precede expensive crypto. Any Active member may sponsor; sponsor is not leader. MembershipState and ReachabilityState are distinct. Authenticated Leave is authoritative; reachability expiry is local evidence only. DeviceIdentifier is not authentication. Old-incarnation traffic cannot mutate current authority/dedup state.
 
-Security/admission remain behind injected abstractions such as `IMeshSecurityAuthority` / `IMeshAdmissionPolicy`; Mesh itself must not implement cryptography. Direct-neighbour authentication and end-to-end origin authentication are distinct.
+Security/admission remain behind injected abstractions such as `IMeshSecurityAuthority` / `IMeshAdmissionPolicy`; Mesh itself must not implement cryptography. Direct-neighbour authentication and end-to-end origin authentication are distinct. `IMeshSecurityAuthority` may maintain bounded authenticated neighbour/session contexts to optimize verification, but those contexts never redefine identity. Every forwarding node must validate the configured security/integrity contract before forwarding. Authentication/integrity and confidentiality are separate properties. Security contexts are scoped to authenticated participation incarnations.
 
 Reachability is Unknown / Reachable / Suspect / Unreachable via injected liveness policy. Approximate baseline floors are ~5 s to Suspect and ~15 s to Unreachable, not universal constants. Any valid authenticated Mesh evidence may restore Reachable immediately. Active probes are used only when passive/control evidence is insufficient; probe eligibility/cadence is injectable and active probe capacity is bounded to 4.
 
@@ -125,13 +125,21 @@ Dedup is per authenticated source DeviceIdentifier + MembershipIncarnation using
 
 ## 3.11 Topology, routing and retries
 
-Mesh owns orchestration; Radio executes selected next-hop work. Routing/attempt/retry behavior is injectable (`IRoutingStrategy`, `IRouteAttemptPolicy`, `IRetryPolicy`). Directed link-state default bound is 96 links. Route cache 32, MaxRouteHops 16, DefaultHopLimit 16. TopologyGeneration versions the complete semantic outbound-link set and advances only on material published changes. Forwarding is adaptive hop-by-hop; RemainingHopLimit decrements only on a successful Mesh forwarding transition. Radio owns physical retry. Default Mesh safety ceilings: 3 same-route attempts and 4 distinct routes, subject to immutable delivery deadline.
+Topology and routing are distinct. Topology is a bounded full known directed link-state graph; each member is authoritative only for its own outbound observations. A→B and B→A are independent. Logical edge identity contains advertising DeviceIdentifier, local RadioIdentifier, neighbour DeviceIdentifier and neighbour RadioIdentifier/link endpoint where knowable. RadioAddress and RadioPeerHandle are never distributed topology identity.
+
+`TopologyGeneration` is nonzero uint64 scoped to DeviceIdentifier + MembershipIncarnation and versions one complete published outbound-link set. The first generation is 1; material semantic changes advance it; retransmission does not. A newer complete generation replaces the older set, with removals represented by absence. ProfileGeneration and TopologyGeneration are independent.
+
+Topology stores bounded technology-independent observations, not an authoritative scalar routing cost. Normalized observations may represent latency, reliability, capacity, pressure, energy, confidence/freshness etc. with explicit availability semantics. `IRoutingStrategy` interprets observations; there is no universal RouteCost. Prefer fixed-width/fixed-point representations rather than float/double.
+
+Topology publication materiality is separately policy-controlled (`ITopologyPublicationPolicy`); raw samples do not automatically advance TopologyGeneration. Remote freshness is also separate from generation: Fresh / Degraded / Stale / Expired, derived by injected `ITopologyFreshnessPolicy` from local receipt age, reachability and observations. Authenticated retransmission of the same generation may refresh freshness without changing topology truth. Old-incarnation topology is immediately invalid for routing.
+
+Mesh owns routing orchestration; Radio executes selected next-hop work. Routing/attempt/retry behavior is injectable (`IRoutingStrategy`, `IRouteAttemptPolicy`, `IRetryPolicy`). Directed link-state default bound is 96 links. Route cache 32, MaxRouteHops 16, DefaultHopLimit 16. Forwarding is adaptive hop-by-hop; RemainingHopLimit decrements only on a successful Mesh forwarding transition. Radio owns physical retry. Default Mesh safety ceilings: 3 same-route attempts and 4 distinct routes, subject to immutable delivery deadline.
 
 ## 3.12 Radio and ESP32 shared PHY
 
 Radio accepts one complete immutable bounded logical transfer to one directly reachable Radio peer/handle. MaximumLogicalTransferSize is finite and distinct from physical MTU. Radio owns bounded fragmentation/reassembly and physical retry. Receive provides complete opaque logical transfer plus Radio-owned peer/address observations and qualified timing metadata. Radio never interprets DeviceIdentifier, MembershipIncarnation, MeshMessageId, PrimitiveFamilyId or Mesh routing/destination semantics. Precision timing uses a separate protected path.
 
-Radio may create generation-safe process-local peer handles before authentication. Mesh binds these beside its incarnation-scoped RadioIdentifier; peer handles never become Mesh identity and are never distributed/persisted as identity.
+Radio may create generation-safe process-local peer handles before authentication. Mesh binds these beside its incarnation-scoped RadioIdentifier; peer handles never become Mesh identity and are never distributed/persisted as identity. Loss of an executable Radio peer binding is link-local evidence only and does not terminate authenticated membership.
 
 ESP32 ordinary Wi-Fi and Raw80211 share one integrated PHY coordinated by ESPressio-ESP32. Raw follows effective Wi-Fi channel by default and must never disruptively retune an incompatible active service. Channel/tx-power/power-save global state belongs to the ESP32 coordinator; Mesh sees only link/topology availability changes.
 
@@ -191,6 +199,7 @@ Concrete logical/control/reassembly byte capacities remain finite and measured.
 - **State:** structural State migration complete/validated, including non-owning local binding, authoritative/effective availability split and non-reentrant serialized notifications.
 - **Command:** intrinsic RPC/request-response/timeout/reply model removed; Primitive-backed bounded CommandMessage validated. `CommandResult` wording still needs local-disposition clarification only.
 - **Event:** provenance/context separation and EVTT v2 validated; no HopCount/transport state in Event; distributed EventTypeId remains unresolved.
+- **Security audit:** current `structural_realignment` provides generic crypto/protection abstractions (`IRandomSource`, key/provider, AEAD, DataProtector, replay and secure transport facilities) but no existing Mesh identity/admission handshake abstraction. Mesh must therefore compose these facilities behind its own outcome-oriented security authority/admission boundary rather than duplicating cryptography. Exact handshake/control wire schema remains intentionally unspecified by the frozen architecture.
 
 ## 4.2 Mesh validated foundations
 
@@ -208,16 +217,17 @@ Implemented on `structural_realignment_propagation`:
 - `LivenessProbeReservationTable<4>`, injected `IMeshLivenessProbePolicy`, wire-neutral `ILivenessProbeInitiator` and `LivenessProbeCoordinator`; an outstanding probe is never treated as authentication/evidence.
 - `PendingNeighbourCandidateTable<8>` and `InboundAuthenticationReservationTable<4>`; unauthenticated claims remain outside authenticated member/dedup state.
 - `AdmissionPromotionCoordinator`; only separately authenticated DeviceIdentifier + MembershipIncarnation may enter Validating membership.
-- `PrimitiveReceiverRegistry<8>`: fixed-array, generation-safe, one receiver per family, bounded dispatch, support descriptor/version/fingerprint/exposure. Added bounded `ForEachDescriptor` enumeration that exposes semantic descriptors only, never receiver pointers.
-- `PrimitiveSupportDescriptor` + `AdvertisedPrimitiveSupportSnapshot<8>`: fixed-capacity canonical snapshot of **Advertised** external family support. Hidden registrations remain locally dispatchable but are excluded. Snapshot copies family/version/fingerprint only, never registration handles/receiver pointers, and sorts by `PrimitiveFamilyId`, so equivalent active support sets produce deterministic authenticated-profile input independent of local registration order. The unresolved Mesh control family is intentionally omitted until its central family ID is allocated.
+- `PrimitiveReceiverRegistry<8>`: fixed-array, generation-safe, one receiver per family, bounded dispatch, support descriptor/version/fingerprint/exposure. Bounded descriptor enumeration exposes semantic descriptors only, never receiver pointers.
+- `AdvertisedPrimitiveSupportSnapshot<8>`: fixed-capacity deterministic family-ID-sorted authenticated-profile input. Hidden registrations are excluded; receiver pointers/handles are never copied; unresolved Mesh control family is omitted.
 - `MeshRadioRegistry<4>`: process-local IRadio* ↔ incarnation-scoped non-recycled RadioIdentifier.
 - `NeighbourDiscoveryCoordinator`: Radio SourcePeer + registered ingress Radio + untrusted claim → bounded pre-auth candidate.
-- `RadioPeerLifecycleCoordinator`: peer invalidation releases matching pre-auth auth work/candidates only; authenticated membership is deliberately inaccessible.
+- `RadioPeerLifecycleCoordinator`: peer invalidation releases matching pre-auth authentication work/candidates only; authenticated membership is deliberately inaccessible.
 - injected `IMeshTrafficGovernor` + protected default 8/4/8/8 governor.
 - injected `IControlWorkLifetimePolicy` + fixed composition-root configuration + overflow-safe deadline helper.
+- `TopologyLinkIdentity`, `DirectedTopologyLink<TCharacteristics>` and `TopologySnapshot<TCharacteristics, 96>`: fixed-capacity complete directed self-owned topology generation. One snapshot binds to one advertising DeviceIdentifier until Clear; a new incarnation of the same authority gets an independent generation namespace. Same-generation semantic retransmission is order-insensitive refresh; same-generation mutation is conflict; older generations are stale; newer complete generations replace the old set and removals occur by absence. Characteristics remain a separately supplied bounded technology-independent type; no universal RouteCost was invented. Freshness/publication policy remain separate responsibilities.
 - umbrella header exports all current foundations.
 
-The primitive-support snapshot is **profile input only, not a complete NodeProfile**. Full NodeProfile remains blocked on the Group identifier contract. Do not invent a Group ID to complete it.
+The primitive-support snapshot is **profile input only, not a complete NodeProfile**. Full NodeProfile remains blocked on the Group identifier contract.
 
 ## 4.3 Validation record
 
@@ -244,8 +254,10 @@ The primitive-support snapshot is **profile input only, not a complete NodeProfi
 - Mesh `33800502633`: bounded liveness-probe reservations passed.
 - Mesh `33801088318`: dedicated policy-driven liveness-probe coordinator passed.
 - Mesh `33801088364`: general suite after liveness-probe coordinator passed.
-- Mesh `33801574428`: dedicated deterministic advertised primitive-support snapshot build/test passed.
+- Mesh `33801574428`: deterministic advertised primitive-support snapshot passed.
 - Mesh `33801574478`: general suite after primitive-support snapshot passed.
+- Mesh `33804484722`: first directed topology snapshot integration passed all current host regressions.
+- Mesh `33804812963`: authority-isolated topology snapshot regression and all current host regressions passed.
 - **No Actions-budget symptom has occurred.**
 
 ## 4.4 Critical implementation boundaries
@@ -260,17 +272,23 @@ The primitive-support snapshot is **profile input only, not a complete NodeProfi
 - Control work requires finite lifetime before queue admission; operational values are composition-root supplied.
 - Primitive support snapshot includes advertised external families only and is deterministic by family ID. It deliberately omits unresolved Mesh control family ID.
 - Full NodeProfile must not be completed until Group identifier semantics are established.
-- No concrete ESPressio `PrimitiveFamilyId` and no distributed EventTypeId may be invented autonomously.
+- Topology snapshot owns complete authoritative generation semantics only. Publication materiality, normalized observation estimation, remote freshness and routing interpretation are separate responsibilities.
+- No universal scalar RouteCost exists; routing strategies interpret technology-independent bounded observations.
+- A topology snapshot cannot be silently overwritten by another DeviceIdentifier; different authorities require separate bounded slots.
+- Security audit confirms Mesh needs an outcome-oriented security/admission composition boundary, but cryptographic handshake and wire schema must not be invented simply to define that abstraction.
+- No concrete ESPressio `PrimitiveFamilyId`, distributed EventTypeId, conceptual Event message-ID strategy or Group identifier may be invented autonomously.
 
 ---
 
 # 5. Immediate next work
 
-1. Inspect current `ESPressio-Security` abstractions before adding Mesh admission/security composition; reuse existing crypto/security facilities and keep Mesh security authority/admission policy wire-neutral.
-2. Continue only unambiguous authenticated-profile pieces; the deterministic primitive-support snapshot is complete, while full NodeProfile remains blocked by Group identifier semantics.
-3. Reconcile Command `CommandResult` source/docs wording so `success` is unmistakably local handler/dispatch disposition, never requested-operation completion; avoid gratuitous public rename.
-4. Keep Event distributed identity work paused pending Simon's explicit EventTypeId/message-ID decisions.
-5. Continue topology → routing → traffic-governed bounded queues → clock coordination → adapters in dependency order.
+1. Add the bounded topology-authority store/freshness metadata layer around `TopologySnapshot`, with separate injected `ITopologyFreshnessPolicy`; authenticated retransmission of the same generation may refresh local receipt age without changing semantic topology.
+2. Add the local/publication materiality boundary (`ITopologyPublicationPolicy`) separately from freshness and routing; do not invent universal quantitative thresholds.
+3. Continue the Security composition audit toward a minimal outcome-oriented `IMeshSecurityAuthority` / `IMeshAdmissionPolicy` boundary only where it can remain wire-neutral; reuse Security crypto primitives and do not invent a handshake schema.
+4. Reconcile Command `CommandResult` source/docs wording so `success` unambiguously describes local handler/dispatch disposition, never requested-operation completion; avoid gratuitous public rename.
+5. Keep Event distributed identity work paused pending Simon's EventTypeId/message-ID decisions.
+6. Continue routing → bounded route cache → traffic-governed queues → clock coordination → adapters in dependency order.
+7. Create/verify MeshAdapters propagation branch when adapter work begins.
 
 ---
 
@@ -283,8 +301,7 @@ The primitive-support snapshot is **profile input only, not a complete NodeProfi
 - **2026-09-03T14:09:00Z–16:27:18Z** — State structural migration completed and validated.
 - **2026-09-03T16:40:00Z–16:43:07Z** — Command RPC removal and bounded Primitive-backed CommandMessage validated.
 - **2026-09-03T16:45:00Z–17:32:26Z** — Event provenance/context separation and EVTT v2 validated; distributed EventTypeId left unresolved.
-- **2026-09-03T17:36:00Z–17:38:18Z** — Reachability corrected to Suspect; tombstones + dedup implemented.
-- **2026-09-03T17:42:18Z–17:53:20Z** — Message-ID generator, InProgress reservations, authenticated membership, inbound delivery and retention foundations added/validated.
+- **2026-09-03T17:36:00Z–17:53:20Z** — Reachability correction, tombstones, dedup, MessageId generator, InProgress reservations, authenticated membership, inbound delivery and retention foundations validated.
 - **2026-09-03T18:12:00Z–18:13:58Z** — Policy-driven liveness tracker validated.
 - **2026-09-03T18:44:00Z–18:47:20Z** — Membership lifecycle and bounded pre-auth resources validated.
 - **2026-09-03T18:49:00Z–18:53:30Z** — PrimitiveReceiverRegistry added without family allocation; include-path issue corrected; suite passed.
@@ -292,5 +309,9 @@ The primitive-support snapshot is **profile input only, not a complete NodeProfi
 - **2026-09-03T19:31:00Z–19:37:00Z** — RadioTransport peer-handle integration, MeshRadioRegistry and peer-bound discovery validated.
 - **2026-09-03T19:38:00Z–19:47:00Z** — Protected traffic governor, bounded peer enumeration and finite control-work lifetime validated.
 - **2026-09-03T20:01:00Z–20:06:00Z** — Observable Radio peer lifecycle and Mesh pre-auth peer-loss convergence validated.
-- **2026-09-03T20:06:00Z–20:15:00Z** — Bounded liveness-probe reservations and policy-driven/wire-neutral probe coordination validated (`33800502633`, `33801088318`, `33801088364`).
-- **2026-09-03T20:17:00Z–20:20:00Z** — Added bounded descriptor enumeration and deterministic `AdvertisedPrimitiveSupportSnapshot`: advertised family/version/fingerprint only, Hidden excluded, family-ID sorted, no receiver pointers/handles, no Mesh family-ID allocation. Dedicated `33801574428` and general `33801574478` passed. Full NodeProfile remains blocked on Group identifier semantics.
+- **2026-09-03T20:06:00Z–20:15:00Z** — Bounded liveness-probe reservations and policy-driven/wire-neutral probe coordination validated.
+- **2026-09-03T20:17:00Z–20:20:00Z** — Added deterministic `AdvertisedPrimitiveSupportSnapshot`; full NodeProfile remains blocked on Group identifier semantics.
+- **2026-09-03T20:42:00Z** — Reconciled current branch state and removed a redundant tentative peer-lifecycle observer/test created during continuation; existing validated `RadioPeerLifecycleCoordinator` remains the sole implementation, with no semantic change.
+- **2026-09-03T20:43:00Z–20:46:00Z** — Inspected current `ESPressio-Security` structural_realignment abstractions and frozen Mesh security decisions. Existing Security provides generic crypto/protection primitives but no Mesh admission identity protocol; Mesh must compose rather than duplicate crypto and must not invent a handshake schema.
+- **2026-09-03T20:46:00Z–20:50:00Z** — Implemented `TopologyLinkIdentity`, generic `DirectedTopologyLink<TCharacteristics>` and bounded complete `TopologySnapshot<TCharacteristics, MaxTopologyLinks>` from frozen Decisions 14–18. No scalar RouteCost or technology-specific address semantics introduced. CI `33804484722` passed.
+- **2026-09-03T20:51:00Z–20:53:16Z** — Tightened each `TopologySnapshot` to one advertising DeviceIdentifier until explicit Clear, while preserving new-incarnation generation namespaces for that authority. Added foreign-authority isolation regression. CI `33804812963` passed all current host regressions. Concrete PrimitiveFamilyId/EventTypeId/Event MessageId/Group decisions remain untouched.
