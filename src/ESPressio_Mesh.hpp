@@ -30,3 +30,5 @@
 #include "ESPressio_RouteCache.hpp"
 #include "ESPressio_RoutingStrategy.hpp"
 #include "ESPressio_RouteAttemptPolicy.hpp"
+#include "ESPressio_RoutePlanner.hpp"
+#include "ESPressio_RouteAttemptCoordinator.hpp"
