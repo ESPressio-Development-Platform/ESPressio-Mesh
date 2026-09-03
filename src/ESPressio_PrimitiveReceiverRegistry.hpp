@@ -192,6 +192,18 @@ public:
         return nullptr;
     }
 
+    /// <summary>Enumerates current receiver support descriptors synchronously without allocating a snapshot.</summary>
+    /// <remarks>
+    /// Enumeration is bounded by Capacity. The visitor must not structurally mutate the registry while enumeration is
+    /// active. This surface allows profile-support composition without exposing receiver implementation pointers.
+    /// </remarks>
+    template<typename TVisitor>
+    void ForEachDescriptor(TVisitor&& visitor) const {
+        for (const auto& slot : _slots) {
+            if (slot.Occupied) visitor(slot.Descriptor);
+        }
+    }
+
     PrimitiveDispatchResult Dispatch(
         Primitive::PrimitiveFamilyId family,
         Primitive::PrimitiveProtocolVersion version,
