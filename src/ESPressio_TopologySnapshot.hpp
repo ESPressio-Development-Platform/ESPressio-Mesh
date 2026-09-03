@@ -85,6 +85,11 @@ enum class TopologySnapshotApplyResult : std::uint8_t {
 /// Fixed-capacity complete published outbound-topology set owned by one DeviceIdentifier + MembershipIncarnation.
 /// </summary>
 /// <remarks>
+/// Once populated, one snapshot remains bound to its advertising DeviceIdentifier until explicitly cleared. A new
+/// MembershipIncarnation for that same DeviceIdentifier starts an independent TopologyGeneration namespace, while a
+/// different DeviceIdentifier must use another snapshot/authority slot. This prevents accidental cross-authority
+/// replacement of self-owned topology truth.
+///
 /// TopologyGeneration is scoped to the authority incarnation. A newer complete generation replaces the prior set;
 /// removals are represented by absence. Retransmission of an identical generation is accepted as refresh but does not
 /// advance semantic truth. Reusing a generation with different semantic links is rejected as conflicting authority.
@@ -151,7 +156,7 @@ public:
     }
 
     /// <summary>
-    /// Applies a complete authenticated topology generation for one authority/incarnation.
+    /// Applies a complete authenticated topology generation for the snapshot's owning authority/incarnation.
     /// </summary>
     TopologySnapshotApplyResult ApplyComplete(
         const System::DeviceIdentifier& authority,
@@ -164,6 +169,7 @@ public:
             return TopologySnapshotApplyResult::Invalid;
         }
         if (count > Capacity) return TopologySnapshotApplyResult::ResourceUnavailable;
+        if (_generation != 0U && _authority != authority) return TopologySnapshotApplyResult::Invalid;
 
         for (std::size_t i = 0; i < count; ++i) {
             if (!links[i].Identity || links[i].Identity.Advertiser != authority) {
@@ -172,7 +178,7 @@ public:
         }
         if (ContainsDuplicate(links, count)) return TopologySnapshotApplyResult::Invalid;
 
-        if (_generation != 0U && _authority == authority && _incarnation == incarnation) {
+        if (_generation != 0U && _incarnation == incarnation) {
             if (generation < _generation) return TopologySnapshotApplyResult::StaleGeneration;
             if (generation == _generation) {
                 return EquivalentSet(links, count)
@@ -181,7 +187,7 @@ public:
             }
         }
 
-        // A different authenticated incarnation begins an independent generation namespace.
+        // A different authenticated incarnation of the same authority begins an independent generation namespace.
         _authority = authority;
         _incarnation = incarnation;
         _generation = generation;
@@ -191,7 +197,7 @@ public:
         return TopologySnapshotApplyResult::Applied;
     }
 
-    /// <summary>Clears the complete local snapshot; this changes no remote authoritative truth.</summary>
+    /// <summary>Clears the local authority slot; this changes no remote authoritative truth.</summary>
     void Clear() noexcept {
         _authority = {};
         _incarnation = {};
