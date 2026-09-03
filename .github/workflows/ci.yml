@@ -27,12 +27,18 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Primitive
           ref: structural_realignment_propagation_ESPressio-Mesh
           path: ESPressio-Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Radio
       - name: Build Mesh core type regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/mesh_types_test.cpp
           -o mesh_types_test
       - name: Run Mesh core type regression
@@ -43,6 +49,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/membership_tombstone_test.cpp
           -o membership_tombstone_test
       - name: Run membership tombstone regression
@@ -53,6 +60,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/deduplication_window_test.cpp
           -o deduplication_window_test
       - name: Run deduplication window regression
@@ -63,6 +71,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/mesh_message_id_generator_test.cpp
           -o mesh_message_id_generator_test
       - name: Run Mesh message ID generator regression
@@ -73,6 +82,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/inbound_delivery_reservations_test.cpp
           -o inbound_delivery_reservations_test
       - name: Run inbound delivery reservation regression
@@ -83,6 +93,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/authenticated_inbound_delivery_test.cpp
           -o authenticated_inbound_delivery_test
       - name: Run authenticated inbound delivery regression
@@ -93,6 +104,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/membership_retention_coordinator_test.cpp
           -o membership_retention_coordinator_test
       - name: Run membership retention coordinator regression
@@ -103,6 +115,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/membership_liveness_test.cpp
           -o membership_liveness_test
       - name: Run membership liveness regression
@@ -113,6 +126,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/membership_lifecycle_test.cpp
           -o membership_lifecycle_test
       - name: Run membership lifecycle regression
@@ -123,6 +137,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/admission_resources_test.cpp
           -o admission_resources_test
       - name: Run admission resource regression
@@ -133,6 +148,7 @@ jobs:
           -IESPressio-Mesh/src
           -IESPressio-System/src
           -IESPressio-Primitive/src
+          -IESPressio-Radio/src
           ESPressio-Mesh/tests/primitive_receiver_registry_test.cpp
           -o primitive_receiver_registry_test
       - name: Run primitive receiver registry regression
