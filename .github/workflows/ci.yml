@@ -89,7 +89,7 @@ jobs:
       - name: Build membership liveness regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESpressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/membership_liveness_test.cpp -o membership_liveness_test -pthread
       - name: Run membership liveness regression
         run: ./membership_liveness_test
@@ -135,3 +135,10 @@ jobs:
           ESPressio-Mesh/tests/mesh_traffic_governor_test.cpp -o mesh_traffic_governor_test -pthread
       - name: Run Mesh traffic governor regression
         run: ./mesh_traffic_governor_test
+      - name: Build Radio peer lifecycle cleanup regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/radio_peer_lifecycle_test.cpp -o radio_peer_lifecycle_test -pthread
+      - name: Run Radio peer lifecycle cleanup regression
+        run: ./radio_peer_lifecycle_test
