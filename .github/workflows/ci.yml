@@ -48,3 +48,11 @@ jobs:
           -o deduplication_window_test
       - name: Run deduplication window regression
         run: ./deduplication_window_test
+      - name: Build Mesh message ID generator regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          ESPressio-Mesh/tests/mesh_message_id_generator_test.cpp
+          -o mesh_message_id_generator_test
+      - name: Run Mesh message ID generator regression
+        run: ./mesh_message_id_generator_test
