@@ -10,3 +10,5 @@
 #include "ESPressio_InboundDeliveryCoordinator.hpp"
 #include "ESPressio_MembershipRetentionCoordinator.hpp"
 #include "ESPressio_MembershipLiveness.hpp"
+#include "ESPressio_MembershipLifecycleCoordinator.hpp"
+#include "ESPressio_AdmissionResources.hpp"
