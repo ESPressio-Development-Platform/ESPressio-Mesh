@@ -61,7 +61,7 @@ jobs:
       - name: Build Mesh message ID generator regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/mesh_message_id_generator_test.cpp -o mesh_message_id_generator_test -pthread
       - name: Run Mesh message ID generator regression
         run: ./mesh_message_id_generator_test
