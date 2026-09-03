@@ -83,3 +83,12 @@ jobs:
           -o membership_retention_coordinator_test
       - name: Run membership retention coordinator regression
         run: ./membership_retention_coordinator_test
+      - name: Build membership liveness regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          ESPressio-Mesh/tests/membership_liveness_test.cpp
+          -o membership_liveness_test
+      - name: Run membership liveness regression
+        run: ./membership_liveness_test
