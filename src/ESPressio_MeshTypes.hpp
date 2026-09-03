@@ -133,11 +133,16 @@ enum class MembershipState : std::uint8_t {
     Active
 };
 
-/// <summary>Local observation of whether an authenticated member is currently reachable.</summary>
+/// <summary>Local liveness classification derived from authenticated Mesh evidence and route availability.</summary>
+/// <remarks>
+/// Liveness degrades with policy-controlled hysteresis from Reachable to Suspect to Unreachable;
+/// any valid authenticated Mesh evidence may restore Reachable immediately. MembershipState is
+/// authoritative participation state and remains a separate concept.
+/// </remarks>
 enum class ReachabilityState : std::uint8_t {
     Unknown,
     Reachable,
-    Degraded,
+    Suspect,
     Unreachable
 };
 
