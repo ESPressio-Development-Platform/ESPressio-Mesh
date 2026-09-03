@@ -128,3 +128,10 @@ jobs:
           ESPressio-Mesh/tests/mesh_radio_discovery_test.cpp -o mesh_radio_discovery_test -pthread
       - name: Run Mesh radio/discovery regression
         run: ./mesh_radio_discovery_test
+      - name: Build Mesh traffic governor regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_traffic_governor_test.cpp -o mesh_traffic_governor_test -pthread
+      - name: Run Mesh traffic governor regression
+        run: ./mesh_traffic_governor_test
