@@ -89,7 +89,7 @@ jobs:
       - name: Build membership liveness regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESpressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/membership_liveness_test.cpp -o membership_liveness_test -pthread
       - name: Run membership liveness regression
         run: ./membership_liveness_test
