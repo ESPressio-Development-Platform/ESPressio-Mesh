@@ -20,3 +20,4 @@
 #include "ESPressio_ControlWorkLifetimePolicy.hpp"
 #include "ESPressio_RadioPeerLifecycleCoordinator.hpp"
 #include "ESPressio_LivenessProbeReservations.hpp"
+#include "ESPressio_LivenessProbeCoordinator.hpp"
