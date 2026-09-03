@@ -98,6 +98,16 @@ class MembershipLivenessTracker final {
         return nullptr;
     }
 
+    const Slot* FindSlot(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation
+    ) const noexcept {
+        for (const auto& slot : _slots) {
+            if (slot.Occupied && slot.Device == device && slot.Incarnation == incarnation) return &slot;
+        }
+        return nullptr;
+    }
+
     Slot* EnsureSlot(
         const System::DeviceIdentifier& device,
         const MembershipIncarnation& incarnation
@@ -120,6 +130,15 @@ public:
         const IMeshLivenessPolicy& policy
     ) noexcept : _members(members), _policy(policy) {}
 
+    /// <summary>Returns retained authenticated evidence for one exact current incarnation, or null when none exists.</summary>
+    const AuthenticatedLivenessEvidence* EvidenceFor(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation
+    ) const noexcept {
+        const auto* slot = FindSlot(device, incarnation);
+        return slot == nullptr ? nullptr : &slot->Evidence;
+    }
+
     /// <summary>Records valid authenticated evidence and restores the exact current incarnation to Reachable.</summary>
     bool ObserveAuthenticatedEvidence(
         const System::DeviceIdentifier& device,
@@ -132,7 +151,6 @@ public:
         auto* slot = EnsureSlot(device, incarnation);
         if (slot == nullptr) return false;
 
-        // Monotonic regression is ignored rather than allowing stale evidence to move time backwards.
         if (slot->Evidence.HasEvidence() && nowMilliseconds < slot->Evidence.LastEvidenceMilliseconds) {
             return false;
         }
