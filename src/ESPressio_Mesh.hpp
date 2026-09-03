@@ -6,3 +6,5 @@
 #include "ESPressio_DeduplicationWindow.hpp"
 #include "ESPressio_MeshMessageIdGenerator.hpp"
 #include "ESPressio_InboundDeliveryReservations.hpp"
+#include "ESPressio_AuthenticatedMembershipTable.hpp"
+#include "ESPressio_InboundDeliveryCoordinator.hpp"
