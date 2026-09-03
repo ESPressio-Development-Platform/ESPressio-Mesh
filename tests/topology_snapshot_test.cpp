@@ -76,31 +76,49 @@ int main() {
     assert(snapshot.ApplyComplete(authority, incarnation, 1, generationOne, 2) ==
            Mesh::TopologySnapshotApplyResult::StaleGeneration);
 
-    // A genuinely new incarnation owns an independent TopologyGeneration namespace.
+    // A genuinely new incarnation of the same authority owns an independent TopologyGeneration namespace.
     const auto nextIncarnation = Incarnation(2);
     assert(snapshot.ApplyComplete(authority, nextIncarnation, 1, generationOne, 2) ==
            Mesh::TopologySnapshotApplyResult::Applied);
     assert(snapshot.Incarnation() == nextIncarnation);
     assert(snapshot.Generation() == 1);
 
+    // One snapshot is permanently authority-scoped until Clear; another member cannot overwrite it accidentally.
+    const auto otherAuthority = Device(4);
+    const Link foreignAuthority[] = {{{otherAuthority, 1, authority, 1}, {900, 20}}};
+    assert(snapshot.ApplyComplete(otherAuthority, Incarnation(4), 1, foreignAuthority, 1) ==
+           Mesh::TopologySnapshotApplyResult::Invalid);
+    assert(snapshot.Authority() == authority);
+    assert(snapshot.Incarnation() == nextIncarnation);
+
+    snapshot.Clear();
+    assert(snapshot.ApplyComplete(otherAuthority, Incarnation(4), 1, foreignAuthority, 1) ==
+           Mesh::TopologySnapshotApplyResult::Applied);
+    assert(snapshot.Authority() == otherAuthority);
+
+    // Continue remaining validation on a fresh authority-scoped snapshot.
+    Snapshot validation;
+    assert(validation.ApplyComplete(authority, nextIncarnation, 1, generationOne, 2) ==
+           Mesh::TopologySnapshotApplyResult::Applied);
+
     // Edges are directed, self-owned and capacity-bounded.
     const Link wrongAdvertiser[] = {{{neighbourA, 1, authority, 1}, {900, 20}}};
-    assert(snapshot.ApplyComplete(authority, nextIncarnation, 2, wrongAdvertiser, 1) ==
+    assert(validation.ApplyComplete(authority, nextIncarnation, 2, wrongAdvertiser, 1) ==
            Mesh::TopologySnapshotApplyResult::Invalid);
 
     const Link duplicateIdentity[] = {
         {{authority, 1, neighbourA, 2}, {900, 20}},
         {{authority, 1, neighbourA, 2}, {901, 19}}
     };
-    assert(snapshot.ApplyComplete(authority, nextIncarnation, 2, duplicateIdentity, 2) ==
+    assert(validation.ApplyComplete(authority, nextIncarnation, 2, duplicateIdentity, 2) ==
            Mesh::TopologySnapshotApplyResult::Invalid);
 
     const Link overCapacity[] = {
         {{authority, 1, neighbourA, 2}, {900, 20}},
         {{authority, 2, neighbourB, 0}, {900, 20}},
-        {{authority, 3, Device(4), 0}, {900, 20}}
+        {{authority, 3, Device(5), 0}, {900, 20}}
     };
-    assert(snapshot.ApplyComplete(authority, nextIncarnation, 2, overCapacity, 3) ==
+    assert(validation.ApplyComplete(authority, nextIncarnation, 2, overCapacity, 3) ==
            Mesh::TopologySnapshotApplyResult::ResourceUnavailable);
 
     return 0;
