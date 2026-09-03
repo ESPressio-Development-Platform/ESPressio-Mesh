@@ -23,3 +23,4 @@
 #include "ESPressio_LivenessProbeReservations.hpp"
 #include "ESPressio_LivenessProbeCoordinator.hpp"
 #include "ESPressio_TopologySnapshot.hpp"
+#include "ESPressio_TopologyFreshness.hpp"
