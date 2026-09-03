@@ -9,3 +9,4 @@
 #include "ESPressio_AuthenticatedMembershipTable.hpp"
 #include "ESPressio_InboundDeliveryCoordinator.hpp"
 #include "ESPressio_MembershipRetentionCoordinator.hpp"
+#include "ESPressio_MembershipLiveness.hpp"
