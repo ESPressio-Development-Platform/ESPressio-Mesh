@@ -32,6 +32,7 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/mesh_types_test.cpp
           -o mesh_types_test
       - name: Run Mesh core type regression
@@ -41,6 +42,7 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/membership_tombstone_test.cpp
           -o membership_tombstone_test
       - name: Run membership tombstone regression
@@ -49,6 +51,8 @@ jobs:
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
+          -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/deduplication_window_test.cpp
           -o deduplication_window_test
       - name: Run deduplication window regression
@@ -57,6 +61,8 @@ jobs:
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
+          -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/mesh_message_id_generator_test.cpp
           -o mesh_message_id_generator_test
       - name: Run Mesh message ID generator regression
@@ -66,6 +72,7 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/inbound_delivery_reservations_test.cpp
           -o inbound_delivery_reservations_test
       - name: Run inbound delivery reservation regression
@@ -75,6 +82,7 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/authenticated_inbound_delivery_test.cpp
           -o authenticated_inbound_delivery_test
       - name: Run authenticated inbound delivery regression
@@ -84,6 +92,7 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/membership_retention_coordinator_test.cpp
           -o membership_retention_coordinator_test
       - name: Run membership retention coordinator regression
@@ -93,6 +102,7 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/membership_liveness_test.cpp
           -o membership_liveness_test
       - name: Run membership liveness regression
@@ -102,6 +112,7 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/membership_lifecycle_test.cpp
           -o membership_lifecycle_test
       - name: Run membership lifecycle regression
@@ -111,6 +122,7 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src
           -IESPressio-System/src
+          -IESPressio-Primitive/src
           ESPressio-Mesh/tests/admission_resources_test.cpp
           -o admission_resources_test
       - name: Run admission resource regression
