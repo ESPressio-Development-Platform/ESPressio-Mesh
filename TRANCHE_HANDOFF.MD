@@ -2,7 +2,7 @@
 
 ## Status
 
-**TRANCHE IN PROGRESS — IMPLEMENTATION AUTHORIZED.**
+**TRANCHE IN PROGRESS — FOUNDATION IMPLEMENTATION UNDERWAY.**
 
 This file is the current absolute truth for this implementation tranche. It is intentionally self-contained so that another ChatGPT/AI session can resume the tranche without reconstructing architectural intent from prior conversations.
 
@@ -541,7 +541,15 @@ Implementation-owned details such as exact C++ container/layout choices, exact b
 
 ---
 
-# 5. Chronological UTC Work Log
+# 5. Current Implementation State
+
+Foundation implementation is underway. `ESPressio-System` now owns the canonical fixed-width DeviceIdentifier on its Mesh propagation branch and `ESPressio-Primitive` now has its initial dependency-neutral vocabulary, build metadata, documentation and host regression coverage on its Mesh propagation branch. `ESPressio-Radio` has been inspected but not yet structurally changed. `ESPressio-State` has been inspected and still contains the previous State-owned DeviceIdentifier that must be migrated after the shared System type is established. Mesh core source has not yet been created.
+
+The immediate next implementation step is to reconcile the Radio logical-transfer contract with the frozen architecture, creating propagation branches for every concrete Radio implementation before changing `IRadio`; then migrate State and conceptual primitive libraries to the shared System/Primitive vocabulary before constructing the Mesh core.
+
+---
+
+# 6. Chronological UTC Work Log
 
 - **2026-09-03T12:59:05Z** — Tranche authorized by Simon. Primary implementation context confirmed as `ESPressio-Mesh`; frozen architecture status is PASS / IMPLEMENTATION READY.
 - **2026-09-03T12:59:05Z** — Created `ESPressio-Mesh` branch `structural_realignment_propagation` from current Working Branch `structural_realignment` in accordance with cross-library propagation policy.
@@ -549,4 +557,15 @@ Implementation-owned details such as exact C++ container/layout choices, exact b
 - **2026-09-03T12:59:05Z** — Created `ESPressio-System` branch `structural_realignment_propagation_ESPressio-Mesh` from `structural_realignment` in anticipation of required canonical DeviceIdentifier ownership propagation.
 - **2026-09-03T12:59:05Z** — Created `ESPressio-Radio` branch `structural_realignment_propagation_ESPressio-Mesh` from `structural_realignment` in anticipation of required Radio logical-transfer/timing capability propagation.
 - **2026-09-03T12:59:05Z** — Created this authoritative `TRANCHE_HANDOFF.MD` on the primary context propagation branch. It includes tranche scope, all Policy rules, the full reconciled frozen specification, implementation guardrails and chronological UTC state as required.
-- **2026-09-03T12:59:05Z** — No source implementation has yet been applied. Next operation: inspect the primary and already-identified dependency repositories at their propagation/current Working Branch tips, derive an implementation dependency order, identify exactly which additional repositories require propagation branches, and repin all participating cross-repository dependency references before changing code.
+- **2026-09-03T12:59:05Z** — Historical starting point: no source implementation had yet been applied. Repository inspection/dependency analysis began immediately after handoff creation.
+- **2026-09-03T13:13:44Z** — Repository inspection established that `ESPressio-Mesh` and `ESPressio-Primitive` were effectively empty at their starting tips, `ESPressio-MeshAdapters` contained only repository scaffolding, `ESPressio-System` already provided the platform-neutral low-level abstractions, `ESPressio-Radio` already provided a bounded physical-packet abstraction requiring logical-transfer realignment, and `ESPressio-State` still owned a duplicate 16-byte `DeviceIdentifier` contrary to the frozen ownership model.
+- **2026-09-03T13:13:44Z** — Implemented canonical `ESPressio::System::DeviceIdentifier` on `ESPressio-System/structural_realignment_propagation_ESPressio-Mesh`: exact 16-byte fixed representation, all-zero Invalid/Unspecified, immutable byte access, validity, exact equality and deterministic lexicographic ordering. The type deliberately contains no hardware/API-specific MAC derivation; target-specific default derivation remains the responsibility of a concrete platform library such as ESPressio-ESP32.
+- **2026-09-03T13:13:44Z** — Exposed `DeviceIdentifier` through the System umbrella header, added host regression coverage, extended System CI to execute on structural-realignment propagation branches, and updated the System README/documentation to describe canonical identity ownership and its separation from address/authentication semantics.
+- **2026-09-03T13:13:44Z** — Local host compilation/regression for System DeviceIdentifier completed successfully with C++17, `-Wall -Wextra -Werror`.
+- **2026-09-03T13:13:44Z** — GitHub Actions System CI run on the propagation branch completed successfully (run `33759667857`), including the new DeviceIdentifier regression and existing System regression suite.
+- **2026-09-03T13:13:44Z** — Implemented the initial `ESPressio-Primitive` library on `structural_realignment_propagation_ESPressio-Mesh`: dependency-neutral `PrimitiveFamilyId`, `PrimitiveProtocolVersion`, `PrimitiveProtocolVersionRange`, strong `ConceptualMessageId`, strong `CorrelationId`, and exact 32-byte `ContractFingerprint`; added the centralized family-ID namespace boundaries, umbrella header, PlatformIO/CMake/component metadata, README and host regression tests.
+- **2026-09-03T13:13:44Z** — Primitive family namespace boundaries implement the frozen allocation policy: `0x0000` invalid, `0x0001–0x7FFF` ESPressio-defined, `0x8000–0xFFFE` application/private, `0xFFFF` reserved. No concrete ESPressio family IDs have yet been allocated; those will be added individually to this central registry when the corresponding families are integrated.
+- **2026-09-03T13:13:44Z** — Local host compilation/regression for ESPressio-Primitive completed successfully with C++17, `-Wall -Wextra -Werror`.
+- **2026-09-03T13:13:44Z** — GitHub Actions ESPressio-Primitive CI completed successfully (run `33759589264`). No GitHub task-budget exhaustion condition is present at this point.
+- **2026-09-03T13:13:44Z** — Inspected the existing `ESPressio-Radio` propagation branch. Current `IRadio` accepts one physical payload through synchronous admission and reports `MaximumPayloadBytes`; current `RadioPacketView` exposes one borrowed physical packet. Frozen architecture instead requires Radio to own bounded hop-local fragmentation/reassembly and expose a finite logical-transfer capability while remaining completely blind to Mesh/Primitive identities and semantics. No Radio source modification has yet been made.
+- **2026-09-03T13:13:44Z** — Inspected `ESPressio-State/structural_realignment`; it currently owns `ESPressio::State::DeviceIdentifier`, including MAC-specific helpers. This must be replaced by the canonical System type on a State propagation branch, with all affected dependency references and documentation updated coherently. No State source modification has yet been made.
