@@ -15,7 +15,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-System
       - name: Build Mesh core type regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -Isrc tests/mesh_types_test.cpp -o mesh_types_test
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          ESPressio-Mesh/tests/mesh_types_test.cpp
+          -o mesh_types_test
       - name: Run Mesh core type regression
         run: ./mesh_types_test
+      - name: Build membership tombstone regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          ESPressio-Mesh/tests/membership_tombstone_test.cpp
+          -o membership_tombstone_test
+      - name: Run membership tombstone regression
+        run: ./membership_tombstone_test
