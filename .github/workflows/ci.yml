@@ -32,87 +32,99 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Radio
           ref: structural_realignment_propagation_ESPressio-Mesh
           path: ESPressio-Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Observable
+          ref: structural_realignment
+          path: ESPressio-Observable
       - name: Build Mesh core type regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/mesh_types_test.cpp -o mesh_types_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_types_test.cpp -o mesh_types_test -pthread
       - name: Run Mesh core type regression
         run: ./mesh_types_test
       - name: Build membership tombstone regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/membership_tombstone_test.cpp -o membership_tombstone_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/membership_tombstone_test.cpp -o membership_tombstone_test -pthread
       - name: Run membership tombstone regression
         run: ./membership_tombstone_test
       - name: Build deduplication window regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/deduplication_window_test.cpp -o deduplication_window_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/deduplication_window_test.cpp -o deduplication_window_test -pthread
       - name: Run deduplication window regression
         run: ./deduplication_window_test
       - name: Build Mesh message ID generator regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/mesh_message_id_generator_test.cpp -o mesh_message_id_generator_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_message_id_generator_test.cpp -o mesh_message_id_generator_test -pthread
       - name: Run Mesh message ID generator regression
         run: ./mesh_message_id_generator_test
       - name: Build inbound delivery reservation regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/inbound_delivery_reservations_test.cpp -o inbound_delivery_reservations_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/inbound_delivery_reservations_test.cpp -o inbound_delivery_reservations_test -pthread
       - name: Run inbound delivery reservation regression
         run: ./inbound_delivery_reservations_test
       - name: Build authenticated inbound delivery regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/authenticated_inbound_delivery_test.cpp -o authenticated_inbound_delivery_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/authenticated_inbound_delivery_test.cpp -o authenticated_inbound_delivery_test -pthread
       - name: Run authenticated inbound delivery regression
         run: ./authenticated_inbound_delivery_test
       - name: Build membership retention coordinator regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/membership_retention_coordinator_test.cpp -o membership_retention_coordinator_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/membership_retention_coordinator_test.cpp -o membership_retention_coordinator_test -pthread
       - name: Run membership retention coordinator regression
         run: ./membership_retention_coordinator_test
       - name: Build membership liveness regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/membership_liveness_test.cpp -o membership_liveness_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/membership_liveness_test.cpp -o membership_liveness_test -pthread
       - name: Run membership liveness regression
         run: ./membership_liveness_test
       - name: Build membership lifecycle regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/membership_lifecycle_test.cpp -o membership_lifecycle_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/membership_lifecycle_test.cpp -o membership_lifecycle_test -pthread
       - name: Run membership lifecycle regression
         run: ./membership_lifecycle_test
       - name: Build admission resource regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/admission_resources_test.cpp -o admission_resources_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/admission_resources_test.cpp -o admission_resources_test -pthread
       - name: Run admission resource regression
         run: ./admission_resources_test
       - name: Build admission promotion regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/admission_promotion_test.cpp -o admission_promotion_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/admission_promotion_test.cpp -o admission_promotion_test -pthread
       - name: Run admission promotion regression
         run: ./admission_promotion_test
       - name: Build primitive receiver registry regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          ESPressio-Mesh/tests/primitive_receiver_registry_test.cpp -o primitive_receiver_registry_test
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/primitive_receiver_registry_test.cpp -o primitive_receiver_registry_test -pthread
       - name: Run primitive receiver registry regression
         run: ./primitive_receiver_registry_test
+      - name: Build Mesh radio/discovery regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_radio_discovery_test.cpp -o mesh_radio_discovery_test -pthread
+      - name: Run Mesh radio/discovery regression
+        run: ./mesh_radio_discovery_test
