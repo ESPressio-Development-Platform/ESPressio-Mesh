@@ -58,6 +58,14 @@ jobs:
           -o route_cache_test -pthread
       - name: Run bounded route-cache regression
         run: ./route_cache_test
+      - name: Build routing policy regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/routing_policy_test.cpp
+          -o routing_policy_test -pthread
+      - name: Run routing policy regression
+        run: ./routing_policy_test
       - name: Build current Mesh umbrella
         run: >-
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
