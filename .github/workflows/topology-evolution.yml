@@ -50,6 +50,14 @@ jobs:
           -o topology_graph_store_test -pthread
       - name: Run global topology graph regression
         run: ./topology_graph_store_test
+      - name: Build bounded route-cache regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/route_cache_test.cpp
+          -o route_cache_test -pthread
+      - name: Run bounded route-cache regression
+        run: ./route_cache_test
       - name: Build current Mesh umbrella
         run: >-
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
