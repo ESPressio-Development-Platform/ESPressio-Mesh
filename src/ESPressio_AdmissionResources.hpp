@@ -6,6 +6,7 @@
 #include <limits>
 
 #include <ESPressio_DeviceIdentifier.hpp>
+#include <ESPressio_RadioTypes.hpp>
 
 #include "ESPressio_MeshLimits.hpp"
 #include "ESPressio_MeshTypes.hpp"
@@ -46,6 +47,7 @@ struct UntrustedMembershipClaim final {
 struct PendingNeighbourCandidate final {
     NeighbourCandidateHandle Handle{};
     RadioIdentifier Radio{0};
+    Radio::RadioPeerHandle Peer{};
     UntrustedMembershipClaim Claim{};
     MembershipState State{MembershipState::Discovered};
     std::uint64_t FirstObservedMilliseconds{0};
@@ -63,6 +65,11 @@ enum class PendingCandidateInsertResult : std::uint8_t {
 /// <summary>
 /// Fixed-capacity storage for Discovered/Authenticating neighbours before authenticated membership exists.
 /// </summary>
+/// <remarks>
+/// Each candidate is bound to the Mesh-local RadioIdentifier plus a generation-safe Radio-owned peer handle.
+/// Neither that link binding nor the claimed DeviceIdentifier/MembershipIncarnation grants identity authority;
+/// authentication/admission must succeed before promotion into AuthenticatedMembershipTable.
+/// </remarks>
 template<std::size_t Capacity = Limits::MaxPendingNeighbourCandidates>
 class PendingNeighbourCandidateTable final {
     static_assert(Capacity > 0, "Pending neighbour capacity must be non-zero.");
@@ -103,15 +110,17 @@ public:
     }
 
     /// <summary>
-    /// Inserts or refreshes an untrusted claimed identity observed on one valid Mesh Radio identifier.
+    /// Inserts or refreshes an untrusted identity claim observed through one valid Radio/peer binding.
     /// </summary>
     PendingCandidateInsertResult Observe(
         RadioIdentifier radio,
+        Radio::RadioPeerHandle peer,
         const UntrustedMembershipClaim& claim,
         std::uint64_t nowMilliseconds,
         NeighbourCandidateHandle& handle
     ) noexcept {
-        if (radio == 0U || radio == 0xFFU || !claim.Device || !claim.Incarnation || nowMilliseconds == 0U) {
+        if (radio == 0U || radio == 0xFFU || !peer ||
+            !claim.Device || !claim.Incarnation || nowMilliseconds == 0U) {
             handle = {};
             return PendingCandidateInsertResult::Invalid;
         }
@@ -119,6 +128,7 @@ public:
         for (auto& slot : _slots) {
             if (!slot.Occupied) continue;
             if (slot.Candidate.Radio == radio &&
+                slot.Candidate.Peer == peer &&
                 slot.Candidate.Claim.Device == claim.Device &&
                 slot.Candidate.Claim.Incarnation == claim.Incarnation) {
                 if (nowMilliseconds >= slot.Candidate.LastObservedMilliseconds) {
@@ -137,6 +147,7 @@ public:
             slot.Candidate = PendingNeighbourCandidate{
                 NeighbourCandidateHandle{static_cast<std::uint16_t>(index), slot.Generation},
                 radio,
+                peer,
                 claim,
                 MembershipState::Discovered,
                 nowMilliseconds,
