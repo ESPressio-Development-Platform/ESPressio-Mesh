@@ -1,0 +1,44 @@
+{
+  "name": "ESPressio-Mesh",
+  "description": "Bounded multi-radio membership, topology, routing and delivery control plane for the ESPressio Development Platform",
+  "keywords": "espressio,mesh,radio,routing,topology,membership,delivery,clock,security",
+  "authors": {"name":"Simon J. Stuart","maintainer":true,"url":"https://espressio.org"},
+  "build": {"flags":["-std=gnu++17","-DESPRESSIO_MESH"]},
+  "repository": {"type":"git","url":"https://github.com/ESPressio-Development-Platform/ESPressio-Mesh.git"},
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "frameworks": "*",
+  "platforms": "*",
+  "dependencies": [
+    {
+      "name":"ESPressio-System",
+      "version":"https://github.com/ESPressio-Development-Platform/ESPressio-System.git#structural_realignment_propagation_ESPressio-Mesh",
+      "platforms":"*"
+    },
+    {
+      "name":"ESPressio-Primitive",
+      "version":"https://github.com/ESPressio-Development-Platform/ESPressio-Primitive.git#structural_realignment_propagation_ESPressio-Mesh",
+      "platforms":"*"
+    },
+    {
+      "name":"ESPressio-Radio",
+      "version":"https://github.com/ESPressio-Development-Platform/ESPressio-Radio.git#structural_realignment_propagation_ESPressio-Mesh",
+      "platforms":"*"
+    },
+    {
+      "name":"ESPressio-Timing",
+      "version":"https://github.com/ESPressio-Development-Platform/ESPressio-Timing.git#structural_realignment",
+      "platforms":"*"
+    },
+    {
+      "name":"ESPressio-Security",
+      "version":"https://github.com/ESPressio-Development-Platform/ESPressio-Security.git#structural_realignment",
+      "platforms":"*"
+    },
+    {
+      "name":"ESPressio-Observable",
+      "version":"https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#structural_realignment",
+      "platforms":"*"
+    }
+  ]
+}
