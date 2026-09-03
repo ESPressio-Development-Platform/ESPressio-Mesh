@@ -1,0 +1,23 @@
+name: Control Work Lifetime
+
+on:
+  push:
+    branches:
+      - main
+      - structural_realignment
+      - 'structural_realignment_propagation*'
+  pull_request:
+
+jobs:
+  host-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build control-work lifetime regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -Isrc
+          tests/control_work_lifetime_policy_test.cpp
+          -o control_work_lifetime_policy_test
+      - name: Run control-work lifetime regression
+        run: ./control_work_lifetime_policy_test
