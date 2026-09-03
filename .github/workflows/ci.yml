@@ -65,3 +65,12 @@ jobs:
           -o inbound_delivery_reservations_test
       - name: Run inbound delivery reservation regression
         run: ./inbound_delivery_reservations_test
+      - name: Build authenticated inbound delivery regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          ESPressio-Mesh/tests/authenticated_inbound_delivery_test.cpp
+          -o authenticated_inbound_delivery_test
+      - name: Run authenticated inbound delivery regression
+        run: ./authenticated_inbound_delivery_test
