@@ -2,7 +2,7 @@
 
 ## Status
 
-**TRANCHE IN PROGRESS — SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED; MESH AUTHENTICATED MEMBERSHIP, DEDUPLICATION, IN-PROGRESS DELIVERY, RETENTION AND POLICY-DRIVEN LIVENESS FOUNDATIONS VALIDATED.**
+**TRANCHE IN PROGRESS — SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED; MESH AUTHENTICATED MEMBERSHIP, DEDUPLICATION, IN-PROGRESS DELIVERY, RETENTION, POLICY-DRIVEN LIVENESS, LIFECYCLE AND BOUNDED PRE-AUTH ADMISSION RESOURCES VALIDATED.**
 
 This file is the current absolute truth for the implementation tranche originating in `ESPressio-Mesh`. The architecture below is frozen. Implementation may choose bounded internal mechanics only where doing so does not alter public/distributed semantics, ownership, dependency direction, wire compatibility, locked bounds, authentication/identity semantics or Policy. If a genuine architectural omission/conflict is exposed, stop and ask Simon Stuart. Concrete ESPressio-defined `PrimitiveFamilyId` numeric allocations and the distributed EventTypeId assignment contract remain explicit decision boundaries and MUST NOT be invented autonomously.
 
@@ -208,34 +208,41 @@ Implemented on `structural_realignment_propagation`:
 - `InboundDeliveryCoordinator`: composes exact authenticated-membership lookup → committed dedup classification → InProgress reservation. It exposes explicit definitive commit vs retryable release, so unauthenticated/unknown incarnations cannot reserve or advance dedup state and retryable pressure does not poison history.
 - `MembershipRetentionCoordinator`: composes policy-decided full authenticated-record retirement with compact tombstone creation for AuthoritativeLeave, SupersededIncarnation and LocallyForgotten. It deliberately does not decide *when* retirement occurs. Tombstone is recorded before full record release; tombstone saturation cannot block retirement.
 - `IMeshLivenessPolicy` + `DefaultMeshLivenessPolicy`: liveness thresholds are injected policy, not membership-storage constants. Default policy uses the architecture baseline 5 s Suspect / 15 s Unreachable thresholds while permitting replacement.
-- `MembershipLivenessTracker<32>`: retains bounded authenticated-evidence timestamps independently from membership identity/dedup storage; only an exact already-authenticated DeviceIdentifier+MembershipIncarnation may contribute evidence. Valid evidence restores Reachable immediately; policy evaluation drives Reachable→Suspect→Unreachable without changing MembershipState. It retains the local monotonic instant at which Unreachable began and exposes the frozen 60 s full-record-retention test without autonomously retiring the member.
+- `MembershipLivenessTracker<32>`: bounded authenticated-evidence timestamps; only exact already-authenticated source/incarnation evidence is accepted. Valid evidence restores Reachable immediately; policy drives Reachable→Suspect→Unreachable without changing MembershipState. Unreachable start time is retained and the frozen 60 s full-record-retention test is exposed without autonomous retirement.
+- `MembershipLifecycleCoordinator`: narrow composition of liveness evaluation and MembershipRetentionCoordinator. It preserves the full authenticated member through the configured unreachable-retention interval, then retires it as LocallyForgotten through tombstone-before-release sequencing and clears liveness bookkeeping.
+- `PendingNeighbourCandidateTable<8>`: separately bounded pre-authentication storage for Discovered/Authenticating candidates. DeviceIdentifier/MembershipIncarnation fields are explicitly untrusted claims only. Candidate handles are generation-safe so stale slot handles cannot resolve after reuse.
+- `InboundAuthenticationReservationTable<4>`: separately bounded expensive-authentication execution slots keyed by generation-safe candidate handles. It owns no authenticated identity and cannot mutate authenticated membership/dedup state.
 - Umbrella header exports all foundations.
 
 Validation:
 
 - run `33785734451`: types + tombstones + dedup passed.
-- run `33786121103`: added message-ID generator, all passed.
-- run `33786446663`: added InProgress reservation, all passed.
-- run `33786968405`: authenticated membership + inbound delivery coordinator regression passed along with prior regressions.
-- run `33787189204`: membership-retention coordinator regression passed along with every prior Mesh host regression.
-- run `33789240336`: policy-driven liveness regression passed along with every prior Mesh host regression. No Actions-budget symptom.
+- run `33786121103`: message-ID generator added, all passed.
+- run `33786446663`: InProgress reservation added, all passed.
+- run `33786968405`: authenticated membership + inbound delivery coordinator added, all passed.
+- run `33787189204`: membership-retention coordinator added, all passed.
+- run `33789240336`: policy-driven liveness added, all passed.
+- run `33792457888`: membership lifecycle and bounded admission-resource regressions passed with every prior host regression.
+- run `33792536582`: self-contained liveness-header correction passed every current host regression. No Actions-budget symptom.
 
 Important implementation boundaries:
 
 - `AuthenticatedMembershipTable` contains only already-authenticated records. Discovery/pre-authentication candidates remain a distinct bounded resource class and cannot affect authenticated-member dedup state. It allows Validating/Joining/Active because those states occur after sufficient authentication in the frozen pipeline; Unknown/Discovered/Authenticating cannot be inserted through this table.
-- Liveness evidence is accepted only after caller-side authentication and exact incarnation resolution. `MembershipLivenessTracker` does not authenticate packets, does not infer membership authority from reachability, and does not autonomously forget an unreachable member. The owning membership service decides when the 60 s retention result becomes `LocallyForgotten` retirement.
+- Liveness evidence is accepted only after caller-side authentication and exact incarnation resolution. Liveness never authenticates packets or infers membership authority from reachability.
+- Pending candidate claimed identities are untrusted hints. The admission/security layer must explicitly promote a successfully authenticated candidate into `AuthenticatedMembershipTable`; no pre-auth structure can do so implicitly.
+- `NeighbourCandidateHandle` is Mesh-local generation-safe resource identity, not a replacement for the separately frozen Radio-owned generation-safe peer handle contract. Radio peer-handle implementation still requires audit before discovery-to-Radio binding is considered complete.
 
 ---
 
 # 5. Immediate next work
 
-1. Compose liveness expiry with `MembershipRetentionCoordinator` in a narrow membership-lifecycle orchestrator so policy classification, full-record retention and LocallyForgotten retirement remain explicit and testable without collapsing responsibilities.
-2. Add bounded pending-neighbour/admission resource structures (`MaxPendingNeighbourCandidates=8`, `MaxActiveInboundAuthentications=4`) while keeping unauthenticated candidates outside authenticated membership/dedup state.
-3. Build the bounded primitive-receiver registry only when its public receiver/context surface can be defined without allocating the Mesh family ID. Do not invent the reserved Mesh-family numeric value.
-4. Reconcile Command local `CommandResult` naming/completion wording without reintroducing RPC semantics.
-5. Keep Event intrinsic distributed identity work paused until Simon chooses/approves stable EventTypeId assignment.
-6. Continue higher Mesh services incrementally: membership/profile → topology → routing → traffic governance → clock coordination → adapters.
-7. Create MeshAdapters propagation branch when adapter work begins.
+1. Audit/implement the frozen Radio-owned generation-safe peer-handle contract on the Radio propagation branch, because current Radio public types expose RadioAddress but not the architecture's explicit peer-handle abstraction. Do not let Mesh-local candidate handles substitute for Radio ownership.
+2. After Radio peer handles are coherent, bind pending neighbour candidates to RadioIdentifier + Radio peer handle without granting identity authority before authentication.
+3. Implement the narrow admission promotion coordinator: pending candidate + reserved authentication + external security/admission success → Validating authenticated membership, with deterministic release on failure/resource pressure. Security decisions remain injected; Mesh does not invent crypto.
+4. Build bounded primitive-receiver registry only without allocating the Mesh PrimitiveFamilyId; stop when concrete family numeric allocation becomes required.
+5. Reconcile Command local `CommandResult` naming/completion wording without reintroducing RPC semantics.
+6. Keep Event distributed EventTypeId work paused pending Simon's explicit identity-contract decision.
+7. Continue profile → topology → routing → traffic governance → clock coordination → adapters incrementally.
 
 ---
 
@@ -251,7 +258,8 @@ Important implementation boundaries:
 - **2026-09-03T17:36:00Z–17:38:18Z** — Corrected Mesh ReachabilityState to Suspect; implemented bounded tombstones and DeduplicationWindow; run `33785734451` passed.
 - **2026-09-03T17:42:18Z** — Added non-wrapping MeshMessageIdGenerator; run `33786121103` passed.
 - **2026-09-03T17:44:00Z–17:45:35Z** — Added fixed-capacity InboundDeliveryReservationTable; run `33786446663` passed.
-- **2026-09-03T17:49:00Z–17:50:55Z** — Added AuthenticatedMembershipTable and InboundDeliveryCoordinator. Exact source/incarnation membership owns committed dedup; unknown/conflicting incarnation cannot reserve or advance it. Regression covered retryable release, definitive commit, duplicate/TooOld, disappearing membership and capacity. Run `33786968405` passed all current Mesh tests.
-- **2026-09-03T17:52:00Z–17:53:20Z** — Added MembershipRetentionCoordinator for explicit AuthoritativeLeave / SupersededIncarnation / LocallyForgotten retirement into compact tombstones. Coordinator does not decide retirement timing. Run `33787189204` passed all current Mesh host regressions.
-- **2026-09-03T17:54:00Z** — Reconciled authoritative handoff to current Mesh delivery/membership implementation truth.
-- **2026-09-03T18:12:00Z–18:13:58Z** — Added policy-driven MembershipLivenessTracker and replaceable IMeshLivenessPolicy. Exact authenticated evidence restores Reachable; default policy degrades at 5 s/15 s; Unreachable start is retained locally and frozen 60 s full-record-retention expiry is exposed without autonomous membership removal. Regression verifies wrong-incarnation rejection, monotonic evidence, Reachable→Suspect→Unreachable, 60 s retention, immediate recovery and replaceable thresholds. Run `33789240336` passed all current Mesh host regressions. Concrete PrimitiveFamilyId/EventTypeId decisions remain untouched.
+- **2026-09-03T17:49:00Z–17:50:55Z** — Added AuthenticatedMembershipTable and InboundDeliveryCoordinator; run `33786968405` passed.
+- **2026-09-03T17:52:00Z–17:53:20Z** — Added MembershipRetentionCoordinator; run `33787189204` passed.
+- **2026-09-03T18:12:00Z–18:13:58Z** — Added policy-driven MembershipLivenessTracker and replaceable IMeshLivenessPolicy; run `33789240336` passed.
+- **2026-09-03T18:44:00Z–18:46:30Z** — Added MembershipLifecycleCoordinator and separately bounded pre-auth `PendingNeighbourCandidateTable<8>` / `InboundAuthenticationReservationTable<4>`. Regressions verify retention-driven local forgetting, tombstone creation, candidate capacity, authentication capacity, duplicate reservation and stale-handle generation safety. Run `33792457888` passed all current tests.
+- **2026-09-03T18:46:53Z–18:47:20Z** — Recursive header audit found MembershipLiveness.hpp relied transitively on `<array>`/`<cstddef>`; made it self-contained. Run `33792536582` passed all current Mesh regressions. Audit also identified the next cross-layer gap: the frozen Radio-owned generation-safe peer handle is not currently exposed in Radio public types and must be corrected before candidate-to-Radio binding is finalized.
