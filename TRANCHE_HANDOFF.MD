@@ -2,7 +2,7 @@
 
 ## Status
 
-**TRANCHE IN PROGRESS — ARCHITECTURE PASS / IMPLEMENTATION READY. SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED. MESH MEMBERSHIP, DELIVERY/DEDUP, RETENTION, LIVENESS, PRE-AUTH ADMISSION, AUTHENTICATED PROMOTION, RADIO PEER/DISCOVERY LIFECYCLE, EXTERNAL PRIMITIVE RECEIVERS, DETERMINISTIC ADVERTISED PRIMITIVE-SUPPORT SNAPSHOTS, PROTECTED TRAFFIC GOVERNANCE, FINITE CONTROL-WORK LIFETIME, POLICY-DRIVEN ACTIVE LIVENESS PROBING, BOUNDED DIRECTED TOPOLOGY, POLICY-DRIVEN TOPOLOGY FRESHNESS/PUBLICATION, GLOBALLY BOUNDED GRAPH STORAGE, AND BOUNDED LOCAL ROUTE-PLANNING/CACHE FOUNDATIONS ARE VALIDATED.**
+**TRANCHE IN PROGRESS — ARCHITECTURE PASS / IMPLEMENTATION READY. SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED. MESH MEMBERSHIP, DELIVERY/DEDUP, RETENTION, LIVENESS, PRE-AUTH ADMISSION, AUTHENTICATED PROMOTION, RADIO PEER/DISCOVERY LIFECYCLE, EXTERNAL PRIMITIVE RECEIVERS, DETERMINISTIC ADVERTISED PRIMITIVE-SUPPORT SNAPSHOTS, PROTECTED TRAFFIC GOVERNANCE, FINITE CONTROL-WORK LIFETIME, POLICY-DRIVEN ACTIVE LIVENESS PROBING, BOUNDED DIRECTED TOPOLOGY, POLICY-DRIVEN TOPOLOGY FRESHNESS/PUBLICATION, GLOBALLY BOUNDED GRAPH STORAGE, BOUNDED LOCAL ROUTE-PLANNING/CACHE, INJECTED ROUTING STRATEGY, AND BOUNDED ROUTE-ATTEMPT/RETRY POLICY FOUNDATIONS ARE VALIDATED.**
 
 This file is the authoritative implementation-tranche handoff for the tranche originating in `ESPressio-Mesh`. The architecture below is frozen. Implementation may choose bounded internal mechanics only where they do not alter public/distributed semantics, ownership, dependency direction, wire compatibility, authentication/identity semantics, locked bounds or Policy. If a genuine architectural omission/conflict is exposed, stop and ask Simon Stuart.
 
@@ -189,6 +189,8 @@ Provisional fixed/cardinality metadata ≈60,160 B plus starting task stacks ≈
 - `TopologyGraphStore<TCharacteristics, 96, 32>`: `MaxTopologyLinks=96` is enforced across the whole retained graph rather than per authority; authority metadata is independently bounded to Mesh membership capacity. Complete newer authority generations replace only that authority's links transactionally; same-generation refresh/conflict, stale generation and new-incarnation namespace semantics are explicit. Freshness remains outside authoritative graph truth.
 - `ResolvedRoute<16>`: bounded loop-free contiguous sequence of directed topology edge identities used only as a local planning artifact. It is explicitly not a source-route wire contract; adaptive forwarding nodes may re-plan independently. Radio peer/address state is absent from the route representation.
 - `RouteCache<32,16>`: fixed-capacity disposable local route hints with generation-safe entry handles, deterministic in-place replacement for the same source/destination and no hidden eviction of unrelated destinations. Hits are non-authoritative and must be revalidated against current membership/topology freshness/link usability/routing policy. Explicit endpoint/authority invalidation and Clear are provided.
+- `IRoutingStrategy<TCharacteristics>` with bounded `RoutingEvidence` and structural route postcondition validation. It interprets the current bounded graph without imposing a scalar RouteCost and returns only a disposable local route plan; source routing is not introduced.
+- `IRouteAttemptPolicy` / `IRetryPolicy` with default frozen ceilings of three attempts on one route and four distinct routes. Retryability remains outcome/policy-driven; deadline expiry and permanent failure terminate default retries.
 - umbrella header exports all current foundations.
 
 Full NodeProfile remains blocked on Group identifier semantics. Topology normalized characteristic representation and default freshness/publication thresholds intentionally remain policy/concrete-build decisions rather than hidden constants.
@@ -210,6 +212,8 @@ Full NodeProfile remains blocked on Group identifier semantics. Topology normali
 - Mesh `33807676751`: complete general Mesh CI green at the same corrected topology-evolution head.
 - Mesh `33807676650` and `33807676743`: topology-freshness and control-work-lifetime dedicated workflows also green at that head.
 - Mesh `33808650254`: bounded route-planning/cache regression, topology publication, global graph and full umbrella all green.
+- Mesh `33810679172`: first routing-policy workflow exposed a test-only namespace qualification error (`System` from global scope); feature headers had compiled through general CI before that point. Test corrected without semantic feature change.
+- Mesh `33810738804`: corrected routing-policy regression green, including strategy planning, structural route validation, frozen retry ceilings, prior topology/cache regressions and umbrella compile.
 - **No Actions-budget symptom has occurred.**
 
 ## 4.4 Critical boundaries
@@ -225,7 +229,9 @@ Full NodeProfile remains blocked on Group identifier semantics. Topology normali
 - `MaxTopologyLinks=96` is a graph-wide bound, never `96 × members`. Authority metadata has its own finite `MaxMeshNodes` bound.
 - Topology graph truth and local freshness are separate: receipt/retransmission may refresh freshness without altering authority generation or semantic links.
 - Route plans/cache entries are disposable local hints, never distributed authority. The current route representation does not impose source routing; each forwarding node remains free to choose a new next hop.
+- `IRoutingStrategy` interprets topology rather than Mesh imposing a universal cost model. A strategy-produced route must satisfy bounded structural postconditions before use.
 - Route cache deliberately has no hidden cost/freshness/eviction policy. Such decisions belong to routing/freshness strategy composition.
+- Same-route and distinct-route retry ceilings are bounded independently; neither may override the immutable delivery deadline.
 - No universal RouteCost, topology freshness threshold or publication-materiality threshold has been invented.
 - Security composition must reuse ESPressio-Security primitives without inventing a Mesh handshake schema merely to satisfy an interface.
 - No concrete ESPressio `PrimitiveFamilyId`, distributed EventTypeId, Event MessageId strategy or Group identifier may be invented autonomously.
@@ -234,13 +240,12 @@ Full NodeProfile remains blocked on Group identifier semantics. Topology normali
 
 # 5. Immediate next work
 
-1. Define the narrow injected `IRoutingStrategy` decision boundary over current bounded topology observations/freshness and local delivery context, without inventing a universal scalar RouteCost or forcing source routing. The output should be a bounded local next-hop/planning result.
-2. Compose route-cache lookup/revalidation with the strategy so a stale hint never bypasses current membership, freshness, link usability or policy.
-3. Implement frozen route-attempt/retry ceilings (`MaxSameRouteAttempts=3`, `MaxRoutesAttempted=4`) behind `IRouteAttemptPolicy` / `IRetryPolicy`, keeping immutable delivery deadline as the outer bound.
-4. Continue Security composition toward a minimal outcome-oriented `IMeshSecurityAuthority` / `IMeshAdmissionPolicy` boundary only where it remains wire-neutral; reuse Security crypto primitives and do not invent a handshake schema.
-5. Reconcile Command `CommandResult` source/docs wording so `success` unambiguously describes local parsing/validation/dispatch/handler disposition, never requested-operation completion; avoid gratuitous public rename.
-6. Keep Event distributed identity work paused pending Simon's EventTypeId/message-ID decisions.
-7. Continue traffic-governed queues → clock coordination → adapters; create/verify MeshAdapters propagation branch when adapter work begins.
+1. Compose route-cache lookup/revalidation with current membership, topology freshness, link usability and injected routing policy so a stale cached hint can never bypass present evidence.
+2. Add the bounded route-attempt orchestration state that applies `IRouteAttemptPolicy` / `IRetryPolicy` while preserving one immutable delivery deadline and permitting adaptive re-planning between distinct routes.
+3. Continue Security composition toward a minimal outcome-oriented `IMeshSecurityAuthority` / `IMeshAdmissionPolicy` boundary only where it remains wire-neutral; reuse Security crypto primitives and do not invent a handshake schema.
+4. Reconcile Command `CommandResult` source/docs wording so `success` unambiguously describes local parsing/validation/dispatch/handler disposition, never requested-operation completion; avoid gratuitous public rename.
+5. Keep Event distributed identity work paused pending Simon's EventTypeId/message-ID decisions.
+6. Continue traffic-governed queues → clock coordination → adapters; create/verify MeshAdapters propagation branch when adapter work begins.
 
 ---
 
@@ -259,3 +264,4 @@ Full NodeProfile remains blocked on Group identifier semantics. Topology normali
 - **2026-09-03T21:18:00Z–21:21:00Z** — Added injected topology-publication materiality boundary and globally bounded topology graph store. Publication distinguishes unchanged/suppressed/material changes, advances generation exactly once only on policy-approved material publication, restarts at generation 1 for new incarnation and never wraps. Graph store enforces 96 links across all authorities, independently bounds authority metadata to 32 and replaces complete per-authority generations transactionally without disturbing other authorities.
 - **2026-09-03T21:21:04Z–21:23:52Z** — Initial topology-evolution run `33807461653` passed both new feature regressions but exposed only a missing Observable include in the dedicated umbrella check. Workflow corrected without feature-code change; dedicated Topology Evolution `33807676687` and general CI `33807676751` passed, with freshness/lifetime dedicated runs also green. No Actions-budget symptom; unresolved public/wire identifiers remain untouched.
 - **2026-09-03T21:31:00Z–21:34:25Z** — Added bounded loop-free `ResolvedRoute<16>` as a local planning artifact and fixed-capacity `RouteCache<32,16>` as disposable, explicitly revalidated routing hints. No source-route wire semantics, universal RouteCost or hidden cache eviction policy was introduced. Dedicated Topology Evolution run `33808650254` passed route-cache regression, topology publication/global graph regressions and the full current Mesh umbrella.
+- **2026-09-03T21:56:00Z–21:58:34Z** — Added injected `IRoutingStrategy`/`RoutingEvidence` boundary and structural strategy-output validation, plus independently injected same-route/distinct-route retry policies with frozen default ceilings 3/4. Initial dedicated routing regression found only a test namespace qualification error; corrected run `33810738804` passed strategy, retry, topology/cache and umbrella checks. No universal RouteCost/source-routing contract/public wire identifier was introduced.
