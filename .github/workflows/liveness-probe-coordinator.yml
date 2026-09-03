@@ -1,0 +1,48 @@
+name: Liveness Probe Coordinator
+
+on:
+  push:
+    branches:
+      - main
+      - structural_realignment
+      - 'structural_realignment_propagation*'
+      - 'feature/**'
+      - 'optimisation/**'
+    paths:
+      - 'src/ESPressio_LivenessProbeCoordinator.hpp'
+      - 'src/ESPressio_LivenessProbeReservations.hpp'
+      - 'src/ESPressio_MembershipLiveness.hpp'
+      - 'src/ESPressio_AuthenticatedMembershipTable.hpp'
+      - 'src/ESPressio_Mesh.hpp'
+      - 'tests/liveness_probe_coordinator_test.cpp'
+      - '.github/workflows/liveness-probe-coordinator.yml'
+  pull_request:
+    paths:
+      - 'src/ESPressio_LivenessProbeCoordinator.hpp'
+      - 'src/ESPressio_LivenessProbeReservations.hpp'
+      - 'src/ESPressio_MembershipLiveness.hpp'
+      - 'src/ESPressio_AuthenticatedMembershipTable.hpp'
+      - 'src/ESPressio_Mesh.hpp'
+      - 'tests/liveness_probe_coordinator_test.cpp'
+      - '.github/workflows/liveness-probe-coordinator.yml'
+
+jobs:
+  host-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-System
+      - name: Build liveness probe coordinator regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src
+          ESPressio-Mesh/tests/liveness_probe_coordinator_test.cpp
+          -o liveness_probe_coordinator_test
+      - name: Run liveness probe coordinator regression
+        run: ./liveness_probe_coordinator_test
