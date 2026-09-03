@@ -2,7 +2,7 @@
 
 ## Status
 
-**TRANCHE IN PROGRESS — SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED; MESH AUTHENTICATED MEMBERSHIP, DEDUPLICATION, IN-PROGRESS DELIVERY, RETENTION, POLICY-DRIVEN LIVENESS, LIFECYCLE, BOUNDED PRE-AUTH ADMISSION RESOURCES AND EXTERNAL PRIMITIVE RECEIVER REGISTRY VALIDATED.**
+**TRANCHE IN PROGRESS — SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED; MESH AUTHENTICATED MEMBERSHIP, DELIVERY, RETENTION, LIVENESS, LIFECYCLE, PRE-AUTH ADMISSION, AUTHENTICATED PROMOTION AND EXTERNAL PRIMITIVE RECEIVER FOUNDATIONS VALIDATED; RADIO GENERATION-SAFE PEER-HANDLE FOUNDATION VALIDATED.**
 
 This file is the current absolute truth for the implementation tranche originating in `ESPressio-Mesh`. The architecture below is frozen. Implementation may choose bounded internal mechanics only where doing so does not alter public/distributed semantics, ownership, dependency direction, wire compatibility, locked bounds, authentication/identity semantics or Policy. If a genuine architectural omission/conflict is exposed, stop and ask Simon Stuart. Concrete ESPressio-defined `PrimitiveFamilyId` numeric allocations and the distributed EventTypeId assignment contract remain explicit decision boundaries and MUST NOT be invented autonomously.
 
@@ -134,6 +134,8 @@ Mesh owns orchestration, Radio selected next-hop execution. Injectable IRoutingS
 
 Radio accepts one complete immutable bounded logical transfer to one directly reachable Radio peer/handle. MaximumLogicalTransferSize finite and distinct from physical MTU. Admission immediate; completion asynchronous. Receive yields complete opaque logical transfer + Radio-owned peer/address observations and qualified timing metadata. Radio never interprets DeviceIdentifier, MembershipIncarnation, MeshMessageId, PrimitiveFamilyId or Mesh destination/routing. Concrete Radio owns bounded fragmentation/reassembly/physical retry. Precision timing uses separate protected path.
 
+Radio may create a generation-safe peer handle during discovery before authentication. Mesh later binds that handle to authenticated DeviceIdentifier, MembershipIncarnation and RadioIdentifier before ordinary routing may use it. Handles are Radio-owned, process-local and generation-safe: stale handles fail deterministically and can never resolve to later slot occupants. They are never distributed or persisted as Mesh identity.
+
 ESP32 ordinary Wi-Fi and Raw80211 share one integrated PHY coordinated by ESPressio-ESP32. Raw follows effective Wi-Fi channel by default, never disruptively retunes an incompatible active service, and reports Busy/restricted instead. Channel/tx-power/power-save global state is coordinator-owned; Mesh has no channel semantics.
 
 ## 3.13 Clock / traffic / execution / payload / persistence
@@ -188,7 +190,7 @@ Concrete logical/control/reassembly byte capacities remain finite and measured.
 
 - **System**: canonical exact-16-B DeviceIdentifier validated.
 - **Primitive**: family/version/message/correlation/fingerprint vocabulary validated; concrete family IDs still unallocated.
-- **Radio**: bounded direct-link logical transfer; 4096-B generic ceiling, four reassembly slots, 32 recent completions; run `33763062738` passed. Frozen generation-safe peer-handle contract remains the next identified Radio gap.
+- **Radio**: bounded direct-link logical transfer; 4096-B generic ceiling, four reassembly slots, 32 recent completions. Added compact 4-B `RadioPeerHandle` and fixed-capacity `RadioPeerRegistry` (default implementation bound 32, independently configurable) mapping handles to `IRadio* + RadioAddress`. Slot reuse advances generation, stale handles fail deterministically, interface-wide invalidation is explicit, and handles carry no Mesh/device identity. Native and ESP32 smoke jobs in run `33793581249` passed.
 - **ESP32**: WiFiPhyCoordinator/shared-PHY Raw80211 coexistence validated; run `33764387563` passed.
 - **NRF24**: 4096-B logical transfer over 32-B physical payload; direct clock preserved; run `33764610171` passed.
 - **State**: structurally complete/validated; runs `33778512159` and `33778720013` passed.
@@ -204,15 +206,16 @@ Implemented on `structural_realignment_propagation`:
 - `DeduplicationWindow<128>`: 24-byte committed dedup core (uint64 high-water + 128-bit bitmap), unseen gaps admissible, duplicates/TooOld explicit.
 - `MeshMessageIdGenerator`: starts at 1, monotonic/non-wrapping, fails after uint64 max, supports explicit authenticated-continuity high-water restoration only.
 - `InboundDeliveryReservationTable<8>`: bounded InProgress exclusion keyed by authenticated Source + MembershipIncarnation + MeshMessageId.
-- `AuthenticatedMembershipTable<32>`: fixed-capacity authenticated participation records for Validating/Joining/Active states. Each record owns its source/incarnation-scoped committed delivery dedup window. A different incarnation for the same DeviceIdentifier is rejected as `ConflictingIncarnation`; replacement is deliberately not implicit and must be resolved by membership/admission/security first.
-- `InboundDeliveryCoordinator`: composes exact authenticated-membership lookup → committed dedup classification → InProgress reservation. It exposes explicit definitive commit vs retryable release, so unauthenticated/unknown incarnations cannot reserve or advance dedup state and retryable pressure does not poison history.
-- `MembershipRetentionCoordinator`: composes policy-decided full authenticated-record retirement with compact tombstone creation for AuthoritativeLeave, SupersededIncarnation and LocallyForgotten. It deliberately does not decide *when* retirement occurs. Tombstone is recorded before full record release; tombstone saturation cannot block retirement.
-- `IMeshLivenessPolicy` + `DefaultMeshLivenessPolicy`: liveness thresholds are injected policy, not membership-storage constants. Default policy uses the architecture baseline 5 s Suspect / 15 s Unreachable thresholds while permitting replacement.
-- `MembershipLivenessTracker<32>`: bounded authenticated-evidence timestamps; only exact already-authenticated source/incarnation evidence is accepted. Valid evidence restores Reachable immediately; policy drives Reachable→Suspect→Unreachable without changing MembershipState. Unreachable start time is retained and the frozen 60 s full-record-retention test is exposed without autonomous retirement.
-- `MembershipLifecycleCoordinator`: narrow composition of liveness evaluation and MembershipRetentionCoordinator. It preserves the full authenticated member through the configured unreachable-retention interval, then retires it as LocallyForgotten through tombstone-before-release sequencing and clears liveness bookkeeping.
-- `PendingNeighbourCandidateTable<8>`: separately bounded pre-authentication storage for Discovered/Authenticating candidates. DeviceIdentifier/MembershipIncarnation fields are explicitly untrusted claims only. Candidate handles are generation-safe so stale slot handles cannot resolve after reuse.
-- `InboundAuthenticationReservationTable<4>`: separately bounded expensive-authentication execution slots keyed by generation-safe candidate handles. It owns no authenticated identity and cannot mutate authenticated membership/dedup state.
-- `PrimitiveReceiverRegistry<8>`: fixed-array, heap-free external PrimitiveFamilyId-to-receiver dispatch with exactly one active receiver per family, bounded generation-safe registration handles, version-range validation, family ContractFingerprint/exposure descriptors, explicit unsupported-family/version dispositions and short synchronous handoff through `MeshReceiveContext` plus borrowed `PrimitivePayloadView`. It deliberately does **not** allocate or reserve a concrete Mesh PrimitiveFamilyId; once the central allocation is explicitly decided, that ID must be rejected from external registration.
+- `AuthenticatedMembershipTable<32>`: fixed-capacity authenticated participation records for Validating/Joining/Active states. Each record owns its source/incarnation-scoped committed delivery dedup window. A different incarnation for the same DeviceIdentifier is rejected as `ConflictingIncarnation`; replacement is deliberately not implicit.
+- `InboundDeliveryCoordinator`: exact authenticated-membership lookup → committed dedup classification → InProgress reservation, with explicit definitive commit vs retryable release.
+- `MembershipRetentionCoordinator`: policy-decided full record retirement to compact AuthoritativeLeave / SupersededIncarnation / LocallyForgotten tombstones; tombstone recorded before full record release.
+- `IMeshLivenessPolicy` + `DefaultMeshLivenessPolicy`: thresholds are injected policy, defaulting to the architecture baseline 5 s Suspect / 15 s Unreachable.
+- `MembershipLivenessTracker<32>`: exact authenticated-evidence timestamps, immediate Reachable restoration, policy-driven degradation, bounded 60 s full-record-retention eligibility without autonomous retirement.
+- `MembershipLifecycleCoordinator`: composes liveness with retention and performs LocallyForgotten retirement only after configured full-record retention expires.
+- `PendingNeighbourCandidateTable<8>`: bounded pre-authentication Discovered/Authenticating candidates. Each candidate is now bound to `RadioIdentifier + Radio::RadioPeerHandle`; claimed DeviceIdentifier/MembershipIncarnation remain explicitly untrusted hints. Same claim over another Radio peer is a distinct candidate. Mesh-local candidate handles remain separately generation-safe.
+- `InboundAuthenticationReservationTable<4>`: bounded expensive-authentication execution slots keyed by candidate handle, with no authenticated authority.
+- `AdmissionPromotionCoordinator`: caller supplies identity established externally by injected security/admission. The authenticated DeviceIdentifier + MembershipIncarnation, never the untrusted candidate claim, is promoted to `Validating` membership with `Reachable` initial liveness. Successful promotion releases auth capacity and removes candidate; definitive rejection releases/removes pre-auth state; retryable pressure releases auth but retains Discovered candidate; conflicting incarnation/resource pressure cannot silently replace authority.
+- `PrimitiveReceiverRegistry<8>`: fixed-array heap-free external PrimitiveFamilyId registry, generation-safe registration, version-range checking, ContractFingerprint/exposure descriptors and short bounded dispatch through `MeshReceiveContext` + borrowed payload. No Mesh family number allocated.
 - Umbrella header exports all foundations.
 
 Validation:
@@ -223,29 +226,32 @@ Validation:
 - run `33786968405`: authenticated membership + inbound delivery coordinator added, all passed.
 - run `33787189204`: membership-retention coordinator added, all passed.
 - run `33789240336`: policy-driven liveness added, all passed.
-- run `33792457888`: membership lifecycle and bounded admission-resource regressions passed with every prior host regression.
-- run `33792536582`: self-contained liveness-header correction passed every current host regression.
-- run `33793062493`: first Primitive receiver-registry CI attempt failed during the umbrella build because adding Primitive to `ESPressio_Mesh.hpp` exposed that earlier generic regression compile commands lacked the Primitive include directory. This was a CI dependency-path/configuration regression, not a code-semantic failure and not Actions-budget exhaustion.
-- run `33793151350`: after adding the matching Primitive propagation checkout/include path to every umbrella-dependent host compile, every current Mesh regression passed, including the new primitive receiver registry. No Actions-budget symptom.
+- run `33792457888`: membership lifecycle and bounded admission resources passed.
+- run `33792536582`: self-contained liveness-header correction passed.
+- run `33793062493`: first Primitive receiver-registry CI attempt failed only because umbrella compile commands lacked the new Primitive include directory; no budget symptom.
+- run `33793151350`: corrected Primitive include paths; all Mesh regressions passed.
+- Radio run `33793581249`: Radio peer registry native regression plus existing transport/clock and ESP32 worker/Event bridge/clock smoke all passed.
+- Mesh run `33793950787`: Radio-peer-bound admission resources plus authenticated admission-promotion regression passed with every prior Mesh host regression. No Actions-budget symptom.
 
 Important implementation boundaries:
 
-- `AuthenticatedMembershipTable` contains only already-authenticated records. Discovery/pre-authentication candidates remain a distinct bounded resource class and cannot affect authenticated-member dedup state. It allows Validating/Joining/Active because those states occur after sufficient authentication in the frozen pipeline; Unknown/Discovered/Authenticating cannot be inserted through this table.
-- Liveness evidence is accepted only after caller-side authentication and exact incarnation resolution. Liveness never authenticates packets or infers membership authority from reachability.
-- Pending candidate claimed identities are untrusted hints. The admission/security layer must explicitly promote a successfully authenticated candidate into `AuthenticatedMembershipTable`; no pre-auth structure can do so implicitly.
-- `NeighbourCandidateHandle` is Mesh-local generation-safe resource identity, not a replacement for the separately frozen Radio-owned generation-safe peer handle contract. Radio peer-handle implementation still requires correction before discovery-to-Radio binding is considered complete.
-- `PrimitiveReceiverRegistry` accepts currently usable central Primitive namespaces without inventing any ESPressio family number. The eventual Mesh control family ID remains internal-only and must be explicitly excluded once Simon approves a concrete central allocation.
+- Authenticated membership contains only already-authenticated records. Discovery/pre-authentication candidates cannot affect authenticated dedup/liveness state.
+- Liveness accepts only caller-authenticated exact incarnation evidence and never authenticates packets itself.
+- Pending candidate claimed identities are untrusted hints. `AdmissionPromotionCoordinator` takes separately established authenticated identity and therefore does not promote the untrusted claim by implication.
+- Radio peer handles are now Radio-owned and generation-safe. Mesh stores them only as link-local bindings beside `RadioIdentifier`; they never become Mesh identity.
+- `PrimitiveReceiverRegistry` still cannot reserve the Mesh control family from external registration until Simon explicitly approves a concrete central PrimitiveFamilyId allocation. No family ID was invented.
 
 ---
 
 # 5. Immediate next work
 
-1. Implement the frozen Radio-owned generation-safe peer-handle contract on the Radio propagation branch. Current Radio public types expose RadioAddress but not that handle; do not let Mesh-local candidate handles substitute for Radio ownership.
-2. After Radio peer handles are coherent, bind pending neighbour candidates to RadioIdentifier + Radio peer handle without granting identity authority before authentication.
-3. Implement the narrow admission promotion coordinator: pending candidate + reserved authentication + external security/admission success → Validating authenticated membership, with deterministic release on failure/resource pressure. Security decisions remain injected; Mesh does not invent crypto.
-4. Reconcile Command local `CommandResult` naming/completion wording without reintroducing RPC semantics.
-5. Keep Event distributed EventTypeId work paused pending Simon's explicit identity-contract decision.
-6. Continue profile → topology → routing → traffic governance → clock coordination → adapters incrementally.
+1. Integrate `RadioPeerRegistry` with `RadioTransport` receive/send surfaces so inbound complete logical transfers can carry their Radio-owned source peer handle directly and handle-based direct-peer send becomes the preferred higher-layer path. Preserve low-level `IRadio::Send(RadioAddress)` as provider mechanics.
+2. Add explicit Radio peer invalidation observation if required by Mesh link/topology convergence, while keeping callbacks bounded/Observable-based.
+3. Continue admission service composition around injected `IMeshSecurityAuthority` / `IMeshAdmissionPolicy`; do not implement cryptography in Mesh.
+4. Begin bounded authenticated NodeProfile representation/support descriptors, using the active Primitive receiver registry as advertised-support source where practical, without allocating concrete PrimitiveFamilyIds.
+5. Reconcile Command local `CommandResult` naming/completion wording without reintroducing RPC semantics.
+6. Keep Event distributed EventTypeId work paused pending Simon's explicit identity-contract decision.
+7. Continue topology → routing → traffic governance → clock coordination → adapters incrementally.
 
 ---
 
@@ -264,6 +270,8 @@ Important implementation boundaries:
 - **2026-09-03T17:49:00Z–17:50:55Z** — Added AuthenticatedMembershipTable and InboundDeliveryCoordinator; run `33786968405` passed.
 - **2026-09-03T17:52:00Z–17:53:20Z** — Added MembershipRetentionCoordinator; run `33787189204` passed.
 - **2026-09-03T18:12:00Z–18:13:58Z** — Added policy-driven MembershipLivenessTracker and replaceable IMeshLivenessPolicy; run `33789240336` passed.
-- **2026-09-03T18:44:00Z–18:46:30Z** — Added MembershipLifecycleCoordinator and separately bounded pre-auth `PendingNeighbourCandidateTable<8>` / `InboundAuthenticationReservationTable<4>`; run `33792457888` passed all current tests.
-- **2026-09-03T18:46:53Z–18:47:20Z** — Made MembershipLiveness.hpp self-contained; run `33792536582` passed. Audit identified missing frozen Radio-owned generation-safe peer handle.
-- **2026-09-03T18:49:00Z–18:53:30Z** — Added fixed-capacity PrimitiveReceiverRegistry with generation-safe registration, support descriptors and bounded opaque dispatch, without allocating any concrete family ID. Initial run `33793062493` failed only because umbrella-dependent compile commands lacked `-IESPressio-Primitive/src`; CI was corrected across all host builds. Run `33793151350` then passed every current Mesh regression, including primitive receiver dispatch. Concrete PrimitiveFamilyId/EventTypeId decisions remain untouched.
+- **2026-09-03T18:44:00Z–18:46:30Z** — Added MembershipLifecycleCoordinator and bounded pre-auth candidate/authentication resources; run `33792457888` passed.
+- **2026-09-03T18:46:53Z–18:47:20Z** — Made MembershipLiveness.hpp self-contained; run `33792536582` passed; identified missing Radio peer-handle contract.
+- **2026-09-03T18:49:00Z–18:53:30Z** — Added PrimitiveReceiverRegistry without family allocation. Initial run `33793062493` exposed missing Primitive include path; corrected run `33793151350` passed.
+- **2026-09-03T18:56:00Z–18:59:00Z** — Implemented Radio-owned compact generation-safe `RadioPeerHandle` and bounded `RadioPeerRegistry`, including deterministic stale-handle failure, interface invalidation and configurable finite capacity. Added native regression and ESP32 smoke exposure; Radio run `33793581249` passed both jobs.
+- **2026-09-03T18:59:00Z–19:01:40Z** — Bound Mesh pending candidates to `RadioIdentifier + RadioPeerHandle`; added `AdmissionPromotionCoordinator` so only separately authenticated identity can enter Validating membership. Regression verifies untrusted-claim mismatch does not become authority, conflicting incarnation cannot replace authority, definitive rejection cleans pre-auth state, and retryable pressure preserves candidate. Mesh run `33793950787` passed every current host regression. Concrete PrimitiveFamilyId/EventTypeId decisions remain untouched.
