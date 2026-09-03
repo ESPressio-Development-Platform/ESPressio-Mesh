@@ -22,6 +22,11 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-System
           ref: structural_realignment_propagation_ESPressio-Mesh
           path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Primitive
       - name: Build Mesh core type regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
@@ -110,3 +115,13 @@ jobs:
           -o admission_resources_test
       - name: Run admission resource regression
         run: ./admission_resources_test
+      - name: Build primitive receiver registry regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          -IESPressio-Primitive/src
+          ESPressio-Mesh/tests/primitive_receiver_registry_test.cpp
+          -o primitive_receiver_registry_test
+      - name: Run primitive receiver registry regression
+        run: ./primitive_receiver_registry_test
