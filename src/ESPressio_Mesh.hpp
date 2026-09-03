@@ -5,3 +5,4 @@
 #include "ESPressio_MembershipTombstoneTable.hpp"
 #include "ESPressio_DeduplicationWindow.hpp"
 #include "ESPressio_MeshMessageIdGenerator.hpp"
+#include "ESPressio_InboundDeliveryReservations.hpp"
