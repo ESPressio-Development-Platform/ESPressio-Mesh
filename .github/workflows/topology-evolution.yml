@@ -1,0 +1,53 @@
+name: Topology Evolution
+
+on:
+  push:
+    branches:
+      - structural_realignment_propagation
+      - 'structural_realignment_propagation*'
+  pull_request:
+
+jobs:
+  host-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Radio
+      - name: Build topology publication regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
+          ESPressio-Mesh/tests/topology_publication_policy_test.cpp
+          -o topology_publication_policy_test
+      - name: Run topology publication regression
+        run: ./topology_publication_policy_test
+      - name: Build global topology graph regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
+          ESPressio-Mesh/tests/topology_graph_store_test.cpp
+          -o topology_graph_store_test
+      - name: Run global topology graph regression
+        run: ./topology_graph_store_test
+      - name: Build current Mesh umbrella
+        run: >-
+          printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
+          umbrella.cpp -o umbrella
