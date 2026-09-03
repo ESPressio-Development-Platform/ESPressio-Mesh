@@ -58,13 +58,13 @@ enum class PrimitiveReceiverExposure : std::uint8_t {
 
 /// <summary>Bounded semantic support descriptor owned by one registered external primitive receiver.</summary>
 struct PrimitiveReceiverDescriptor final {
-    Primitive::PrimitiveFamilyId Family{Primitive::PrimitiveFamilyRegistry::Invalid};
+    Primitive::PrimitiveFamilyId Family{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersionRange Versions{};
     Primitive::ContractFingerprint Fingerprint{};
     PrimitiveReceiverExposure Exposure{PrimitiveReceiverExposure::Advertised};
 
     constexpr bool IsValid() const noexcept {
-        return Primitive::PrimitiveFamilyRegistry::IsUsable(Family) && Versions.IsValid();
+        return Primitive::FamilyIds::IsUsable(Family) && Versions.IsValid();
     }
 };
 
@@ -199,7 +199,7 @@ public:
         PrimitivePayloadView payload,
         PrimitiveReceiveDisposition& disposition
     ) noexcept {
-        if (!Primitive::PrimitiveFamilyRegistry::IsUsable(family) || !context.IsValid() || !payload.IsValid()) {
+        if (!Primitive::FamilyIds::IsUsable(family) || !context.IsValid() || !payload.IsValid()) {
             return PrimitiveDispatchResult::Invalid;
         }
 
