@@ -56,3 +56,12 @@ jobs:
           -o mesh_message_id_generator_test
       - name: Run Mesh message ID generator regression
         run: ./mesh_message_id_generator_test
+      - name: Build inbound delivery reservation regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          ESPressio-Mesh/tests/inbound_delivery_reservations_test.cpp
+          -o inbound_delivery_reservations_test
+      - name: Run inbound delivery reservation regression
+        run: ./inbound_delivery_reservations_test
