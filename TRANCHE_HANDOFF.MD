@@ -2,7 +2,7 @@
 
 ## Status
 
-**TRANCHE IN PROGRESS — ARCHITECTURE PASS / IMPLEMENTATION READY. SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED. MESH MEMBERSHIP, DELIVERY/DEDUP, RETENTION, LIVENESS, PRE-AUTH ADMISSION, AUTHENTICATED PROMOTION, RADIO PEER/DISCOVERY LIFECYCLE, EXTERNAL PRIMITIVE RECEIVERS, DETERMINISTIC ADVERTISED PRIMITIVE-SUPPORT SNAPSHOTS, PROTECTED TRAFFIC GOVERNANCE, FINITE CONTROL-WORK LIFETIME, POLICY-DRIVEN ACTIVE LIVENESS PROBING, BOUNDED DIRECTED COMPLETE-TOPOLOGY SNAPSHOTS AND POLICY-DRIVEN REMOTE TOPOLOGY FRESHNESS ARE VALIDATED.**
+**TRANCHE IN PROGRESS — ARCHITECTURE PASS / IMPLEMENTATION READY. SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED. MESH MEMBERSHIP, DELIVERY/DEDUP, RETENTION, LIVENESS, PRE-AUTH ADMISSION, AUTHENTICATED PROMOTION, RADIO PEER/DISCOVERY LIFECYCLE, EXTERNAL PRIMITIVE RECEIVERS, DETERMINISTIC ADVERTISED PRIMITIVE-SUPPORT SNAPSHOTS, PROTECTED TRAFFIC GOVERNANCE, FINITE CONTROL-WORK LIFETIME, POLICY-DRIVEN ACTIVE LIVENESS PROBING, BOUNDED DIRECTED COMPLETE-TOPOLOGY SNAPSHOTS, POLICY-DRIVEN REMOTE TOPOLOGY FRESHNESS, POLICY-DRIVEN TOPOLOGY PUBLICATION MATERIALITY AND A GLOBALLY BOUNDED TOPOLOGY GRAPH ARE VALIDATED.**
 
 This file is the authoritative implementation-tranche handoff for the tranche originating in `ESPressio-Mesh`. The architecture below is frozen. Implementation may choose bounded internal mechanics only where they do not alter public/distributed semantics, ownership, dependency direction, wire compatibility, authentication/identity semantics, locked bounds or Policy. If a genuine architectural omission/conflict is exposed, stop and ask Simon Stuart.
 
@@ -105,7 +105,7 @@ Reachability is Unknown / Reachable / Suspect / Unreachable via injected livenes
 
 `MaxMembershipTombstones=64`, independent from `MaxMeshNodes=32`. Tombstones retain only DeviceIdentifier, MembershipIncarnation, local monotonic deadline and disposition LocallyForgotten / SupersededIncarnation / AuthoritativeLeave. Default retention ~5 min with deterministic bounded eviction; tombstone exhaustion never weakens auth/admission.
 
-API destinations are Node, Group, CapabilitySelector and Broadcast. Group/CapabilitySelector resolve once at sender to a frozen bounded recipient set and normalize into independent Node deliveries. Broadcast is a bounded best-effort flood with one MeshMessageId, no frozen recipient set, no destination ACK and no complete-to-all promise. Delivery ACK confirms destination Mesh delivery only, not semantic execution.
+API destinations are Node, Group, CapabilitySelector and Broadcast. Group/CapabilitySelector resolve once at sender to a frozen bounded recipient set and normalize into independent Node deliveries. Broadcast is a bounded best-effort flood with one MeshMessageId, no frozen recipient set and no promise of delivery to every member. Applications requiring per-member delivery knowledge use selective multicast rather than reliable Broadcast.
 
 Dedup is per authenticated source DeviceIdentifier + MembershipIncarnation using uint64 high-water plus 128-position bitmap. Unseen delivery first reserves bounded InProgress; definitive disposition commits dedup, while TemporarilyUnavailable/ResourceUnavailable releases without commit. Old-incarnation traffic never enters current dedup state.
 
@@ -185,6 +185,8 @@ Provisional fixed/cardinality metadata ≈60,160 B plus starting task stacks ≈
 - injected `IControlWorkLifetimePolicy` + finite deadline helper.
 - `TopologyLinkIdentity`, `DirectedTopologyLink<TCharacteristics>` and authority-scoped `TopologySnapshot<TCharacteristics, 96>` with complete-generation replacement, same-generation semantic refresh/conflict detection, old-generation rejection and cross-authority isolation.
 - `TopologyFreshnessEvidence<TCharacteristics>`, injected `ITopologyFreshnessPolicy<TCharacteristics>` and `TopologyFreshnessTracker<TCharacteristics>`: local monotonic receipt metadata is independent from generation; exact authority/incarnation/generation only can refresh; same-generation authenticated retransmission can refresh age without semantic mutation; policy receives current snapshot characteristics, local age, expected cadence and authority reachability. No default universal thresholds or scalar confidence/cost representation were invented.
+- `ITopologyPublicationPolicy<TCharacteristics>` and `TopologyPublicationCoordinator<TCharacteristics>`: unchanged set-equivalent observations never advance `TopologyGeneration`; material changes advance only after injected policy approval; new incarnation restarts generation at 1; exhaustion never wraps. Mesh defines no universal materiality thresholds.
+- `TopologyGraphStore<TCharacteristics, 96, 32>`: `MaxTopologyLinks=96` is enforced across the whole retained graph rather than per authority; authority metadata is independently bounded to Mesh membership capacity. Complete newer authority generations replace only that authority's links transactionally; same-generation refresh/conflict, stale generation and new-incarnation namespace semantics are explicit. Freshness remains outside authoritative graph truth.
 - umbrella header exports all current foundations.
 
 Full NodeProfile remains blocked on Group identifier semantics. Topology normalized characteristic representation and default freshness/publication thresholds intentionally remain policy/concrete-build decisions rather than hidden constants.
@@ -201,6 +203,10 @@ Full NodeProfile remains blocked on Group identifier semantics. Topology normali
 - Mesh `33804484722`, `33804812963`: directed complete topology snapshot plus authority isolation green.
 - Mesh `33805171842`: dedicated policy-driven topology freshness regression green.
 - Mesh `33805171816`: complete current general host regression suite green after freshness integration.
+- Mesh `33807461653`: first topology-evolution run compiled and passed both new publication/global-graph regressions; only the umbrella compile failed because that dedicated workflow omitted the already-required Observable checkout/include path. This was a workflow coverage defect, not a feature failure or budget symptom.
+- Mesh `33807676687`: corrected dedicated Topology Evolution workflow green, including publication, graph-store and umbrella checks.
+- Mesh `33807676751`: complete general Mesh CI green at the same corrected topology-evolution head.
+- Mesh `33807676650` and `33807676743`: topology-freshness and control-work-lifetime dedicated workflows also green at that head.
 - **No Actions-budget symptom has occurred.**
 
 ## 4.4 Critical boundaries
@@ -212,8 +218,11 @@ Full NodeProfile remains blocked on Group identifier semantics. Topology normali
 - Primitive support snapshot contains advertised external families only and deliberately omits unresolved Mesh control family ID.
 - Full NodeProfile must not be completed until Group identifier semantics are established.
 - Topology snapshot owns complete authoritative generation semantics only. Publication materiality, observation estimation, remote freshness and routing interpretation are separate.
+- Topology publication materiality is an injected local policy decision; no observation automatically advances authoritative generation merely because a metric changed.
+- `MaxTopologyLinks=96` is a graph-wide bound, never `96 × members`. Authority metadata has its own finite `MaxMeshNodes` bound.
+- Topology graph truth and local freshness are separate: receipt/retransmission may refresh freshness without altering authority generation or semantic links.
 - Topology freshness is local policy-derived metadata, never remote authority. Same-generation retransmission may refresh receipt age only after semantic identity is established.
-- No universal RouteCost or universal topology freshness thresholds have been invented.
+- No universal RouteCost, topology freshness threshold or publication-materiality threshold has been invented.
 - Security composition must reuse ESPressio-Security primitives without inventing a Mesh handshake schema merely to satisfy an interface.
 - No concrete ESPressio `PrimitiveFamilyId`, distributed EventTypeId, Event MessageId strategy or Group identifier may be invented autonomously.
 
@@ -221,12 +230,12 @@ Full NodeProfile remains blocked on Group identifier semantics. Topology normali
 
 # 5. Immediate next work
 
-1. Add the separately injected `ITopologyPublicationPolicy` materiality boundary around local observation→published complete-generation transitions; do not invent percentage/latency/reliability thresholds.
-2. Build a globally bounded topology authority/link store honoring **MaxTopologyLinks=96 across the known graph**, rather than multiplying 96 links by every member authority. Keep authority/incarnation freshness metadata independently bounded.
+1. Inspect the frozen routing decisions and current topology APIs, then implement the narrow bounded route/next-hop representation and injectable `IRoutingStrategy` boundary without inventing a universal RouteCost. Preserve adaptive hop-by-hop routing rather than mandatory source routing.
+2. Add the bounded disposable route cache (`MaxRouteCacheEntries=32`) only after the route/strategy contract is validated; topology/freshness changes must be able to invalidate/recompute it without making cache state authoritative.
 3. Continue Security composition toward a minimal outcome-oriented `IMeshSecurityAuthority` / `IMeshAdmissionPolicy` boundary only where it remains wire-neutral; reuse Security crypto primitives and do not invent a handshake schema.
-4. Reconcile Command `CommandResult` source/docs wording so `success` unambiguously describes local handler/dispatch disposition, never requested-operation completion; avoid gratuitous public rename.
+4. Reconcile Command `CommandResult` source/docs wording so `success` unambiguously describes local parsing/validation/dispatch/handler disposition, never requested-operation completion; avoid gratuitous public rename.
 5. Keep Event distributed identity work paused pending Simon's EventTypeId/message-ID decisions.
-6. Continue routing → bounded route cache → traffic-governed queues → clock coordination → adapters.
+6. Continue route attempt/retry policy → traffic-governed queues → clock coordination → adapters.
 7. Create/verify MeshAdapters propagation branch when adapter work begins.
 
 ---
@@ -243,3 +252,5 @@ Full NodeProfile remains blocked on Group identifier semantics. Topology normali
 - **2026-09-03T20:43:00Z–20:46:00Z** — Audited current `ESPressio-Security` abstractions and frozen Mesh security decisions. Existing Security supplies generic crypto/protection but not a Mesh admission protocol; no handshake schema invented.
 - **2026-09-03T20:46:00Z–20:53:16Z** — Implemented bounded directed complete topology snapshot from frozen Decisions 14–18, then tightened snapshot authority isolation. CI `33804484722` and `33804812963` green.
 - **2026-09-03T20:54:00Z–20:57:00Z** — Added separate policy-driven remote topology freshness tracking. Freshness consumes local monotonic receipt age, optional expected cadence, authority reachability and the technology-independent snapshot; exact authority/incarnation/generation gates refresh. Same-generation authenticated retransmission can refresh age without changing TopologyGeneration. Dedicated run `33805171842` and general suite `33805171816` passed. No universal freshness thresholds or RouteCost introduced; unresolved public/wire identifiers remain untouched.
+- **2026-09-03T21:18:00Z–21:21:00Z** — Added injected topology-publication materiality boundary and globally bounded topology graph store. Publication distinguishes unchanged/suppressed/material changes, advances generation exactly once only on policy-approved material publication, restarts at generation 1 for new incarnation and never wraps. Graph store enforces 96 links across all authorities, independently bounds authority metadata to 32 and replaces complete per-authority generations transactionally without disturbing other authorities.
+- **2026-09-03T21:21:04Z–21:23:52Z** — Initial topology-evolution run `33807461653` passed both new feature regressions but exposed only a missing Observable include in the dedicated umbrella check. Workflow corrected without feature-code change; dedicated Topology Evolution `33807676687` and general CI `33807676751` passed, with freshness/lifetime dedicated runs also green. No Actions-budget symptom; unresolved public/wire identifiers remain untouched.
