@@ -61,7 +61,7 @@ jobs:
       - name: Build Mesh message ID generator regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/mesh_message_id_generator_test.cpp -o mesh_message_id_generator_test -pthread
       - name: Run Mesh message ID generator regression
         run: ./mesh_message_id_generator_test
@@ -149,3 +149,10 @@ jobs:
           ESPressio-Mesh/tests/liveness_probe_reservations_test.cpp -o liveness_probe_reservations_test -pthread
       - name: Run liveness probe reservation regression
         run: ./liveness_probe_reservations_test
+      - name: Build directed topology snapshot regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/topology_snapshot_test.cpp -o topology_snapshot_test -pthread
+      - name: Run directed topology snapshot regression
+        run: ./topology_snapshot_test
