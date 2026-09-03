@@ -22,21 +22,13 @@ struct RoutePlan final {
     RoutePlanOrigin Origin{RoutePlanOrigin::Strategy};
 };
 
-/// <summary>
-/// Injected current-evidence validator for disposable cached route hints.
-/// </summary>
+/// <summary>Injected current-evidence validator for disposable cached route hints and new strategy plans.</summary>
 /// <remarks>
-/// Implementations must re-check every condition that can invalidate a previously planned route, including current
-/// authenticated membership, topology freshness, link usability and composition-specific routing policy. The cache is
-/// never authoritative and this interface is deliberately separate from cache storage so no stale hint can bypass
-/// present evidence. Returning false causes the hint to be ignored and fresh strategy planning to occur.
+/// Implementations re-check every condition that can invalidate a route, including current authenticated membership,
+/// topology freshness, link usability and composition-specific routing policy. The cache is never authoritative.
 /// </remarks>
-template<
-    typename TCharacteristics,
-    std::size_t LinkCapacity = Limits::MaxTopologyLinks,
-    std::size_t AuthorityCapacity = Limits::MaxMeshNodes,
-    std::size_t HopCapacity = Limits::MaxRouteHops
->
+template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks,
+         std::size_t AuthorityCapacity = Limits::MaxMeshNodes, std::size_t HopCapacity = Limits::MaxRouteHops>
 class IRouteRevalidationPolicy {
 public:
     using Evidence = RoutingEvidence<TCharacteristics, LinkCapacity, AuthorityCapacity>;
@@ -46,22 +38,15 @@ public:
     virtual bool IsUsable(const Evidence& evidence, const Route& route) const noexcept = 0;
 };
 
-/// <summary>
-/// Composes a disposable bounded route cache with injected current-evidence revalidation and fresh strategy planning.
-/// </summary>
+/// <summary>Composes disposable cache lookup, current-evidence revalidation and injected fresh route planning.</summary>
 /// <remarks>
-/// A cache hit is never returned directly. It must first pass structural checks and IRouteRevalidationPolicy against
-/// current evidence. Rejected hints are explicitly invalidated before strategy planning. Newly planned routes are also
-/// structurally validated before optional cache insertion. Cache saturation cannot prevent forwarding because caching is
-/// an optimization only.
+/// Cached hints are copied and revalidated before use. Rejected hints are removed before fresh planning. Newly planned
+/// routes must pass the same current-evidence policy, preventing strategy output from bypassing present membership/link/
+/// freshness requirements. Cache saturation cannot prevent successful forwarding because storage remains optional.
 /// </remarks>
-template<
-    typename TCharacteristics,
-    std::size_t LinkCapacity = Limits::MaxTopologyLinks,
-    std::size_t AuthorityCapacity = Limits::MaxMeshNodes,
-    std::size_t CacheCapacity = Limits::MaxRouteCacheEntries,
-    std::size_t HopCapacity = Limits::MaxRouteHops
->
+template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks,
+         std::size_t AuthorityCapacity = Limits::MaxMeshNodes, std::size_t CacheCapacity = Limits::MaxRouteCacheEntries,
+         std::size_t HopCapacity = Limits::MaxRouteHops>
 class RoutePlanner final {
 public:
     using Strategy = IRoutingStrategy<TCharacteristics, LinkCapacity, AuthorityCapacity, HopCapacity>;
@@ -80,15 +65,12 @@ public:
     RoutePlanner(Cache& cache, const Strategy& strategy, const Revalidation& revalidation) noexcept
         : _cache(cache), _strategy(strategy), _revalidation(revalidation) {}
 
-    /// <summary>Returns a currently usable route or a non-success planning disposition.</summary>
     RoutePlanningDisposition PlanRoute(const Evidence& evidence, Plan& plan) noexcept {
         plan = {};
         if (!evidence.Source || !evidence.Destination) return RoutePlanningDisposition::Invalid;
 
         if (evidence.Source == evidence.Destination) {
-            if (!plan.Route.Assign(evidence.Source, evidence.Destination, nullptr, 0U)) {
-                return RoutePlanningDisposition::Invalid;
-            }
+            if (!plan.Route.Assign(evidence.Source, evidence.Destination, nullptr, 0U)) return RoutePlanningDisposition::Invalid;
             plan.Origin = RoutePlanOrigin::LocalDestination;
             return RoutePlanningDisposition::LocalDestination;
         }
@@ -101,8 +83,7 @@ public:
                 plan.Origin = RoutePlanOrigin::Cache;
                 return RoutePlanningDisposition::Planned;
             }
-            // The cache exposes endpoint lookup rather than a handle here; invalidate all hints for this endpoint pair
-            // indirectly by replacing/clearing only when a fresh route succeeds. A rejected hint is never used below.
+            (void)_cache.InvalidatePair(evidence.Source, evidence.Destination);
         }
 
         Route candidate;
@@ -124,7 +105,7 @@ public:
         plan.Route = candidate;
         plan.Origin = RoutePlanOrigin::Strategy;
         RouteCacheHandle ignored{};
-        (void)_cache.Store(candidate, ignored); // Cache pressure cannot change successful planning semantics.
+        (void)_cache.Store(candidate, ignored);
         return RoutePlanningDisposition::Planned;
     }
 };
