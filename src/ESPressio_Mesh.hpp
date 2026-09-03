@@ -17,3 +17,4 @@
 #include "ESPressio_MeshRadioRegistry.hpp"
 #include "ESPressio_NeighbourDiscoveryCoordinator.hpp"
 #include "ESPressio_MeshTrafficGovernor.hpp"
+#include "ESPressio_ControlWorkLifetimePolicy.hpp"
