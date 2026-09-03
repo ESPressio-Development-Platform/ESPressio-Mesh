@@ -74,3 +74,12 @@ jobs:
           -o authenticated_inbound_delivery_test
       - name: Run authenticated inbound delivery regression
         run: ./authenticated_inbound_delivery_test
+      - name: Build membership retention coordinator regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          ESPressio-Mesh/tests/membership_retention_coordinator_test.cpp
+          -o membership_retention_coordinator_test
+      - name: Run membership retention coordinator regression
+        run: ./membership_retention_coordinator_test
