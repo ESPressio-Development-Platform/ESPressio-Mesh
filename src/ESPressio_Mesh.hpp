@@ -18,3 +18,4 @@
 #include "ESPressio_NeighbourDiscoveryCoordinator.hpp"
 #include "ESPressio_MeshTrafficGovernor.hpp"
 #include "ESPressio_ControlWorkLifetimePolicy.hpp"
+#include "ESPressio_RadioPeerLifecycleCoordinator.hpp"
