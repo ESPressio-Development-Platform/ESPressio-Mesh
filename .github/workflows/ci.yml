@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - structural_realignment
+      - 'structural_realignment_propagation*'
+      - 'feature/**'
+      - 'optimisation/**'
+  pull_request:
+
+jobs:
+  host-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Mesh core type regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -Isrc tests/mesh_types_test.cpp -o mesh_types_test
+      - name: Run Mesh core type regression
+        run: ./mesh_types_test
