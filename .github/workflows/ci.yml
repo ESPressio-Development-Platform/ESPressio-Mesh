@@ -92,3 +92,21 @@ jobs:
           -o membership_liveness_test
       - name: Run membership liveness regression
         run: ./membership_liveness_test
+      - name: Build membership lifecycle regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          ESPressio-Mesh/tests/membership_lifecycle_test.cpp
+          -o membership_lifecycle_test
+      - name: Run membership lifecycle regression
+        run: ./membership_lifecycle_test
+      - name: Build admission resource regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          -IESPressio-System/src
+          ESPressio-Mesh/tests/admission_resources_test.cpp
+          -o admission_resources_test
+      - name: Run admission resource regression
+        run: ./admission_resources_test
