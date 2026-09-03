@@ -16,3 +16,4 @@
 #include "ESPressio_PrimitiveReceiverRegistry.hpp"
 #include "ESPressio_MeshRadioRegistry.hpp"
 #include "ESPressio_NeighbourDiscoveryCoordinator.hpp"
+#include "ESPressio_MeshTrafficGovernor.hpp"
