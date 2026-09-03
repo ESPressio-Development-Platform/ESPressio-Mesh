@@ -109,6 +109,18 @@ public:
         return &slot.Candidate;
     }
 
+    /// <summary>Enumerates each current candidate synchronously without allocating a snapshot.</summary>
+    /// <remarks>
+    /// The visitor must not structurally mutate this table. The operation is bounded by Capacity and allows
+    /// narrow coordinators to collect generation-safe handles before deterministic cleanup.
+    /// </remarks>
+    template<typename TVisitor>
+    void ForEach(TVisitor&& visitor) const {
+        for (const auto& slot : _slots) {
+            if (slot.Occupied) visitor(slot.Candidate);
+        }
+    }
+
     /// <summary>
     /// Inserts or refreshes an untrusted identity claim observed through one valid Radio/peer binding.
     /// </summary>
