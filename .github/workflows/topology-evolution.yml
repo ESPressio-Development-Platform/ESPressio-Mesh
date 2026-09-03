@@ -29,25 +29,30 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Radio
           ref: structural_realignment_propagation_ESPressio-Mesh
           path: ESPressio-Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Observable
+          ref: structural_realignment
+          path: ESPressio-Observable
       - name: Build topology publication regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/topology_publication_policy_test.cpp
-          -o topology_publication_policy_test
+          -o topology_publication_policy_test -pthread
       - name: Run topology publication regression
         run: ./topology_publication_policy_test
       - name: Build global topology graph regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/topology_graph_store_test.cpp
-          -o topology_graph_store_test
+          -o topology_graph_store_test -pthread
       - name: Run global topology graph regression
         run: ./topology_graph_store_test
       - name: Build current Mesh umbrella
         run: >-
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src
-          umbrella.cpp -o umbrella
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          umbrella.cpp -o umbrella -pthread
