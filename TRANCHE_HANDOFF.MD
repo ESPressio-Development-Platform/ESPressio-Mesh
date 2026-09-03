@@ -2,7 +2,7 @@
 
 ## Status
 
-**TRANCHE IN PROGRESS — SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED; MESH AUTHENTICATED MEMBERSHIP, DEDUPLICATION, IN-PROGRESS DELIVERY AND RETENTION FOUNDATIONS VALIDATED.**
+**TRANCHE IN PROGRESS — SYSTEM / PRIMITIVE / RADIO / ESP32 / NRF24 / STATE / COMMAND RPC-REMOVAL / EVENT PROVENANCE VALIDATED; MESH AUTHENTICATED MEMBERSHIP, DEDUPLICATION, IN-PROGRESS DELIVERY, RETENTION AND POLICY-DRIVEN LIVENESS FOUNDATIONS VALIDATED.**
 
 This file is the current absolute truth for the implementation tranche originating in `ESPressio-Mesh`. The architecture below is frozen. Implementation may choose bounded internal mechanics only where doing so does not alter public/distributed semantics, ownership, dependency direction, wire compatibility, locked bounds, authentication/identity semantics or Policy. If a genuine architectural omission/conflict is exposed, stop and ask Simon Stuart. Concrete ESPressio-defined `PrimitiveFamilyId` numeric allocations and the distributed EventTypeId assignment contract remain explicit decision boundaries and MUST NOT be invented autonomously.
 
@@ -207,6 +207,8 @@ Implemented on `structural_realignment_propagation`:
 - `AuthenticatedMembershipTable<32>`: fixed-capacity authenticated participation records for Validating/Joining/Active states. Each record owns its source/incarnation-scoped committed delivery dedup window. A different incarnation for the same DeviceIdentifier is rejected as `ConflictingIncarnation`; replacement is deliberately not implicit and must be resolved by membership/admission/security first.
 - `InboundDeliveryCoordinator`: composes exact authenticated-membership lookup → committed dedup classification → InProgress reservation. It exposes explicit definitive commit vs retryable release, so unauthenticated/unknown incarnations cannot reserve or advance dedup state and retryable pressure does not poison history.
 - `MembershipRetentionCoordinator`: composes policy-decided full authenticated-record retirement with compact tombstone creation for AuthoritativeLeave, SupersededIncarnation and LocallyForgotten. It deliberately does not decide *when* retirement occurs. Tombstone is recorded before full record release; tombstone saturation cannot block retirement.
+- `IMeshLivenessPolicy` + `DefaultMeshLivenessPolicy`: liveness thresholds are injected policy, not membership-storage constants. Default policy uses the architecture baseline 5 s Suspect / 15 s Unreachable thresholds while permitting replacement.
+- `MembershipLivenessTracker<32>`: retains bounded authenticated-evidence timestamps independently from membership identity/dedup storage; only an exact already-authenticated DeviceIdentifier+MembershipIncarnation may contribute evidence. Valid evidence restores Reachable immediately; policy evaluation drives Reachable→Suspect→Unreachable without changing MembershipState. It retains the local monotonic instant at which Unreachable began and exposes the frozen 60 s full-record-retention test without autonomously retiring the member.
 - Umbrella header exports all foundations.
 
 Validation:
@@ -215,18 +217,22 @@ Validation:
 - run `33786121103`: added message-ID generator, all passed.
 - run `33786446663`: added InProgress reservation, all passed.
 - run `33786968405`: authenticated membership + inbound delivery coordinator regression passed along with prior regressions.
-- run `33787189204`: membership-retention coordinator regression passed along with every prior Mesh host regression. No Actions-budget symptom.
+- run `33787189204`: membership-retention coordinator regression passed along with every prior Mesh host regression.
+- run `33789240336`: policy-driven liveness regression passed along with every prior Mesh host regression. No Actions-budget symptom.
 
-Important implementation boundary: `AuthenticatedMembershipTable` contains only already-authenticated records. Discovery/pre-authentication candidates remain a distinct bounded resource class and cannot affect authenticated-member dedup state. It allows Validating/Joining/Active because those states occur after sufficient authentication in the frozen pipeline; Unknown/Discovered/Authenticating cannot be inserted through this table.
+Important implementation boundaries:
+
+- `AuthenticatedMembershipTable` contains only already-authenticated records. Discovery/pre-authentication candidates remain a distinct bounded resource class and cannot affect authenticated-member dedup state. It allows Validating/Joining/Active because those states occur after sufficient authentication in the frozen pipeline; Unknown/Discovered/Authenticating cannot be inserted through this table.
+- Liveness evidence is accepted only after caller-side authentication and exact incarnation resolution. `MembershipLivenessTracker` does not authenticate packets, does not infer membership authority from reachability, and does not autonomously forget an unreachable member. The owning membership service decides when the 60 s retention result becomes `LocallyForgotten` retirement.
 
 ---
 
 # 5. Immediate next work
 
-1. Continue Mesh membership foundations without crossing unresolved family/type-ID boundaries: bounded liveness evidence/retention and authenticated membership lifecycle orchestration are the next safe area. Preserve the distinction between policy deciding *when* state changes and containers/coordinators applying the decision.
-2. Build the bounded primitive-receiver registry only when the public receiver/context surface can be defined without allocating the Mesh family ID. Do not invent the reserved Mesh-family numeric value.
-3. Reconcile Command local `CommandResult` naming/completion wording without reintroducing RPC semantics.
-4. Propagate Primitive common vocabulary through any remaining State family-facing surfaces where required.
+1. Compose liveness expiry with `MembershipRetentionCoordinator` in a narrow membership-lifecycle orchestrator so policy classification, full-record retention and LocallyForgotten retirement remain explicit and testable without collapsing responsibilities.
+2. Add bounded pending-neighbour/admission resource structures (`MaxPendingNeighbourCandidates=8`, `MaxActiveInboundAuthentications=4`) while keeping unauthenticated candidates outside authenticated membership/dedup state.
+3. Build the bounded primitive-receiver registry only when its public receiver/context surface can be defined without allocating the Mesh family ID. Do not invent the reserved Mesh-family numeric value.
+4. Reconcile Command local `CommandResult` naming/completion wording without reintroducing RPC semantics.
 5. Keep Event intrinsic distributed identity work paused until Simon chooses/approves stable EventTypeId assignment.
 6. Continue higher Mesh services incrementally: membership/profile → topology → routing → traffic governance → clock coordination → adapters.
 7. Create MeshAdapters propagation branch when adapter work begins.
@@ -247,4 +253,5 @@ Important implementation boundary: `AuthenticatedMembershipTable` contains only 
 - **2026-09-03T17:44:00Z–17:45:35Z** — Added fixed-capacity InboundDeliveryReservationTable; run `33786446663` passed.
 - **2026-09-03T17:49:00Z–17:50:55Z** — Added AuthenticatedMembershipTable and InboundDeliveryCoordinator. Exact source/incarnation membership owns committed dedup; unknown/conflicting incarnation cannot reserve or advance it. Regression covered retryable release, definitive commit, duplicate/TooOld, disappearing membership and capacity. Run `33786968405` passed all current Mesh tests.
 - **2026-09-03T17:52:00Z–17:53:20Z** — Added MembershipRetentionCoordinator for explicit AuthoritativeLeave / SupersededIncarnation / LocallyForgotten retirement into compact tombstones. Coordinator does not decide retirement timing. Run `33787189204` passed all current Mesh host regressions.
-- **2026-09-03T17:54:00Z** — Reconciled this authoritative handoff to current Mesh delivery/membership implementation truth. Concrete PrimitiveFamilyId and distributed EventTypeId decisions remain intentionally untouched.
+- **2026-09-03T17:54:00Z** — Reconciled authoritative handoff to current Mesh delivery/membership implementation truth.
+- **2026-09-03T18:12:00Z–18:13:58Z** — Added policy-driven MembershipLivenessTracker and replaceable IMeshLivenessPolicy. Exact authenticated evidence restores Reachable; default policy degrades at 5 s/15 s; Unreachable start is retained locally and frozen 60 s full-record-retention expiry is exposed without autonomous membership removal. Regression verifies wrong-incarnation rejection, monotonic evidence, Reachable→Suspect→Unreachable, 60 s retention, immediate recovery and replaceable thresholds. Run `33789240336` passed all current Mesh host regressions. Concrete PrimitiveFamilyId/EventTypeId decisions remain untouched.
