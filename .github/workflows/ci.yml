@@ -40,3 +40,11 @@ jobs:
           -o membership_tombstone_test
       - name: Run membership tombstone regression
         run: ./membership_tombstone_test
+      - name: Build deduplication window regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src
+          ESPressio-Mesh/tests/deduplication_window_test.cpp
+          -o deduplication_window_test
+      - name: Run deduplication window regression
+        run: ./deduplication_window_test
