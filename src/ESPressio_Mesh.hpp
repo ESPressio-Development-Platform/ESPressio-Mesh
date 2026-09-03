@@ -26,3 +26,5 @@
 #include "ESPressio_TopologyFreshness.hpp"
 #include "ESPressio_TopologyPublicationPolicy.hpp"
 #include "ESPressio_TopologyGraphStore.hpp"
+#include "ESPressio_Route.hpp"
+#include "ESPressio_RouteCache.hpp"
