@@ -24,3 +24,5 @@
 #include "ESPressio_LivenessProbeCoordinator.hpp"
 #include "ESPressio_TopologySnapshot.hpp"
 #include "ESPressio_TopologyFreshness.hpp"
+#include "ESPressio_TopologyPublicationPolicy.hpp"
+#include "ESPressio_TopologyGraphStore.hpp"
