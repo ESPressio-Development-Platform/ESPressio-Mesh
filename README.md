@@ -21,7 +21,9 @@ Mesh itself remains unaware of Command/Event/State payload semantics. Non-Mesh p
 
 The `structural_realignment_propagation` branch is the coordinated implementation branch for the finalized 1.0.0 Mesh architecture. Its `TRANCHE_HANDOFF.MD` is the authoritative, self-contained frozen specification and chronological implementation record while the tranche remains in progress.
 
-The initial committed foundation exposes the exact bounded identity/value types and frozen default capacity constants. Membership, topology, routing, admission, traffic governance, delivery, clock coordination and adapters are being added in dependency order against their matching propagation branches.
+The current foundation now includes bounded authenticated-membership and tombstone storage, delivery deduplication and InProgress exclusion, policy-driven liveness/retention, separately bounded pre-authentication and authentication resources, authenticated admission promotion, generation-safe Radio peer bindings, incarnation-scoped `RadioIdentifier` allocation, peer-bound neighbour discovery, bounded primitive-family receiver registration, and protected traffic-governor capacities. All of these components remain narrow services intended to compose inside the serialized Mesh execution domain rather than becoming independent scheduling layers.
+
+Control work is also required to have a finite lifetime. `IControlWorkLifetimePolicy` supplies those local operational lifetimes, while `FixedControlWorkLifetimePolicy` provides an explicit composition-root implementation without inventing universal timeout values. Application deliveries are deliberately excluded because they retain their own immutable delivery deadline.
 
 ## Core identity rules
 
@@ -30,14 +32,19 @@ The initial committed foundation exposes the exact bounded identity/value types 
 - `MeshIdentifier`: exact 16-byte application-supplied Mesh identity; all-zero is invalid/unspecified.
 - `MembershipIncarnation`: exact 16-byte participation-instance identity; a partition does not change it.
 - `MeshNodeAlias`: 16-bit Mesh-local routing handle only; it is never authority or permanent identity.
+- `RadioIdentifier`: 8-bit node-local Radio handle; 1–254 are usable and are never recycled within one `MembershipIncarnation`.
 - `MeshMessageId`: 64-bit identity of one independently routable delivery or one Broadcast.
 - `ProfileGeneration` and `TopologyGeneration`: independent 64-bit generation domains.
 
 `CanonicalName` is a mandatory bounded human-readable profile property, not identity. Its semantic representation is one length byte plus 32 bytes of backing storage. Valid names contain 1–32 printable ASCII bytes, compare exactly/case-sensitively, and cannot begin/end with a space.
 
+Radio-owned `RadioPeerHandle` values are deliberately separate from every Mesh identity. They are process-local, generation-safe direct-link handles supplied by `ESPressio-Radio`; Mesh may retain them beside a `RadioIdentifier` as link evidence, but they are never distributed or treated as authenticated node identity.
+
 ## Frozen default bounds
 
 The baseline 1.0.0 configuration is intentionally bounded. Among the locked defaults are 32 Mesh members, four Radios per member, eight Groups per member, eight primitive receivers, eight active application transmission aggregates, 96 topology links, 16 route hops, a 16-hop initial forwarding limit, 32 cached routes, 32 maximum recipients in one selective-multicast aggregate and 64 membership tombstones.
+
+Traffic governance protects four independent local capacities: eight Infrastructure Responses, four Clock Control items, eight General Control items and eight Application transmission aggregates. Application saturation cannot borrow from the control reserves. Control items additionally receive finite lifetimes through `IControlWorkLifetimePolicy`; no control queue is permitted to retain work indefinitely.
 
 These bounds are semantic defaults rather than permission to allocate unbounded dynamic storage elsewhere. Every retained queue, retry set, reassembly set and control-work pool must remain finite and expose deterministic backpressure/exhaustion behavior.
 
