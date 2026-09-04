@@ -33,3 +33,10 @@ jobs:
           ESPressio-Mesh/tests/clock_membership_coordinator_test.cpp -o clock_membership_coordinator_test
       - name: Run authenticated clock membership regression
         run: ./clock_membership_coordinator_test
+      - name: Build clock reachability convergence regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src
+          ESPressio-Mesh/tests/clock_reachability_coordinator_test.cpp -o clock_reachability_coordinator_test
+      - name: Run clock reachability convergence regression
+        run: ./clock_reachability_coordinator_test
