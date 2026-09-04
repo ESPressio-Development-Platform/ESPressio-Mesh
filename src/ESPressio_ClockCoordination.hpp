@@ -20,20 +20,8 @@ static constexpr ClockStratum ClockRootStratum = 0U;
 static constexpr ClockStratum InvalidClockStratum = std::numeric_limits<ClockStratum>::max();
 
 /// <summary>Relative quality comparison returned by an injected clock-quality policy.</summary>
-enum class ClockQualityComparison : std::uint8_t {
-    Better,
-    Equivalent,
-    Worse
-};
+enum class ClockQualityComparison : std::uint8_t { Better, Equivalent, Worse };
 
-/// <summary>
-/// One authenticated informational clock advertisement retained by the local Mesh coordinator.
-/// </summary>
-/// <remarks>
-/// `TQuality` is intentionally supplied by composition: Mesh does not impose a universal accuracy/uncertainty scalar.
-/// Advertisement storage does not authenticate the sender and does not define wire encoding. Callers may insert an
-/// observation only after authenticating the exact DeviceIdentifier + MembershipIncarnation that supplied it.
-/// </remarks>
 template<typename TQuality>
 struct ClockCoordinationAdvertisement final {
     System::DeviceIdentifier Sender{};
@@ -44,15 +32,12 @@ struct ClockCoordinationAdvertisement final {
     std::uint64_t ObservedAtMilliseconds{0};
 
     constexpr bool IsStructurallyValid() const noexcept {
-        return static_cast<bool>(Sender) &&
-               static_cast<bool>(SenderIncarnation) &&
-               static_cast<bool>(AdvertisedRoot) &&
-               SenderStratum != InvalidClockStratum &&
+        return static_cast<bool>(Sender) && static_cast<bool>(SenderIncarnation) &&
+               static_cast<bool>(AdvertisedRoot) && SenderStratum != InvalidClockStratum &&
                ObservedAtMilliseconds != 0U;
     }
 };
 
-/// <summary>Injected comparison policy for the composition-defined clock-quality observation.</summary>
 template<typename TQuality>
 class IClockQualityPolicy {
 public:
@@ -60,7 +45,6 @@ public:
     virtual ClockQualityComparison Compare(const TQuality& candidate, const TQuality& incumbent) const noexcept = 0;
 };
 
-/// <summary>Injected eligibility policy deciding whether one authenticated clock advertisement may participate.</summary>
 template<typename TQuality>
 class IClockEligibilityPolicy {
 public:
@@ -68,7 +52,21 @@ public:
     virtual bool IsEligible(const ClockCoordinationAdvertisement<TQuality>& advertisement) const noexcept = 0;
 };
 
-/// <summary>Injected root-election policy.</summary>
+/// <summary>
+/// Independent policy deciding whether an otherwise eligible advertisement is usable as this node's immediate
+/// synchronization parent.
+/// </summary>
+/// <remarks>
+/// Root eligibility and parent usability are intentionally distinct. A globally preferable root may be several Mesh
+/// hops away, while precision synchronization is performed only through a currently usable direct authenticated parent.
+/// </remarks>
+template<typename TQuality>
+class IClockParentUsabilityPolicy {
+public:
+    virtual ~IClockParentUsabilityPolicy() = default;
+    virtual bool IsUsableParent(const ClockCoordinationAdvertisement<TQuality>& advertisement) const noexcept = 0;
+};
+
 template<typename TQuality>
 class IClockRootElectionPolicy {
 public:
@@ -80,7 +78,6 @@ public:
     ) const noexcept = 0;
 };
 
-/// <summary>Injected parent-selection policy among candidates already proven loop-safe for the elected root.</summary>
 template<typename TQuality>
 class IClockParentSelectionPolicy {
 public:
@@ -92,9 +89,6 @@ public:
     ) const noexcept = 0;
 };
 
-/// <summary>
-/// Default root policy: better root quality wins; exact ties use the advertised root DeviceIdentifier deterministically.
-/// </summary>
 template<typename TQuality>
 class DefaultClockRootElectionPolicy final : public IClockRootElectionPolicy<TQuality> {
 public:
@@ -110,9 +104,6 @@ public:
     }
 };
 
-/// <summary>
-/// Default parent policy: prefer a lower stratum, then better advertised root quality, then DeviceIdentifier.
-/// </summary>
 template<typename TQuality>
 class DefaultClockParentSelectionPolicy final : public IClockParentSelectionPolicy<TQuality> {
 public:
@@ -130,7 +121,6 @@ public:
     }
 };
 
-/// <summary>Result of one local bounded clock election pass.</summary>
 struct ClockCoordinationSelection final {
     System::DeviceIdentifier Root{};
     System::DeviceIdentifier Parent{};
@@ -141,15 +131,6 @@ struct ClockCoordinationSelection final {
     constexpr bool HasParent() const noexcept { return static_cast<bool>(Parent); }
 };
 
-/// <summary>
-/// Fixed-capacity store and election coordinator for authenticated informational clock advertisements.
-/// </summary>
-/// <remarks>
-/// This type owns no timer, task, Radio exchange, Timing discipline or wire encoding. It only retains authenticated
-/// observations and recomputes local root/parent choice from injected policies. Loop prevention is structural and cannot
-/// be delegated away: a parent must advertise the elected root and must have a strictly better (numerically lower)
-/// stratum than the local node. A root never has a parent.
-/// </remarks>
 template<typename TQuality, std::size_t Capacity = Limits::MaxMeshNodes>
 class ClockCoordinationTable final {
     static_assert(Capacity > 0U, "Clock coordination capacity must be non-zero.");
@@ -166,26 +147,15 @@ public:
     static constexpr std::size_t MaximumSize() noexcept { return Capacity; }
     constexpr std::size_t Size() const noexcept { return _size; }
 
-    /// <summary>
-    /// Retains the newest authenticated observation from one exact sender incarnation.
-    /// </summary>
-    /// <remarks>
-    /// A newly authenticated incarnation for the same DeviceIdentifier replaces the old informational clock observation.
-    /// Monotonic-time regression within the same incarnation is rejected.
-    /// </remarks>
     bool Observe(const ClockCoordinationAdvertisement<TQuality>& advertisement) noexcept {
         if (!advertisement.IsStructurallyValid()) return false;
-
         for (auto& slot : _slots) {
             if (!slot.Occupied || slot.Advertisement.Sender != advertisement.Sender) continue;
             if (slot.Advertisement.SenderIncarnation == advertisement.SenderIncarnation &&
-                advertisement.ObservedAtMilliseconds < slot.Advertisement.ObservedAtMilliseconds) {
-                return false;
-            }
+                advertisement.ObservedAtMilliseconds < slot.Advertisement.ObservedAtMilliseconds) return false;
             slot.Advertisement = advertisement;
             return true;
         }
-
         for (auto& slot : _slots) {
             if (slot.Occupied) continue;
             slot.Advertisement = advertisement;
@@ -196,15 +166,10 @@ public:
         return false;
     }
 
-    /// <summary>Removes informational clock state for one exact authenticated sender incarnation.</summary>
-    bool Remove(
-        const System::DeviceIdentifier& sender,
-        const MembershipIncarnation& incarnation
-    ) noexcept {
+    bool Remove(const System::DeviceIdentifier& sender, const MembershipIncarnation& incarnation) noexcept {
         if (!sender || !incarnation) return false;
         for (auto& slot : _slots) {
-            if (!slot.Occupied ||
-                slot.Advertisement.Sender != sender ||
+            if (!slot.Occupied || slot.Advertisement.Sender != sender ||
                 slot.Advertisement.SenderIncarnation != incarnation) continue;
             slot = {};
             --_size;
@@ -213,33 +178,35 @@ public:
         return false;
     }
 
-    /// <summary>Clears all retained informational clock observations.</summary>
-    void Clear() noexcept {
-        _slots = {};
-        _size = 0U;
-    }
+    void Clear() noexcept { _slots = {}; _size = 0U; }
 
     /// <summary>
-    /// Recomputes the best root and loop-safe parent from current observations plus the local node's own root candidacy.
+    /// Recomputes the best root and loop-safe immediately usable parent from current observations plus local root
+    /// candidacy.
     /// </summary>
+    /// <remarks>
+    /// `eligibility` controls participation in root election. `parentUsability` is applied only while selecting the
+    /// immediate synchronization parent, so a non-direct elected root remains valid when a direct neighbour advertises
+    /// that same root. This preserves multi-hop root coordination without performing precision exchange through Mesh
+    /// forwarding queues.
+    /// </remarks>
     ClockCoordinationSelection Select(
         const ClockCoordinationAdvertisement<TQuality>& local,
         const IClockQualityPolicy<TQuality>& quality,
         const IClockEligibilityPolicy<TQuality>& eligibility,
+        const IClockParentUsabilityPolicy<TQuality>& parentUsability,
         const IClockRootElectionPolicy<TQuality>& rootElection,
         const IClockParentSelectionPolicy<TQuality>& parentSelection
     ) const noexcept {
         ClockCoordinationSelection result{};
-        if (!local.IsStructurallyValid() || local.Sender != local.AdvertisedRoot || local.SenderStratum != ClockRootStratum) {
+        if (!local.IsStructurallyValid() || local.Sender != local.AdvertisedRoot || local.SenderStratum != ClockRootStratum)
             return result;
-        }
 
         const ClockCoordinationAdvertisement<TQuality>* rootSource = eligibility.IsEligible(local) ? &local : nullptr;
         for (const auto& slot : _slots) {
             if (!slot.Occupied || !eligibility.IsEligible(slot.Advertisement)) continue;
-            if (rootSource == nullptr || rootElection.PreferRoot(slot.Advertisement, *rootSource, quality)) {
+            if (rootSource == nullptr || rootElection.PreferRoot(slot.Advertisement, *rootSource, quality))
                 rootSource = &slot.Advertisement;
-            }
         }
         if (rootSource == nullptr) return result;
 
@@ -250,10 +217,9 @@ public:
         }
 
         const ClockCoordinationAdvertisement<TQuality>* parent = nullptr;
-        // No current parent exists yet, so any usable upstream stratum is strictly better than InvalidClockStratum.
         for (const auto& slot : _slots) {
             const auto& candidate = slot.Advertisement;
-            if (!slot.Occupied || !eligibility.IsEligible(candidate)) continue;
+            if (!slot.Occupied || !eligibility.IsEligible(candidate) || !parentUsability.IsUsableParent(candidate)) continue;
             if (candidate.AdvertisedRoot != result.Root || candidate.Sender == local.Sender) continue;
             if (candidate.SenderStratum == InvalidClockStratum || candidate.SenderStratum >= InvalidClockStratum - 1U) continue;
             if (parent == nullptr || parentSelection.PreferParent(candidate, *parent, quality)) parent = &candidate;
