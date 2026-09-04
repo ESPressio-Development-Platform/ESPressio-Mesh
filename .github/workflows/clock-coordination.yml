@@ -19,6 +19,11 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-System
           ref: structural_realignment_propagation_ESPressio-Mesh
           path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Radio
       - name: Build clock coordination regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
@@ -40,3 +45,10 @@ jobs:
           ESPressio-Mesh/tests/clock_reachability_coordinator_test.cpp -o clock_reachability_coordinator_test
       - name: Run clock reachability convergence regression
         run: ./clock_reachability_coordinator_test
+      - name: Build direct authenticated parent usability regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src
+          ESPressio-Mesh/tests/clock_parent_usability_test.cpp -o clock_parent_usability_test
+      - name: Run direct authenticated parent usability regression
+        run: ./clock_parent_usability_test
