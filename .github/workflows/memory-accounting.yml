@@ -50,3 +50,76 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Werror \
             -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src \
             mesh_umbrella.cpp -o mesh_umbrella -pthread
+
+  esp32-accounting-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Observable
+          ref: structural_realignment
+          path: ESPressio-Observable
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: structural_realignment
+          path: ESPressio-Timing
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Security
+          ref: structural_realignment
+          path: ESPressio-Security
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+      - name: Build ESP32 accounting probe
+        run: pio run -d ESPressio-Mesh/tests/esp32_memory_accounting
+      - name: Report ESP32-native accounting symbols
+        run: |
+          ELF=ESPressio-Mesh/tests/esp32_memory_accounting/.pio/build/esp32dev/firmware.elf
+          NM="$HOME/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-nm"
+          "$NM" -S --size-sort "$ELF" | grep 'espressio_mesh_accounting_' | tee esp32_mesh_accounting_symbols.txt
+          python - <<'PY'
+          from pathlib import Path
+
+          values = {}
+          for line in Path('esp32_mesh_accounting_symbols.txt').read_text().splitlines():
+              parts = line.split()
+              if len(parts) < 4:
+                  continue
+              size = int(parts[1], 16)
+              name = parts[-1]
+              values[name] = size
+
+          prefix = 'espressio_mesh_accounting_'
+          principal = sum(
+              size for name, size in values.items()
+              if name.startswith(prefix) and name != prefix + 'ack_tracker_8'
+          )
+          ack = values.get(prefix + 'ack_tracker_8')
+          if principal <= 0 or ack is None:
+              raise SystemExit('ESP32 accounting symbols were not emitted as expected')
+
+          print(f'esp32_principal_fixed_cardinality_bytes={principal}')
+          print(f'esp32_ack_tracker_8_bytes={ack}')
+          PY
