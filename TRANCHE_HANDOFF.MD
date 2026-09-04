@@ -4,7 +4,7 @@
 
 **TRANCHE IN PROGRESS — ARCHITECTURE FROZEN / IMPLEMENTATION READY.**
 
-Validated work now spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership/delivery/routing/security foundations. Radio explicitly distinguishes synchronous send-attempt observation from qualified direct-link completion/acknowledgement evidence. Mesh separately distinguishes Radio evidence, authenticated next-hop Mesh acceptance, end-to-end destination delivery acknowledgement, and requested-operation completion.
+Validated work now spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership/delivery/routing/security foundations. Radio explicitly distinguishes synchronous send-attempt observation from qualified direct-link completion/acknowledgement evidence. Mesh separately distinguishes Radio evidence, authenticated next-hop Mesh acceptance, end-to-end destination delivery acknowledgement, and requested-operation completion. A bounded, wire-neutral `OutboundDeliveryLifecycle<AcknowledgementCapacity>` now composes these already-frozen delivery stages without introducing a wire schema or new global capacity.
 
 This file is the authoritative implementation handoff for the tranche originating in `ESPressio-Mesh`. Do not alter public/distributed semantics, dependency direction, authentication/identity semantics, locked capacities or Policy without Simon Stuart's explicit decision.
 
@@ -109,7 +109,9 @@ Dedup is per authenticated source DeviceIdentifier + MembershipIncarnation using
 
 Mesh delivery ACK means destination-framework delivery confirmation only. It is not requested-operation completion and is distinct from Radio peer acknowledgement and intermediate next-hop acceptance. Sender-local pending-ACK state is keyed by exact destination DeviceIdentifier + MembershipIncarnation + MeshMessageId and uses the immutable delivery deadline. A later incarnation cannot acknowledge an older delivery.
 
-`DeliveryAcknowledgementTracker<Capacity>` requires an explicit finite composition-supplied capacity because architecture does not freeze one universal ACK cardinality. `DeliveryAcknowledgementCoordinator<Capacity>` creates only wire-neutral `DeliveryAcknowledgementIntent` after definitive destination semantic acceptance and applies only already-authenticated ACKs. No ACK wire schema, route, security mechanism or control family ID is implied.
+`DeliveryAcknowledgementTracker<Capacity>` requires an explicit finite composition-supplied capacity because architecture does not freeze one universal ACK cardinality. `DeliveryAcknowledgementCoordinator<Capacity>` creates only wire-neutral `DeliveryAcknowledgementIntent` after definitive destination semantic acceptance and applies only already-authenticated ACKs. It also exposes narrow sender-side `ReservePending` / `ReleasePending` operations so higher lifecycle composition need not depend on tracker internals. No ACK wire schema, route, security mechanism or control family ID is implied.
+
+`OutboundDeliveryLifecycle<AcknowledgementCapacity>` is one per already-bounded Node delivery. It composes route-attempt counters, one `ForwardingTransitionCoordinator`, and optional final-destination ACK tracking while sharing the same immutable `MeshMessageId` and absolute deadline. It owns no payload, route, queue, task, timer, Radio object or wire encoding and does not invent a global ACK capacity. Intermediate forwarders may run with destination-ACK tracking disabled; the originating sender may reserve final-destination ACK capacity before outbound work begins.
 
 ## 3.7 Topology / routing / forwarding transition
 
@@ -122,6 +124,8 @@ Routing uses injected `IRoutingStrategy`. `ResolvedRoute<16>` is a local disposa
 `RemainingHopLimit` decrements **only when a successful Mesh forwarding transition is explicitly committed**. It does not decrement during planning, cache lookup, queue admission, Radio submission, Radio transmission completion, Radio peer acknowledgement or failed work. A successful Mesh transition requires authenticated Mesh-level evidence that the exact next Mesh node/incarnation accepted the same MeshMessageId.
 
 `ForwardingTransitionCoordinator` is per-delivery, owns exactly one fixed pending transition record, and introduces no hidden global cardinality. It arms exact `(NextHop DeviceIdentifier, NextHop MembershipIncarnation, MeshMessageId, immutable deadline)` and accepts only already-authenticated matching next-hop acceptance. Only then does it invoke `CommitSuccessfulForwardingTransition()` and consume one HopLimit. Wrong next hop, wrong incarnation, wrong MessageId, expired evidence and exhausted HopLimit cannot commit. It defines no wire packet and allocates no control family ID.
+
+`ForwardingAttemptLifecycle` maps synchronous forwarding submission failures into the existing route-attempt/replan policies, but every accepted submission remains `AwaitingNextHopAcceptance` regardless of direct-link evidence strength. Only `ForwardingAcceptanceResult::Committed` resolves the route attempt as Delivered.
 
 Intermediate next-hop acceptance transfers forwarding responsibility for one hop. It remains distinct from the end-to-end destination delivery acknowledgement tracked by `DeliveryAcknowledgementTracker`.
 
@@ -162,7 +166,7 @@ Payload forms: Borrowed Stable / Bounded Owned / Repeatable Serialized Source. F
 
 Locked capacities: MaxMeshNodes32; MaxRadiosPerNode4; MaxGroupsPerNode8; MaxPrimitiveReceivers8; MaxActiveApplicationTransmissions8; MaxTopologyLinks96; MaxRouteHops16; DefaultHopLimit16; MaxRouteCacheEntries32; MaxActiveInboundDeliveries8; MaxPendingNeighbourCandidates8; MaxActiveLivenessProbes4; MaxActiveInboundAuthentications4; MaxRecipientsPerTransmission32; MaxMembershipTombstones64; DedupWindow128; MaxSameRouteAttempts3; MaxRoutesAttempted4; protected traffic 8/4/8/8.
 
-Provisional baseline remains ~70,160 B fixed/cardinality + starting stacks before variable payload/control/reassembly/runtime overhead: `DRAM ≈ 70,160 + 20*Papp + 8*Pinfra + 4*Pclock + 8*Pgeneral + R + C + A + X`. Direct-peer metadata and whichever finite delivery-ACK capacity a composition selects must be included in the next measured accounting. `ForwardingTransitionCoordinator` contributes only one fixed record per already-bounded active forwarding/delivery object and therefore introduces no new global cardinality.
+Provisional baseline remains ~70,160 B fixed/cardinality + starting stacks before variable payload/control/reassembly/runtime overhead: `DRAM ≈ 70,160 + 20*Papp + 8*Pinfra + 4*Pclock + 8*Pgeneral + R + C + A + X`. Direct-peer metadata and whichever finite delivery-ACK capacity a composition selects must be included in the next measured accounting. `ForwardingTransitionCoordinator` contributes one fixed record per already-bounded active forwarding/delivery object; `OutboundDeliveryLifecycle` likewise adds only per-delivery scalar/identity bookkeeping and no new global cardinality.
 
 ---
 
@@ -192,37 +196,37 @@ Validated Mesh foundations:
 - ForwardingSubmissionCoordinator and `ForwardingDirectLinkEvidence::{None,SubmissionAccepted,TransmissionCompleted,PeerAcknowledged}`;
 - `CommitSuccessfulForwardingTransition()` as the hop-budget mutation primitive;
 - `ForwardingTransitionCoordinator` as the authenticated exact-next-hop acceptance gate before that mutation;
+- `ForwardingAttemptLifecycle` preserving accepted Radio work as pending until exact authenticated next-hop Mesh acceptance;
 - `DeliveryAcknowledgementTracker<Capacity>` / `DeliveryAcknowledgementCoordinator<Capacity>` for end-to-end destination-framework ACK semantics;
+- `OutboundDeliveryLifecycle<AcknowledgementCapacity>` composing route attempts, next-hop acceptance and optional final-destination ACK state under one immutable MessageId/deadline;
 - dependency-inverted `IMeshSecurityAuthority` / `IMeshAdmissionPolicy` plus exact `AuthenticatedMeshIdentity`.
 
 ---
 
 # 5. Validation record
 
-Earlier green Mesh runs include `33785734451`, `33786121103`, `33786446663`, `33786968405`, `33787189204`, `33789240336`, `33792457888`, `33792536582`, `33793151350`, `33793950787`, `33794119177`, `33797422944`, `33797806648`, `33798395545`, `33800204015`, `33800502633`, `33801088318`, `33801088364`, `33801574428`, `33801574478`, `33804484722`, `33804812963`, `33805171842`, `33805171816`, `33807676687`, `33807676751`, `33808650254`, `33810738804`, `33815259671`, `33845580307`, `33845580185`, `33845944637`, `33845944459`, `33845944550`, `33845944552`, `33848231756`, `33848231773`, `33849228375`, `33849228424`, `33849621816`, `33849621643`, `33849826904`.
+Earlier green Mesh runs include `33785734451`, `33786121103`, `33786446663`, `33786968405`, `33787189204`, `33789240336`, `33792457888`, `33792536582`, `33793151350`, `33793950787`, `33794119177`, `33797422944`, `33797806648`, `33798395545`, `33800204015`, `33800502633`, `33801088318`, `33801088364`, `33801574428`, `33801574478`, `33804484722`, `33804812963`, `33805171842`, `33805171816`, `33807676687`, `33807676751`, `33808650254`, `33810738804`, `33815259671`, `33845580307`, `33845580185`, `33845944637`, `33845944459`, `33845944550`, `33845944552`, `33848231756`, `33848231773`, `33849228375`, `33849228424`, `33849621816`, `33849621643`, `33849826904`, `33859388270`, `33859388136`.
 
-Earlier Radio green runs include `33793581249`, `33797082636`, `33798291517`, `33799876449`, `33848107862`. Earlier NRF24 green includes `33847918464`.
+Earlier Radio green runs include `33793581249`, `33797082636`, `33798291517`, `33799876449`, `33848107862`, `33858866923`. Earlier NRF24 green includes `33847918464`, `33854264847`.
 
 Current Radio observer/evidence realignment:
-- Earlier tranche commits `9f9560a98b991c8383caa8174ac5e4ce2f3d86cf`, `fffca22eb644012683bf9cdfa910076401d8a11d`, `2de0592aba1e0ea7cffcf5f93e9dc49695bf2aa1`, `8cc8fac0a3f46642ea9344389e7d228fdeaec93c`, `83619de85029f4ae4f8c2b0aed7aaaf453438a20`, and `2c7a087926d055bc9241d22f855421b228c9407d` introduced attempt semantics and began propagation.
 - `d9e6c325cadaa3c23b7bc83ad82e7d5d205e307c` removed the temporary/misleading provider-side completion compatibility hook entirely.
 - `594a6825733a62158b68b87d250d2989efe08b97` renamed the RadioTransport consumer callback/dispatcher to `OnRadioTransportSendAttempted` / `NotifySendAttempted` semantics.
 - `07644065808797445c2380db521dab008e038ab1` aligned the optional Radio Event bridge with transport attempt semantics.
-- `6df8e6902c30f4676148bcc42c20df9f4907c340` and `67036eb4bdb650db72751f21b7023affc566cfb4` aligned provider and RadioTransport regressions.
-- Radio run `33858568419` showed all transport/evidence/send-attempt/peer tests green but exposed one stale `NotifySendCompleted` in the native clock test stub; no compatibility alias was restored.
-- `58396f54e35beb30df8713f0789dc14133d8ba1f` migrated that final clock test stub.
-- `ee10720763fb8ee78be3f349a92e7481331015e3` updated Radio README to document admission vs transmission completion vs peer acknowledgement and their separation from Mesh ACK semantics.
-- Radio run **`33858866923` completed fully green**: native transport, direct-link evidence, send-attempt observer, peer-registry and clock-sync regressions all passed; ESP32-worker/peer-registry/optional Event-bridge/clock-sync PlatformIO smoke compilation also passed.
-- ESP32 Raw80211 `c551a489f01a67a3ac911fe260a6442c45866547` and BLE `ba97d162dfe7478605d0bb7c25328b87ef8a7f89` use `NotifySendAttempted`; ESP32 run `33858336799` provider job passed.
-- NRF24 propagation uses `NotifySendAttempted`; NRF24 CI `33854264847` passed.
+- `58396f54e35beb30df8713f0789dc14133d8ba1f` migrated the final native clock test stub.
+- `ee10720763fb8ee78be3f349a92e7481331015e3` documents Radio admission vs transmission completion vs peer acknowledgement. Radio run **`33858866923` fully passed** native and ESP32-worker smoke coverage.
+- ESP32 Raw80211/BLE and NRF24 propagation branches use `NotifySendAttempted`; ESP32 provider run `33858336799` and NRF24 run `33854264847` passed.
 
-Authenticated next-hop forwarding transition continuation:
-- `a9179dda5572c609b2165904ef0e7bb07a3cd6f5` added `ForwardingTransitionCoordinator`, a per-delivery single pending-record gate requiring exact authenticated next-hop identity/incarnation + MeshMessageId + immutable deadline before HopLimit commitment.
-- `d673a27068ffd2e3b065a44ea3382abb712fae35` added regression coverage for exact-source/incarnation/message matching, deadline expiry, zero-HopLimit rejection, cancellation and single decrement.
-- `ae77ebf04c3a0fc2264700a3a238b02d41b9d405` exposed the coordinator through `ESPressio_Mesh.hpp`.
-- `5d36f8f906b7f0d70187a9054a307ef867897c42` added workflow coverage; a case typo in one Radio include path was immediately corrected by `3de808a66b3258acac90aae4b297aea82cd5a86a` before CI evidence was accepted.
-- Topology Evolution run **`33859388270` passed** the complete topology/routing/forwarding-submission/new forwarding-transition/delivery-ACK/security/umbrella regression set.
-- General Mesh CI run **`33859388136` passed** the broad host regression suite against the same branch tip.
+Authenticated forwarding/delivery composition:
+- `a9179dda5572c609b2165904ef0e7bb07a3cd6f5` added `ForwardingTransitionCoordinator`.
+- Topology Evolution `33859388270` and General CI `33859388136` passed that forwarding transition / ACK / security slice.
+- During the 2026-09-04 10:16–10:23 UTC continuation, a proposed `ForwardingAttemptResolution` helper/test was created, then immediately removed after self-review showed `ForwardingAttemptLifecycle` already owned exactly that responsibility. Removal commits: `55be7707f4db39024276cbe498ace26ec736ef70` and `cbe8a7c6256576026752692b1cbc27cfb05e01c3`. No duplicate abstraction remains.
+- `a8f24024e00bf04f56671ceb249c49630c52fa78` added sender-side reserve/release operations to `DeliveryAcknowledgementCoordinator` without exposing tracker internals.
+- `19cc394787c69b1b63d22e6031c69f8591d77674` added `OutboundDeliveryLifecycle<AcknowledgementCapacity>`.
+- `982d0d5b64b7b21e3a6f7bb233578f59d8b11dc1` added composed lifecycle regression coverage; `d269bc79c0d64702ead07b7024273166deb0361f` exposed it through the Mesh umbrella.
+- Workflow edits exposed case-sensitive include-path typos during self-review; they were corrected before validation was accepted. Final corrected workflow commit: `c5df67a8f2c84ad0b26dc513b0dbfff635422a06`.
+- Topology Evolution run **`33862960895` passed** all topology/routing/forwarding/ACK/security regressions, including the new composed outbound lifecycle and umbrella build.
+- General Mesh CI run **`33862960929` passed** the broad host regression suite against the same branch tip.
 
 No Actions-budget symptom has occurred.
 
@@ -238,6 +242,7 @@ No Actions-budget symptom has occurred.
 - Authenticated next-hop Mesh acceptance transfers forwarding responsibility and alone may consume one local HopLimit.
 - Next-hop acceptance is not end-to-end destination delivery acknowledgement.
 - Mesh destination delivery acknowledgement is not requested-operation completion.
+- The originating delivery's final ACK state remains independently pending after intermediate hop acceptance.
 - Route/cache state is disposable local optimization and never distributed authority.
 - No universal RouteCost, hidden topology threshold or implicit cache eviction policy has been introduced.
 - No unresolved Primitive/Event/Group identifier has been allocated.
@@ -247,8 +252,8 @@ No Actions-budget symptom has occurred.
 
 # 7. Immediate next work
 
-1. Compose forwarding submission, `ForwardingTransitionCoordinator`, route-attempt state and end-to-end `DeliveryAcknowledgementCoordinator` through a narrow per-delivery lifecycle surface. Keep intermediate next-hop acceptance distinct from final destination ACK and do not invent ACK wire encoding or a control-family numeric ID.
-2. Continue wire-neutral security/admission composition and bounded traffic/control work only where no unresolved wire IDs are required.
+1. Continue wire-neutral security/admission lifecycle composition around `IMeshSecurityAuthority` / `IMeshAdmissionPolicy`, existing bounded candidate/authentication resources and `AdmissionPromotionCoordinator`, without inventing a handshake/control wire schema.
+2. Audit measured `sizeof`/capacity impact of newly added direct-peer, liveness and per-delivery lifecycle structures and update the provisional memory accounting where concrete compile-time sizes can be measured without choosing unresolved capacities.
 3. Finish the remaining Command source IDE-comment wording cleanup without changing `CommandResult` runtime shape or callback semantics.
 4. Keep Event distributed identity and full NodeProfile paused until Simon resolves Event IDs/MessageId and Group identifier semantics.
 5. Create/verify `ESPressio-MeshAdapters` propagation branch only when adapter implementation starts.
@@ -265,6 +270,7 @@ No Actions-budget symptom has occurred.
 - 07:24–07:30 — Command documentation realigned from RPC-era language to asynchronous intent/local disposition.
 - 07:31–07:39 — wire-neutral delivery acknowledgement tracker/coordinator added and validated.
 - 07:39–07:42 — dependency-inverted Mesh security/admission contracts added and validated.
-- 08:33–08:39 — Radio send observation semantics audited across Radio/ESP32/NRF24. Added `IRadioSendAttemptObserver`, renamed optional send Events, aligned Event bridge, added regression and migrated NRF24 provider. Initial stale-test references were exposed and corrected rather than hidden behind compatibility.
-- 09:20–09:34 — completed the no-legacy Radio semantic cleanup: removed `NotifySendCompleted`, renamed RadioTransport consumer callback to attempt semantics, migrated Raw80211/BLE/Event bridge/native tests/clock stub, and updated Radio README. Radio run `33858866923` fully green across native and ESP32-worker smoke jobs.
-- 09:35–09:40 — added per-delivery `ForwardingTransitionCoordinator` requiring authenticated exact next-hop/incarnation/MessageId acceptance before HopLimit decrement; added regression/umbrella/workflow coverage. Topology Evolution `33859388270` and General CI `33859388136` passed.
+- 08:33–09:34 — Radio send-attempt/evidence semantics audited and realigned across Radio/ESP32/NRF24/Event; misleading completion aliases removed; Radio `33858866923` green.
+- 09:35–09:40 — per-delivery `ForwardingTransitionCoordinator` added and validated; Topology Evolution `33859388270` and General CI `33859388136` green.
+- 10:16–10:18 — self-review detected that a newly drafted `ForwardingAttemptResolution` duplicated existing `ForwardingAttemptLifecycle`; duplicate source/test deleted immediately before further integration.
+- 10:18–10:23 — added sender reserve/release surface on DeliveryAcknowledgementCoordinator and composed `OutboundDeliveryLifecycle<AcknowledgementCapacity>` with regression/umbrella/workflow coverage. Corrected case-sensitive workflow include typos before accepting CI. Topology Evolution `33862960895` and General CI `33862960929` green.
