@@ -65,7 +65,7 @@ jobs:
       - name: Build route planner/attempt regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/route_planner_attempt_test.cpp -o route_planner_attempt_test -pthread
       - name: Run route planner/attempt regression
         run: ./route_planner_attempt_test
@@ -83,6 +83,13 @@ jobs:
           ESPressio-Mesh/tests/forwarding_submission_test.cpp -o forwarding_submission_test -pthread
       - name: Run forwarding submission regression
         run: ./forwarding_submission_test
+      - name: Build delivery acknowledgement tracker regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src
+          ESPressio-Mesh/tests/delivery_acknowledgement_tracker_test.cpp -o delivery_acknowledgement_tracker_test -pthread
+      - name: Run delivery acknowledgement tracker regression
+        run: ./delivery_acknowledgement_tracker_test
       - name: Build current Mesh umbrella
         run: >-
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
