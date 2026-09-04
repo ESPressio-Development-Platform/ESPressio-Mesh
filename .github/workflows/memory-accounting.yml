@@ -1,0 +1,52 @@
+name: Memory Accounting
+
+on:
+  push:
+    branches:
+      - main
+      - structural_realignment
+      - 'structural_realignment_propagation*'
+      - 'feature/**'
+      - 'optimisation/**'
+  pull_request:
+
+jobs:
+  host-accounting-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Observable
+          ref: structural_realignment
+          path: ESPressio-Observable
+      - name: Build target-native memory accounting regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_memory_accounting_test.cpp -o mesh_memory_accounting_test -pthread
+      - name: Run target-native memory accounting regression
+        run: ./mesh_memory_accounting_test
+      - name: Build complete Mesh umbrella with accounting surface
+        run: |
+          printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > mesh_umbrella.cpp
+          g++ -std=c++17 -Wall -Wextra -Werror \
+            -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src \
+            mesh_umbrella.cpp -o mesh_umbrella -pthread
