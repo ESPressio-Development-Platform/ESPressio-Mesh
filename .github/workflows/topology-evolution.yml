@@ -72,7 +72,7 @@ jobs:
       - name: Build direct peer/forwarding transition regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/direct_peer_forwarding_transition_test.cpp -o direct_peer_forwarding_transition_test -pthread
       - name: Run direct peer/forwarding transition regression
         run: ./direct_peer_forwarding_transition_test
@@ -111,6 +111,13 @@ jobs:
           ESPressio-Mesh/tests/delivery_acknowledgement_coordinator_test.cpp -o delivery_acknowledgement_coordinator_test -pthread
       - name: Run delivery acknowledgement coordinator regression
         run: ./delivery_acknowledgement_coordinator_test
+      - name: Build composed outbound delivery lifecycle regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/outbound_delivery_lifecycle_test.cpp -o outbound_delivery_lifecycle_test -pthread
+      - name: Run composed outbound delivery lifecycle regression
+        run: ./outbound_delivery_lifecycle_test
       - name: Build Mesh security authority contract regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
