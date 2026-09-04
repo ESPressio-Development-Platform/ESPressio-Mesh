@@ -15,6 +15,7 @@
 #include "ESPressio_MeshSecurityAuthority.hpp"
 #include "ESPressio_DirectPeerBindings.hpp"
 #include "ESPressio_AdmissionPromotionCoordinator.hpp"
+#include "ESPressio_AdmissionLifecycleCoordinator.hpp"
 #include "ESPressio_PrimitiveReceiverRegistry.hpp"
 #include "ESPressio_PrimitiveSupportSnapshot.hpp"
 #include "ESPressio_MeshRadioRegistry.hpp"
