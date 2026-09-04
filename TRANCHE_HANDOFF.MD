@@ -136,11 +136,12 @@ Radio direct-link semantics are explicitly split:
 
 `RadioSendResult` carries `RadioDirectLinkEvidence` with `RadioTransmissionCompletion::{Unknown,Completed}` and `RadioPeerAcknowledgement::{Unavailable,Unknown,Acknowledged}`. `RadioTransport` aggregates evidence across every fragment: a logical transfer is Completed only if every fragment is known completed, and Acknowledged only if every fragment is acknowledged.
 
-**Consumer-facing synchronous observer semantics are now also explicit:**
+Consumer-facing observer semantics are explicit and **no misleading completion compatibility alias remains**:
 - `IRadioSendAttemptObserver::OnRadioSendAttempted(...)` means the concrete `Send` call returned.
-- `RadioSendAttemptedEvent` means the same thing asynchronously through the optional Event bridge.
-- Consumers must inspect `RadioSendResult::Evidence` for any stronger completion/acknowledgement statement.
-- A temporary provider-side `NotifySendCompleted(...)` hook remains only to let existing concrete propagation branches migrate to `NotifySendAttempted(...)`; it dispatches **send-attempt semantics only** and must not be treated as a consumer completion contract. Remove it after ESP32 concrete call sites are migrated.
+- `RadioObserverSubscriptions::NotifySendAttempted(...)` is the only provider-side send-attempt notification hook on the propagation branch.
+- `IRadioTransportMessageObserver::OnRadioTransportSendAttempted(...)` means the complete logical-transfer send attempt returned.
+- `RadioSendAttemptedEvent` / `RadioTransportSendAttemptedEvent` carry those same attempt semantics through the optional Event bridge.
+- Consumers must inspect `RadioSendResult::Evidence` / `RadioTransportSendResult::LinkResult.Evidence` for stronger completion/acknowledgement facts.
 
 Concrete semantics:
 - ESP32 Raw80211 `esp_wifi_80211_tx()` success = submission only; completion unknown, peer ack unavailable.
@@ -167,8 +168,8 @@ Validated lower/platform work:
 - System canonical DeviceIdentifier.
 - Primitive conceptual IDs/version/fingerprint/family-registry boundaries.
 - Radio bounded logical transfer, peer registry/lifecycle, peer-handle unicast, direct-link evidence aggregation, corrected send-attempt observer/Event semantics.
-- ESP32 shared Wi-Fi/Raw80211 PHY coordinator; Raw80211 submission-only direct-link evidence; BLE Radio concrete present on propagation branch.
-- NRF24 direct-link semantics and new `NotifySendAttempted` provider hook.
+- ESP32 shared Wi-Fi/Raw80211 PHY coordinator; Raw80211 submission-only direct-link evidence; BLE Radio concrete aligned to send-attempt semantics.
+- NRF24 direct-link semantics and `NotifySendAttempted` provider hook.
 - State structural realignment.
 - Command intrinsic RPC machinery removed and repository/Wiki documentation realigned to asynchronous intent/local disposition; one source IDE-comment cleanup may remain.
 - Event provenance/context separation and EVTT v2; distributed identity paused.
@@ -197,14 +198,18 @@ Earlier green Mesh runs include `33785734451`, `33786121103`, `33786446663`, `33
 
 Earlier Radio green runs include `33793581249`, `33797082636`, `33798291517`, `33799876449`, `33848107862`. Earlier NRF24 green includes `33847918464`.
 
-Current Radio observer realignment:
-- `9f9560a98b991c8383caa8174ac5e4ce2f3d86cf` — add `IRadioSendAttemptObserver` / `OnRadioSendAttempted` and attempt-only dispatcher semantics.
-- `fffca22eb644012683bf9cdfa910076401d8a11d` — rename optional Events to `RadioSendAttemptedEvent` / `RadioTransportSendAttemptedEvent`.
-- `2de0592aba1e0ea7cffcf5f93e9dc49695bf2aa1` — align Radio Event bridge.
-- `8cc8fac0a3f46642ea9344389e7d228fdeaec93c` — add send-attempt observer regression.
-- `83619de85029f4ae4f8c2b0aed7aaaf453438a20` — add CI coverage. First run `33854226234` exposed stale `IRadioSendObserver` references in `radio_transport_tests.cpp`; native job failed at compile. This was a source/test migration regression, not task-budget exhaustion.
-- `2c7a087926d055bc9241d22f855421b228c9407d` — migrate transport tests to the new observer surface. Radio run `33854438612`: native job completed **success**, including transport, direct-link evidence, send-attempt observer, peer-registry and clock-sync regressions. ESP32-worker job was still running at the last handoff update; verify final conclusion before claiming whole-run green.
-- `321297b6c39f311123bb3b334064251ae0dbafc0` — NRF24 uses `NotifySendAttempted` directly. NRF24 CI run **`33854264847` passed**.
+Current Radio observer/evidence realignment:
+- Earlier tranche commits `9f9560a98b991c8383caa8174ac5e4ce2f3d86cf`, `fffca22eb644012683bf9cdfa910076401d8a11d`, `2de0592aba1e0ea7cffcf5f93e9dc49695bf2aa1`, `8cc8fac0a3f46642ea9344389e7d228fdeaec93c`, `83619de85029f4ae4f8c2b0aed7aaaf453438a20`, and `2c7a087926d055bc9241d22f855421b228c9407d` introduced attempt semantics and began propagation.
+- `d9e6c325cadaa3c23b7bc83ad82e7d5d205e307c` removed the temporary/misleading provider-side completion compatibility hook entirely.
+- `594a6825733a62158b68b87d250d2989efe08b97` renamed the RadioTransport consumer callback/dispatcher to `OnRadioTransportSendAttempted` / `NotifySendAttempted` semantics.
+- `07644065808797445c2380db521dab008e038ab1` aligned the optional Radio Event bridge with transport attempt semantics.
+- `6df8e6902c30f4676148bcc42c20df9f4907c340` and `67036eb4bdb650db72751f21b7023affc566cfb4` aligned provider and RadioTransport regressions.
+- Radio run `33858568419` showed all transport/evidence/send-attempt/peer tests green but exposed one stale `NotifySendCompleted` in the native clock test stub; no compatibility alias was restored.
+- `58396f54e35beb30df8713f0789dc14133d8ba1f` migrated that final clock test stub.
+- `ee10720763fb8ee78be3f349a92e7481331015e3` updated Radio README to document admission vs transmission completion vs peer acknowledgement and their separation from Mesh ACK semantics.
+- Radio run **`33858866923` completed fully green**: native transport, direct-link evidence, send-attempt observer, peer-registry and clock-sync regressions all passed; ESP32-worker/peer-registry/optional Event-bridge/clock-sync PlatformIO smoke compilation also passed.
+- ESP32 Raw80211 `c551a489f01a67a3ac911fe260a6442c45866547` and BLE `ba97d162dfe7478605d0bb7c25328b87ef8a7f89` use `NotifySendAttempted`; ESP32 run `33858336799` provider job passed.
+- NRF24 propagation uses `NotifySendAttempted`; NRF24 CI `33854264847` passed.
 
 No Actions-budget symptom has occurred.
 
@@ -227,14 +232,12 @@ No Actions-budget symptom has occurred.
 
 # 7. Immediate next work
 
-1. Verify final ESP32-worker result for Radio run `33854438612`.
-2. Migrate ESP32 Raw80211 and BLE concrete provider call sites from temporary `NotifySendCompleted` hook to `NotifySendAttempted`, then remove the temporary compatibility hook from `RadioObserverSubscriptions`; validate ESP32 + Radio branches.
-3. Rename the **RadioTransport consumer-facing synchronous callback** from `OnRadioTransportSendCompleted` to attempt/submission semantics and realign optional Event bridge/Event naming completely; do not confuse aggregate `LinkResult.Evidence` with completion of the API operation.
-4. Keep Mesh forwarding transition/HopLimit commitment driven only by Mesh-level next-node acceptance evidence.
-5. Continue wire-neutral security/admission composition and bounded traffic/control work only where no unresolved wire IDs are required.
-6. Finish remaining Command source-comment wording cleanup.
-7. Keep Event distributed identity and full NodeProfile paused until Simon resolves Event IDs/MessageId and Group identifier semantics.
-8. Create/verify `ESPressio-MeshAdapters` propagation branch only when adapter implementation starts.
+1. Keep Mesh forwarding transition/HopLimit commitment driven only by Mesh-level next-node acceptance evidence; never map `SubmissionAccepted`, `TransmissionCompleted`, or `PeerAcknowledged` directly to `RouteAttemptOutcome::Delivered`.
+2. Compose the existing wire-neutral `DeliveryAcknowledgementCoordinator` with the forwarding/attempt lifecycle so a valid destination-framework ACK can close the attempt and only the correct Mesh-level next-node acceptance path can commit a forwarding transition. Do not invent ACK wire encoding or a control-family numeric ID.
+3. Continue wire-neutral security/admission composition and bounded traffic/control work only where no unresolved wire IDs are required.
+4. Finish the remaining Command source IDE-comment wording cleanup without changing `CommandResult` runtime shape or callback semantics.
+5. Keep Event distributed identity and full NodeProfile paused until Simon resolves Event IDs/MessageId and Group identifier semantics.
+6. Create/verify `ESPressio-MeshAdapters` propagation branch only when adapter implementation starts.
 
 ---
 
@@ -248,4 +251,5 @@ No Actions-budget symptom has occurred.
 - 07:24–07:30 — Command documentation realigned from RPC-era language to asynchronous intent/local disposition.
 - 07:31–07:39 — wire-neutral delivery acknowledgement tracker/coordinator added and validated.
 - 07:39–07:42 — dependency-inverted Mesh security/admission contracts added and validated.
-- 08:33–08:39 — Radio send observation semantics audited across Radio/ESP32/NRF24. Added `IRadioSendAttemptObserver`, renamed optional send Events, aligned Event bridge, added regression, migrated NRF24 provider to the new hook. Initial Radio run `33854226234` exposed stale native test references; corrected in `2c7a0879...`. Native portion of replacement run `33854438612` passed all regressions; ESP32-worker still running at this exact handoff update. NRF24 run `33854264847` green.
+- 08:33–08:39 — Radio send observation semantics audited across Radio/ESP32/NRF24. Added `IRadioSendAttemptObserver`, renamed optional send Events, aligned Event bridge, added regression and migrated NRF24 provider. Initial stale-test references were exposed and corrected rather than hidden behind compatibility.
+- 09:20–09:34 — completed the no-legacy Radio semantic cleanup: removed `NotifySendCompleted`, renamed RadioTransport consumer callback to attempt semantics, migrated Raw80211/BLE/Event bridge/native tests/clock stub, and updated Radio README. Radio run `33858866923` fully green across native and ESP32-worker smoke jobs.
