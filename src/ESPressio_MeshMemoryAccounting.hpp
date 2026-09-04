@@ -4,6 +4,7 @@
 
 #include "ESPressio_AdmissionResources.hpp"
 #include "ESPressio_AuthenticatedMembershipTable.hpp"
+#include "ESPressio_DeliveryAcknowledgementTracker.hpp"
 #include "ESPressio_DirectPeerBindings.hpp"
 #include "ESPressio_InboundDeliveryReservations.hpp"
 #include "ESPressio_LivenessProbeReservations.hpp"
