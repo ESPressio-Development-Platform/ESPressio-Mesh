@@ -59,6 +59,36 @@ public:
     ) noexcept : _tracker(tracker) {}
 
     /// <summary>
+    /// Reserves sender-local tracking for one Node delivery before outbound work can complete.
+    /// </summary>
+    DeliveryAcknowledgementReserveResult ReservePending(
+        const System::DeviceIdentifier& destination,
+        const MembershipIncarnation& destinationIncarnation,
+        MeshMessageId messageId,
+        std::uint64_t nowMilliseconds,
+        std::uint64_t absoluteDeadlineMilliseconds
+    ) noexcept {
+        return _tracker.Reserve(
+            PendingDeliveryAcknowledgementIdentity{destination, destinationIncarnation, messageId},
+            nowMilliseconds,
+            absoluteDeadlineMilliseconds
+        );
+    }
+
+    /// <summary>
+    /// Releases sender-local ACK state after cancellation or definitive delivery failure.
+    /// </summary>
+    bool ReleasePending(
+        const System::DeviceIdentifier& destination,
+        const MembershipIncarnation& destinationIncarnation,
+        MeshMessageId messageId
+    ) noexcept {
+        return _tracker.Release(
+            PendingDeliveryAcknowledgementIdentity{destination, destinationIncarnation, messageId}
+        );
+    }
+
+    /// <summary>
     /// Creates an acknowledgement intent for one already-authenticated inbound delivery after definitive destination
     /// acceptance. The caller decides whether the delivery semantics require an ACK before invoking this method.
     /// </summary>
