@@ -4,7 +4,7 @@
 
 **TRANCHE IN PROGRESS — ARCHITECTURE FROZEN / IMPLEMENTATION READY.**
 
-Validated propagation spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership, admission, topology, routing, forwarding, delivery and target-native memory-accounting foundations. This file is the authoritative implementation handoff for the tranche originating in `ESPressio-Mesh`.
+Validated propagation spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership, admission, topology, routing, forwarding, delivery, clock-coordination and target-native memory-accounting foundations. This file is the authoritative implementation handoff for the tranche originating in `ESPressio-Mesh`.
 
 Do not alter public/distributed semantics, dependency direction, identity/authentication semantics, locked capacities or Policy without Simon Stuart's explicit decision.
 
@@ -123,6 +123,8 @@ Radio semantics distinguish send attempt/admission, transmission completion and 
 
 Clock roles are elective. Timing owns math/discipline/quality, Radio owns direct timestamp mechanics, Mesh owns root/parent coordination. Election is quality-first with DeviceIdentifier final deterministic tie-break. Precision T1/T2/T3/T4 bypasses ordinary Mesh queues/fragmentation.
 
+Local Mesh clock orchestration is bounded and wire-neutral: `ClockCoordinationTable<32>` retains authenticated informational advertisements; `IClockQualityPolicy`, `IClockEligibilityPolicy`, `IClockRootElectionPolicy` and `IClockParentSelectionPolicy` are injected; default election is quality-first with DeviceIdentifier tie-break and parent candidates must advertise the selected root with bounded stratum. `ClockMembershipCoordinator` additionally gates retained advertisements to the exact current **Active** authenticated membership incarnation and removes only exact-incarnation clock state on membership retirement. Neither type defines a Mesh control-family numeric ID, wire encoding, Timing discipline algorithm, or Radio exchange mechanics.
+
 Protected traffic capacities: InfrastructureResponse 8, ClockControl 4, GeneralControl 8, Application 8 through injected governor. Control work has finite injected lifetime. Mesh is decomposed into narrow services; one serialized execution domain is acceptable; no direct FreeRTOS belongs in Mesh. All retained resources/queues are finite/backpressured.
 
 Payload forms: Borrowed Stable / Bounded Owned / Repeatable Serialized Source. Finite size known before acceptance; one MeshMessageId maps to immutable logical bytes across retries/routes/fragments.
@@ -157,6 +159,7 @@ Validated Mesh foundations:
 - authenticated direct-peer binding/lifecycle;
 - forwarding submission, exact authenticated next-hop transition and forwarding-attempt lifecycle;
 - delivery ACK tracker/coordinator and outbound-delivery lifecycle;
+- bounded policy-injected clock root/parent coordination and exact-Active-membership gating/cleanup;
 - compiler/ABI-native fixed/cardinality memory-accounting surface with host and ESP32 validation.
 
 ## Memory accounting
@@ -186,7 +189,8 @@ Recent green evidence:
 - Mesh General CI `33885129613` — green against final retained-symbol accounting commit.
 - Mesh Topology Evolution `33885129681` — green against final retained-symbol accounting commit.
 - Control Work Lifetime `33885129727` — green against final retained-symbol accounting commit.
-- All five workflows triggered by commit `2eb1993797748fca10f333e64439eef0fdff014c` concluded successfully.
+- Clock Coordination `33887726664` — green bounded root/parent policy and coordination-table regression.
+- Clock Coordination `33888165299` — green exact-Active-authenticated-membership gating, stale-incarnation rejection, monotonic observation protection and retirement cleanup regression.
 
 ESP32 accounting implementation/fix sequence:
 - `d7913be53864b8ee501346091db9ada86d8a1118` — PlatformIO probe project.
@@ -215,6 +219,7 @@ No Actions-budget symptom has occurred.
 - Next-hop acceptance is not end-to-end destination ACK.
 - Destination ACK is not requested-operation completion.
 - Route/cache state is disposable local optimization and never distributed source-routing authority.
+- Clock advertisements are informational and may affect local election only after exact current Active membership authority; they do not authenticate a node or discipline Timing by themselves.
 - No concrete PrimitiveFamilyId/EventTypeId/Group ID may be invented.
 - Host ABI memory numbers must never be presented as ESP32 measurements; ESP32 structure measurements must never be presented as whole-device runtime RAM.
 
@@ -225,8 +230,8 @@ A temporary `ForwardingEvidencePolicy` and regression were added while inspectin
 ## Immediate next work
 
 1. Finish Command local-disposition terminology cleanup: replace misleading `CommandResult` / `success` / `Ok` / `Error` completion/result vocabulary with names that mean only local handling acceptance/rejection. Update all propagation-branch tests/examples/docs/IDE comments together and do not add compatibility aliases.
-2. Continue Mesh control-plane implementation only where frozen architecture supplies enough semantics; stop before concrete Mesh `PrimitiveFamilyId` allocation or any unresolved wire identity.
-3. Begin distributed clock coordination (root/parent policies and bounded coordination state) only through already-frozen Timing/Radio/Mesh responsibility split; do not invent a Mesh control-family numeric ID or wire encoding merely to implement the local orchestration state.
+2. Continue Mesh clock orchestration only where local/wire-neutral semantics are frozen: lifecycle convergence with membership/reachability/direct-neighbour eligibility and Timing-facing composition may proceed, but do not invent a Mesh control-family numeric ID, advertisement wire encoding, or Timing quality metric.
+3. Continue Mesh control-plane implementation only where frozen architecture supplies enough semantics; stop before concrete Mesh `PrimitiveFamilyId` allocation or any unresolved wire identity.
 4. Start `ESPressio-MeshAdapters` propagation work only when adapter implementation becomes necessary; keep Mesh independent of Command/Event/State.
 5. Keep memory accounting current as new bounded retained stores are introduced.
 
@@ -238,4 +243,6 @@ A temporary `ForwardingEvidencePolicy` and regression were added while inspectin
 - 2026-09-04: Radio send-attempt/direct-link evidence semantics explicitly separated from Mesh next-hop acceptance; outbound delivery and admission lifecycle composition validated.
 - 2026-09-04T12:02Z: Added `MeshFixedMemoryAccounting<TTopologyCharacteristics>`; x86-64 representative measurement 37,448 B principal + 456 B ACK(8), explicitly non-ESP32.
 - 2026-09-04T14:3xZ: Added ESP32 PlatformIO accounting probe and dedicated ESP32 workflow. First attempt exposed GNU++11 framework default; second compiled under GNU++17 but exposed linker GC of unreferenced measurement symbols.
-- 2026-09-04T14:40Z–14:42Z: Retained measurement symbols via volatile reads; Memory Accounting run `33885129638` passed with ESP32-native 37,096 B principal + 456 B ACK(8). General CI/Topology Evolution/other triggered workflows also green. README and this authoritative handoff reconciled.
+- 2026-09-04T14:40Z–14:42Z: Retained measurement symbols via volatile reads; Memory Accounting run `33885129638` passed with ESP32-native 37,096 B principal + 456 B ACK(8). General CI/Topology Evolution/other triggered workflows also green. README and handoff reconciled.
+- 2026-09-04T14:55Z: Added bounded wire-neutral `ClockCoordinationTable<32>` plus injected quality/eligibility/root-election/parent-selection policies; Clock Coordination run `33887726664` passed.
+- 2026-09-04T16:1xZ: Added `ClockMembershipCoordinator` so only exact current Active authenticated membership incarnations may contribute retained clock advertisements; stale/non-Active observations cannot enter election state, and retirement cleanup is exact-incarnation. Clock Coordination run `33888165299` passed; authoritative handoff reconciled.
