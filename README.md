@@ -54,7 +54,9 @@ These bounds are semantic defaults rather than permission to allocate unbounded 
 
 The values are deliberately evaluated by the target compiler. A host x86-64 result is useful for regression but is **not** an ESP32 memory budget because pointer width/alignment and the application's topology-characteristics type can differ. Delivery-acknowledgement storage is reported only after the composition root supplies an explicit finite acknowledgement capacity; no universal capacity is invented by the library.
 
-Whole-device planning must add task stacks, RadioTransport/provider storage, payload/reassembly/control buffers, security-authority private state and application objects. This keeps the memory model measurable without disguising unresolved application capacity choices as architectural defaults.
+The dedicated ESP32 accounting probe now verifies the same surface using PlatformIO `espressif32` 7.1.0, Arduino-ESP32 `3.20017.241212+sha.dcc1105b` and the Xtensa ESP32 GCC 8.4.0 toolchain. With the representative test topology-characteristics type (`int16_t` signal + `uint16_t` cost hint), the principal represented fixed/cardinality stores occupy **37,096 bytes** under the ESP32 ABI; `DeliveryAcknowledgementTracker<8>` occupies **456 bytes**. The corresponding x86-64 regression is 37,448 bytes + 456 bytes. These are compiler/ABI structure measurements, not a claim about complete runtime or whole-device RAM usage.
+
+Whole-device planning must add task stacks, RadioTransport/provider storage, payload/reassembly/control buffers, security-authority private state and application objects. The ESP32 probe firmware's aggregate framework/build RAM figure is intentionally not used as a Mesh budget, because it also includes Arduino/framework runtime and the deliberately materialized probe arrays. This keeps the memory model measurable without disguising unresolved application capacity choices as architectural defaults.
 
 ## Selective multicast and Broadcast
 
