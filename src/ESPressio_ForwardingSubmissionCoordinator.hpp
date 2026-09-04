@@ -24,12 +24,31 @@ enum class ForwardingSubmissionDisposition : std::uint8_t {
     Invalid
 };
 
+/// <summary>Strongest direct-link fact synchronously established while submitting this logical transfer.</summary>
+enum class ForwardingDirectLinkEvidence : std::uint8_t {
+    None,
+    SubmissionAccepted,
+    TransmissionCompleted,
+    PeerAcknowledged
+};
+
 struct ForwardingSubmissionResult final {
     ForwardingSubmissionDisposition Disposition{ForwardingSubmissionDisposition::Invalid};
     Radio::RadioTransportSendResult RadioResult{};
 
     constexpr explicit operator bool() const noexcept {
         return Disposition == ForwardingSubmissionDisposition::Accepted;
+    }
+
+    /// <summary>
+    /// Returns the strongest technology-independent direct-link evidence available synchronously for the complete
+    /// logical transfer. This is link evidence only and is never equivalent to a Mesh delivery ACK.
+    /// </summary>
+    constexpr ForwardingDirectLinkEvidence DirectLinkEvidence() const noexcept {
+        if (Disposition != ForwardingSubmissionDisposition::Accepted) return ForwardingDirectLinkEvidence::None;
+        if (RadioResult.LinkResult.Evidence.PeerAcknowledged()) return ForwardingDirectLinkEvidence::PeerAcknowledged;
+        if (RadioResult.LinkResult.Evidence.TransmissionCompleted()) return ForwardingDirectLinkEvidence::TransmissionCompleted;
+        return ForwardingDirectLinkEvidence::SubmissionAccepted;
     }
 };
 
@@ -38,9 +57,10 @@ struct ForwardingSubmissionResult final {
 /// RadioPeerHandle, then submits immutable bytes through RadioTransport.
 /// </summary>
 /// <remarks>
-/// `Accepted` means Radio accepted/submitted the direct-link logical transfer; it does not mean the Mesh hop or final
-/// delivery completed and therefore does not consume RemainingHopLimit. Successful forwarding transition commitment is
-/// intentionally separate (`CommitSuccessfulForwardingTransition`) and must be driven by later proven Mesh-hop evidence.
+/// `Accepted` means Radio accepted every fragment of the direct-link logical transfer. `DirectLinkEvidence()` may report
+/// stronger provider evidence (transmission completion or peer acknowledgement), but neither proves that the next Mesh
+/// node validated/accepted the Mesh message. Consequently none of these synchronous outcomes consumes RemainingHopLimit.
+/// The successful Mesh forwarding transition remains a separately committed operation driven by Mesh delivery evidence.
 /// </remarks>
 template<std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t BindingCapacity = Limits::MaxTopologyLinks,
