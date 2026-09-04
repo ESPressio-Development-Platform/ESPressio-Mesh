@@ -38,42 +38,44 @@ jobs:
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
-          ESPressio-Mesh/tests/topology_publication_policy_test.cpp
-          -o topology_publication_policy_test -pthread
+          ESPressio-Mesh/tests/topology_publication_policy_test.cpp -o topology_publication_policy_test -pthread
       - name: Run topology publication regression
         run: ./topology_publication_policy_test
       - name: Build global topology graph regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
-          ESPressio-Mesh/tests/topology_graph_store_test.cpp
-          -o topology_graph_store_test -pthread
+          ESPressio-Mesh/tests/topology_graph_store_test.cpp -o topology_graph_store_test -pthread
       - name: Run global topology graph regression
         run: ./topology_graph_store_test
       - name: Build bounded route-cache regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
-          ESPressio-Mesh/tests/route_cache_test.cpp
-          -o route_cache_test -pthread
+          ESPressio-Mesh/tests/route_cache_test.cpp -o route_cache_test -pthread
       - name: Run bounded route-cache regression
         run: ./route_cache_test
       - name: Build routing policy regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
-          ESPressio-Mesh/tests/routing_policy_test.cpp
-          -o routing_policy_test -pthread
+          ESPressio-Mesh/tests/routing_policy_test.cpp -o routing_policy_test -pthread
       - name: Run routing policy regression
         run: ./routing_policy_test
       - name: Build route planner/attempt regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
           -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
-          ESPressio-Mesh/tests/route_planner_attempt_test.cpp
-          -o route_planner_attempt_test -pthread
+          ESPressio-Mesh/tests/route_planner_attempt_test.cpp -o route_planner_attempt_test -pthread
       - name: Run route planner/attempt regression
         run: ./route_planner_attempt_test
+      - name: Build direct peer/forwarding transition regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/direct_peer_forwarding_transition_test.cpp -o direct_peer_forwarding_transition_test -pthread
+      - name: Run direct peer/forwarding transition regression
+        run: ./direct_peer_forwarding_transition_test
       - name: Build current Mesh umbrella
         run: >-
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
