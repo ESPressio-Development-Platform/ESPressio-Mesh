@@ -4,6 +4,7 @@
 
 #include "ESPressio_AdmissionResources.hpp"
 #include "ESPressio_AuthenticatedMembershipTable.hpp"
+#include "ESPressio_ClockCoordination.hpp"
 #include "ESPressio_DeliveryAcknowledgementTracker.hpp"
 #include "ESPressio_DirectPeerBindings.hpp"
 #include "ESPressio_InboundDeliveryReservations.hpp"
@@ -25,9 +26,10 @@ namespace ESPressio::Mesh {
 /// width, alignment and the application-selected topology-characteristics representation). This deliberately does not
 /// pretend that a host x86-64 measurement is an ESP32 measurement.
 ///
-/// The total excludes task stacks, RadioTransport/provider storage, variable payload/reassembly/control buffers,
-/// application objects, security-authority private state, and delivery-acknowledgement storage because the architecture
-/// intentionally leaves acknowledgement capacity to the composition root. Those terms must be added separately for a
+/// The principal total excludes task stacks, RadioTransport/provider storage, variable payload/reassembly/control buffers,
+/// application objects, security-authority private state, delivery-acknowledgement storage and clock-coordination storage.
+/// The latter two are reported by explicit templated helpers because the architecture intentionally leaves acknowledgement
+/// capacity and the clock-quality representation to the composition root. Those terms must be added separately for a
 /// whole-device budget.
 /// </remarks>
 template<typename TTopologyCharacteristics>
@@ -59,6 +61,12 @@ struct MeshFixedMemoryAccounting final {
         RouteCacheBytes +
         PrimitiveReceiverRegistryBytes +
         TrafficGovernorBytes;
+
+    /// <summary>Returns fixed storage for the composition-selected clock-quality representation at MaxMeshNodes.</summary>
+    template<typename TClockQuality>
+    static constexpr std::size_t ClockCoordinationBytes() noexcept {
+        return sizeof(ClockCoordinationTable<TClockQuality>);
+    }
 
     /// <summary>Returns the additional fixed storage selected by an explicit delivery-acknowledgement capacity.</summary>
     template<std::size_t AcknowledgementCapacity>
