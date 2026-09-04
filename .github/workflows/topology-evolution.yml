@@ -58,7 +58,7 @@ jobs:
       - name: Build routing policy regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESpressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/routing_policy_test.cpp -o routing_policy_test -pthread
       - name: Run routing policy regression
         run: ./routing_policy_test
@@ -83,6 +83,13 @@ jobs:
           ESPressio-Mesh/tests/forwarding_submission_test.cpp -o forwarding_submission_test -pthread
       - name: Run forwarding submission regression
         run: ./forwarding_submission_test
+      - name: Build authenticated forwarding transition coordinator regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src
+          ESPressio-Mesh/tests/forwarding_transition_coordinator_test.cpp -o forwarding_transition_coordinator_test -pthread
+      - name: Run authenticated forwarding transition coordinator regression
+        run: ./forwarding_transition_coordinator_test
       - name: Build delivery acknowledgement tracker regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
