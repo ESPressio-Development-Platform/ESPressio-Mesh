@@ -41,3 +41,4 @@
 #include "ESPressio_ForwardingAttemptLifecycle.hpp"
 #include "ESPressio_DeliveryAcknowledgementTracker.hpp"
 #include "ESPressio_DeliveryAcknowledgementCoordinator.hpp"
+#include "ESPressio_OutboundDeliveryLifecycle.hpp"
