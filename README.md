@@ -48,6 +48,14 @@ Traffic governance protects four independent local capacities: eight Infrastruct
 
 These bounds are semantic defaults rather than permission to allocate unbounded dynamic storage elsewhere. Every retained queue, retry set, reassembly set and control-work pool must remain finite and expose deterministic backpressure/exhaustion behavior.
 
+## Memory accounting
+
+`MeshFixedMemoryAccounting<TTopologyCharacteristics>` exposes target-native `sizeof` accounting for the principal stores whose cardinalities are already frozen: authenticated membership/liveness/tombstones, inbound delivery reservations, pending neighbour candidates, inbound authentications, liveness probes, authenticated direct-peer bindings, the global topology graph, route cache, primitive receiver registry and default traffic governor.
+
+The values are deliberately evaluated by the target compiler. A host x86-64 result is useful for regression but is **not** an ESP32 memory budget because pointer width/alignment and the application's topology-characteristics type can differ. Delivery-acknowledgement storage is reported only after the composition root supplies an explicit finite acknowledgement capacity; no universal capacity is invented by the library.
+
+Whole-device planning must add task stacks, RadioTransport/provider storage, payload/reassembly/control buffers, security-authority private state and application objects. This keeps the memory model measurable without disguising unresolved application capacity choices as architectural defaults.
+
 ## Selective multicast and Broadcast
 
 Group and CapabilitySelector destinations are resolved once at the sender into a frozen bounded recipient set. Each resolved recipient receives an independent Node delivery with its own `MeshMessageId` and outcome state, while all recipient deliveries may share one immutable payload backing.
