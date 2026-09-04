@@ -4,13 +4,13 @@
 
 **TRANCHE IN PROGRESS — ARCHITECTURE FROZEN / IMPLEMENTATION READY.**
 
-This is the authoritative implementation handoff for the tranche originating in `ESPressio-Mesh`. Validated propagation now spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership, admission, topology, routing, forwarding, delivery, clock coordination and target-native memory-accounting foundations.
+This is the authoritative implementation handoff for the tranche originating in `ESPressio-Mesh`. Validated propagation spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership, admission, topology, routing, forwarding, delivery, clock coordination and target-native memory-accounting foundations.
 
 Do not alter public/distributed semantics, dependency direction, identity/authentication semantics, locked capacities or Policy without Simon Stuart's explicit decision.
 
 ### Unresolved public/wire decisions
 
-Do **not** invent any of these:
+Do **not** invent:
 - concrete ESPressio `PrimitiveFamilyId` allocations;
 - distributed EventTypeId allocation/derivation;
 - conceptual Event MessageId generation scope/strategy;
@@ -109,15 +109,24 @@ Routing uses injected `IRoutingStrategy`. `ResolvedRoute<16>` is a disposable lo
 
 Radio accepts complete immutable bounded logical transfers to directly reachable peers and owns fragmentation/reassembly/physical retry. `RadioPeerHandle` is generation-safe process-local link capability only, never Mesh identity. `AuthenticatedDirectPeerBindingTable<96>` maps authenticated neighbour incarnation + local RadioIdentifier to executable RadioPeerHandle. Peer invalidation removes executable binding only, never membership.
 
-Radio semantics distinguish synchronous send attempt/admission, transmission completion and peer acknowledgement. `RadioSendResult` carries qualified `RadioDirectLinkEvidence`; RadioTransport aggregates across fragments. Raw80211 `esp_wifi_80211_tx()` success is submission only. BLE advertising is queued/submitted bearer work only. NRF24 successful unicast `RF24::write()` proves transmission completion + hardware peer ACK; successful broadcast proves transmission completion with ACK unavailable. Even Radio peer ACK is not Mesh next-hop acceptance.
+Radio semantics now explicitly distinguish three stages:
+1. synchronous `Send` attempt/admission;
+2. provider-established physical/link transmission completion/failure;
+3. peer acknowledgement where supported.
+
+`IRadioSendAttemptObserver` is explicitly attempt/admission-only. `RadioSendResult` carries qualified synchronous `RadioDirectLinkEvidence`. `RadioTransmissionCompletion` is `Unknown`, `Completed` or terminal `Failed`. When an accepted provider operation cannot establish a terminal outcome before `Send` returns, it may return a provider-local nonzero `RadioTransmissionHandle`; `IRadioTransmissionObserver::OnRadioTransmissionResolved` then publishes exactly one terminal observation for that handle. Invalid handles/non-terminal evidence are not published. The handle is Radio-provider-local only and carries no Mesh identity/routing semantics.
+
+RadioTransport still aggregates synchronous evidence across fragments. **Deferred per-fragment terminal observations are not yet aggregated into a logical-transfer terminal observation**; that is the next Radio boundary before Mesh may consume deferred completion evidence. Do not treat `Accepted` or a valid deferred handle as Mesh next-hop acceptance.
+
+Raw80211 `esp_wifi_80211_tx()` success remains submission only. BLE advertising remains queued/submitted bearer work only. NRF24 successful unicast `RF24::write()` proves transmission completion + hardware peer ACK; successful broadcast proves transmission completion with ACK unavailable. Even Radio peer ACK is not Mesh next-hop acceptance.
 
 ### Clock coordination
 
 Clock roles are elective. Timing owns math/discipline/quality, Radio owns direct timestamp mechanics, Mesh owns root/parent coordination. Election is quality-first with DeviceIdentifier final deterministic tie-break. Precision T1/T2/T3/T4 bypass ordinary Mesh queues/fragmentation.
 
-`ClockCoordinationTable<32>` retains authenticated informational advertisements. `IClockQualityPolicy`, `IClockEligibilityPolicy`, `IClockRootElectionPolicy` and `IClockParentSelectionPolicy` are injected. `ClockMembershipCoordinator` gates observations to the exact current **Active** authenticated membership incarnation and performs exact-incarnation retirement cleanup.
+`ClockCoordinationTable<32>` retains authenticated informational advertisements. `IClockQualityPolicy`, `IClockEligibilityPolicy`, `IClockRootElectionPolicy` and `IClockParentSelectionPolicy` are injected. `ClockMembershipCoordinator` gates observations to the exact current **Active** authenticated membership incarnation and performs exact-incarnation retirement cleanup. `ClockReachabilityCoordinator` removes informational clock state for exact current Unreachable membership; Reachable/Suspect remain available to policy.
 
-`ClockReachabilityCoordinator` now converges retained clock state with authenticated reachability: Reachable and Suspect remain retained for injected policy to judge; exact current Unreachable membership loses its informational clock advertisement. This coordinator does not change membership, authenticate messages, choose root/parent, schedule exchanges or discipline Timing. A later authenticated advertisement may participate again after liveness restores Reachable.
+Root eligibility and immediate-parent usability are now explicitly separate. `IClockParentUsabilityPolicy` is consulted only during parent selection. `DirectClockParentUsabilityPolicy` requires an executable `AuthenticatedDirectPeerBinding` for the advertisement's exact `(Sender, SenderIncarnation)`. Therefore the elected root may remain non-direct/multi-hop while the local synchronization parent must be a currently executable direct authenticated neighbour advertising that root. Stale-incarnation direct bindings cannot qualify a new advertisement incarnation.
 
 No Mesh control-family numeric ID, clock-advertisement wire encoding, Timing discipline algorithm or universal quality metric has been invented.
 
@@ -136,7 +145,7 @@ MaxMeshNodes32; MaxRadiosPerNode4; MaxGroupsPerNode8; MaxPrimitiveReceivers8; Ma
 Validated lower/platform work:
 - System canonical DeviceIdentifier.
 - Primitive conceptual IDs/version/fingerprint/family-registry boundaries.
-- Radio bounded logical transfer, peer registry/lifecycle, peer-handle unicast, direct-link evidence aggregation and corrected send-attempt semantics.
+- Radio bounded logical transfer, peer registry/lifecycle, peer-handle unicast, synchronous direct-link evidence aggregation, corrected send-attempt semantics, provider-local deferred-transmission correlation and terminal observation contract.
 - ESP32 shared Wi-Fi/Raw80211 PHY coordination, Raw80211 submission-only evidence and BLE Radio alignment.
 - NRF24 direct-link semantics and qualified synchronous completion/ACK evidence.
 - State structural realignment.
@@ -157,7 +166,7 @@ Validated Mesh foundations:
 - authenticated direct-peer binding/lifecycle;
 - forwarding submission, exact authenticated next-hop transition and forwarding-attempt lifecycle;
 - delivery ACK tracker/coordinator and outbound-delivery lifecycle;
-- bounded policy-injected clock root/parent coordination, exact-Active membership gating and Unreachable-state convergence;
+- bounded policy-injected clock root/parent coordination, exact-Active membership gating, Unreachable-state convergence and direct authenticated parent usability;
 - compiler/ABI-native fixed/cardinality memory accounting with host and ESP32 validation.
 
 ## Memory accounting
@@ -165,24 +174,19 @@ Validated Mesh foundations:
 `MeshFixedMemoryAccounting<TTopologyCharacteristics>` accounts the principal frozen-cardinality Mesh stores. Delivery-acknowledgement bytes are exposed only after the composition root supplies an explicit finite capacity.
 
 Representative topology-characteristics test type: `int16_t SignalDbm + uint16_t CostHint`.
+- x86-64 Actions ABI: principal represented stores **37,448 B**; `DeliveryAcknowledgementTracker<8>` **456 B**.
+- ESP32 Dev Module / Xtensa GCC 8.4.0: principal represented stores **37,096 B**; `DeliveryAcknowledgementTracker<8>` **456 B**.
 
-Measured structure/cardinality results:
-- GitHub Actions x86-64 ABI: principal represented stores **37,448 B**; `DeliveryAcknowledgementTracker<8>` **456 B**.
-- ESP32 Dev Module / PlatformIO espressif32 7.1.0 / Arduino-ESP32 `3.20017.241212+sha.dcc1105b` / Xtensa ESP32 GCC 8.4.0: principal represented stores **37,096 B**; `DeliveryAcknowledgementTracker<8>` **456 B**.
-
-These are not whole-device runtime RAM budgets. Whole-device budgeting must additionally include task stacks, RadioTransport/provider storage, variable payload/reassembly/control buffers, security-authority private state and application objects. Older planning formula remains reference-only: `DRAM ≈ 70,160 + 20*Papp + 8*Pinfra + 4*Pclock + 8*Pgeneral + R + C + A + X`.
+These are not whole-device runtime RAM budgets. Whole-device budgeting must additionally include task stacks, RadioTransport/provider storage, variable payload/reassembly/control buffers, security-authority private state and application objects. Reference-only planning formula: `DRAM ≈ 70,160 + 20*Papp + 8*Pinfra + 4*Pclock + 8*Pgeneral + R + C + A + X`.
 
 ## Recent validation record
 
-- Radio `33858866923` — native + ESP32-worker smoke after send-attempt/evidence cleanup.
-- Mesh Topology Evolution `33862960895` + General CI `33862960929` — outbound delivery lifecycle.
-- Mesh General CI `33863391792` — admission lifecycle broad host suite.
+- Radio `33858866923` — native + ESP32-worker smoke after initial send-attempt/evidence cleanup.
 - Mesh Memory Accounting `33885129638` — host + ESP32-native accounting; ESP32 37,096 B principal + 456 B ACK(8).
-- Mesh General CI `33885129613`, Topology Evolution `33885129681`, Control Work Lifetime `33885129727` — green against retained-symbol accounting tip.
-- Clock Coordination `33887726664` — bounded root/parent policy and coordination table.
-- Clock Coordination `33888165299` — exact Active membership gating, stale-incarnation rejection and retirement cleanup.
-- Clock Coordination `33921807775` — failed because an existing clock-membership regression used unqualified sibling `System::` namespace; this was a test-source defect, not a Mesh semantic failure. Corrected immediately.
-- Clock Coordination **`33921907577` — green**, including base clock coordination, authenticated membership gating and new reachability convergence regression.
+- Clock Coordination `33921907577` — authenticated reachability convergence green after correcting a test namespace defect.
+- Radio **`33925240787` — green**: transport/direct-link/send-attempt/deferred-transmission/peer/clock native regressions plus ESP32 worker smoke. New deferred terminal-evidence regression passed.
+- Mesh CI `33925482314` — green after exposing direct clock-parent usability through the umbrella.
+- Clock Coordination **`33925498775` — green**: base election, authenticated membership gating, reachability convergence and new direct authenticated parent-usability regression all passed.
 
 ## Critical boundaries
 
@@ -193,22 +197,24 @@ These are not whole-device runtime RAM budgets. Whole-device budgeting must addi
 - Radio peer loss never implies membership departure.
 - Direct executable peer binding is exact-incarnation-qualified and local only.
 - Radio send attempt is not transmission completion unless qualified evidence says so.
+- Deferred Radio terminal evidence is provider-local and must be correlated/aggregated by RadioTransport before it can describe a logical transfer.
 - Radio completion/peer ACK are not authenticated next-hop Mesh acceptance.
 - Only authenticated exact next-hop Mesh acceptance may consume one HopLimit.
 - Next-hop acceptance is not end-to-end destination ACK.
 - Destination ACK is not requested-operation completion.
 - Route/cache state is disposable local optimization and never distributed source-routing authority.
-- Clock advertisements are informational and may affect local election only after exact current Active membership authority; Unreachable members cannot retain clock-election state.
+- Clock root election does not require the root to be direct; immediate parent selection does require a current executable exact-incarnation direct authenticated peer.
 - No concrete PrimitiveFamilyId/EventTypeId/Group ID may be invented.
 - Host ABI memory numbers must never be presented as ESP32 measurements; ESP32 structure measurements must never be presented as whole-device runtime RAM.
 
 ## Immediate next work
 
-1. Finish Command local-disposition terminology cleanup: replace misleading `CommandResult` / `success` / `Ok` / `Error` completion/result vocabulary with names that mean only local handling acceptance/rejection. Update propagation-branch tests/examples/docs/IDE comments together and do not add compatibility aliases.
-2. Continue clock orchestration only where semantics remain wire-neutral and frozen. The next useful boundary is parent usability: a selected synchronization parent must be currently usable as a direct authenticated neighbour, without incorrectly requiring the elected root itself to be direct. Do not collapse root eligibility and parent eligibility into one policy.
-3. Continue Mesh control-plane implementation only where frozen architecture supplies enough semantics; stop before concrete Mesh `PrimitiveFamilyId` allocation or unresolved wire identity.
-4. Start ESPressio-MeshAdapters propagation work only when adapter implementation becomes necessary; keep Mesh independent of Command/Event/State.
-5. Keep memory accounting current when new bounded retained stores are introduced.
+1. Finish RadioTransport deferred-completion aggregation: correlate provider-local `RadioTransmissionHandle`s for every fragment of one accepted logical transfer, retain bounded state only while terminal evidence is outstanding, and emit one logical-transfer terminal observation only after every fragment is terminal or one fragment terminally fails. Capacity must remain finite/backpressured; do not conflate this with Mesh application-transmission capacity.
+2. Feed that qualified logical-transfer terminal evidence into the Mesh forwarding-attempt layer only as Radio-route evidence. It may drive retry/replanning policy, but must **not** consume HopLimit or claim next-hop Mesh acceptance.
+3. Finish Command local-disposition terminology cleanup: replace misleading `CommandResult` / `success` / `Ok` / `Error` completion/result vocabulary with names meaning only local handling acceptance/rejection. Update tests/examples/docs/comments together and do not add compatibility aliases.
+4. Continue Mesh control-plane implementation only where frozen architecture supplies enough semantics; stop before concrete Mesh `PrimitiveFamilyId` allocation or unresolved wire identity.
+5. Start ESPressio-MeshAdapters propagation work only when adapter implementation becomes necessary; keep Mesh independent of Command/Event/State.
+6. Keep memory accounting current when new bounded retained stores are introduced.
 
 ## Chronological continuation log
 
@@ -216,7 +222,9 @@ These are not whole-device runtime RAM budgets. Whole-device budgeting must addi
 - 2026-09-03 to 2026-09-04: System/Primitive/Radio/ESP32/NRF24/State/Command/Event propagation foundations plus Mesh membership, admission, liveness, peer, topology, routing, forwarding and delivery foundations implemented incrementally with bounded regressions.
 - 2026-09-04: Radio send-attempt/direct-link evidence semantics explicitly separated from Mesh next-hop acceptance; outbound delivery and admission lifecycle composition validated.
 - 2026-09-04T12:02Z: Added Mesh fixed/cardinality memory accounting; x86-64 representative measurement 37,448 B principal + 456 B ACK(8), explicitly non-ESP32.
-- 2026-09-04T14:40Z–14:42Z: ESP32-native accounting validated at 37,096 B principal + 456 B ACK(8); README/handoff reconciled.
-- 2026-09-04T14:55Z: Added bounded wire-neutral ClockCoordinationTable<32> and injected clock policies; run `33887726664` green.
-- 2026-09-04T16:1xZ: Added ClockMembershipCoordinator exact-Active membership gating and exact-incarnation cleanup; run `33888165299` green.
-- 2026-09-04T21:35Z: Added ClockReachabilityCoordinator. Initial expanded workflow exposed an existing test namespace defect; corrected both clock regressions. Run `33921907577` green with Reachable/Suspect retention, exact Unreachable removal, stale-incarnation protection and later Reachable re-entry validated.
+- 2026-09-04T14:40Z–14:42Z: ESP32-native accounting validated at 37,096 B principal + 456 B ACK(8).
+- 2026-09-04T14:55Z: Added bounded wire-neutral ClockCoordinationTable<32> and injected clock policies.
+- 2026-09-04T16:1xZ: Added ClockMembershipCoordinator exact-Active membership gating and exact-incarnation cleanup.
+- 2026-09-04T21:35Z: Added ClockReachabilityCoordinator; corrected an existing test namespace defect; run `33921907577` green.
+- 2026-09-04T22:20Z–22:23Z: Corrected Radio's observer surface to `IRadioSendAttemptObserver`, added provider-local `RadioTransmissionHandle`, terminal `Failed` evidence, and `IRadioTransmissionObserver` for exactly-one deferred terminal outcome. Radio run `33925240787` green including ESP32 smoke.
+- 2026-09-04T22:24Z–22:27Z: Separated clock root eligibility from immediate-parent usability. Added `IClockParentUsabilityPolicy`, exact-incarnation `AuthenticatedDirectPeerBindingTable::HasNeighbour`, and `DirectClockParentUsabilityPolicy`. Regression proves a non-direct root remains elected while only direct authenticated neighbours may become synchronization parent, and stale-incarnation bindings cannot qualify. Clock run `33925498775` green.
