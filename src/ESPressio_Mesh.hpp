@@ -12,6 +12,7 @@
 #include "ESPressio_MembershipLiveness.hpp"
 #include "ESPressio_MembershipLifecycleCoordinator.hpp"
 #include "ESPressio_AdmissionResources.hpp"
+#include "ESPressio_MeshSecurityAuthority.hpp"
 #include "ESPressio_DirectPeerBindings.hpp"
 #include "ESPressio_AdmissionPromotionCoordinator.hpp"
 #include "ESPressio_PrimitiveReceiverRegistry.hpp"
