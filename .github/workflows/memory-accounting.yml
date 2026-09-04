@@ -112,14 +112,18 @@ jobs:
               values[name] = size
 
           prefix = 'espressio_mesh_accounting_'
+          ack_name = prefix + 'ack_tracker_8'
+          clock_name = prefix + 'clock_coordination_test_quality'
           principal = sum(
               size for name, size in values.items()
-              if name.startswith(prefix) and name != prefix + 'ack_tracker_8'
+              if name.startswith(prefix) and name not in {ack_name, clock_name}
           )
-          ack = values.get(prefix + 'ack_tracker_8')
-          if principal <= 0 or ack is None:
+          clock = values.get(clock_name)
+          ack = values.get(ack_name)
+          if principal <= 0 or clock is None or ack is None:
               raise SystemExit('ESP32 accounting symbols were not emitted as expected')
 
           print(f'esp32_principal_fixed_cardinality_bytes={principal}')
+          print(f'esp32_clock_coordination_test_quality_bytes={clock}')
           print(f'esp32_ack_tracker_8_bytes={ack}')
           PY
