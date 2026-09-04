@@ -25,6 +25,7 @@ class FakeRadio final : public Radio::IRadio {
     Radio::RadioAddress _local{Radio::RadioAddress::FromBytes(reinterpret_cast<const std::uint8_t*>("L"), 1)};
 public:
     Radio::RadioSendStatus NextSendStatus{Radio::RadioSendStatus::Accepted};
+    Radio::RadioDirectLinkEvidence NextEvidence{};
     bool Start() override { _started = true; return true; }
     void Stop() noexcept override { _started = false; }
     bool IsStarted() const noexcept override { return _started; }
@@ -33,7 +34,7 @@ public:
     }
     Radio::RadioAddress LocalAddress() const noexcept override { return _local; }
     Radio::RadioSendResult Send(const Radio::RadioAddress&, const std::uint8_t*, std::size_t) override {
-        return {NextSendStatus, 0};
+        return {NextSendStatus, 0, NextEvidence};
     }
     void SetReceiver(Radio::IRadioReceiver*) noexcept override {}
     void SetWorkSignal(Radio::IRadioWorkSignal*) noexcept override {}
@@ -74,14 +75,26 @@ int main() {
 
     auto result = coordinator.Submit(local, route, 1, payload, sizeof(payload), 100, 200);
     assert(result.Disposition == Mesh::ForwardingSubmissionDisposition::Accepted);
+    assert(result.DirectLinkEvidence() == Mesh::ForwardingDirectLinkEvidence::SubmissionAccepted);
 
-    // Submission acceptance does not consume hop budget; transition commitment remains separate.
+    radio.NextEvidence = Radio::RadioDirectLinkEvidence::CompletedWithoutPeerAcknowledgement();
+    result = coordinator.Submit(local, route, 1, payload, sizeof(payload), 101, 200);
+    assert(result.Disposition == Mesh::ForwardingSubmissionDisposition::Accepted);
+    assert(result.DirectLinkEvidence() == Mesh::ForwardingDirectLinkEvidence::TransmissionCompleted);
+
+    radio.NextEvidence = Radio::RadioDirectLinkEvidence::CompletedAndAcknowledged();
+    result = coordinator.Submit(local, route, 1, payload, sizeof(payload), 102, 200);
+    assert(result.Disposition == Mesh::ForwardingSubmissionDisposition::Accepted);
+    assert(result.DirectLinkEvidence() == Mesh::ForwardingDirectLinkEvidence::PeerAcknowledged);
+
+    // Even peer acknowledgement is direct-link evidence only; Mesh forwarding transition commitment remains separate.
     Mesh::RemainingHopLimit remaining = 1;
     assert(remaining == 1U);
 
     assert(transport.InvalidatePeer(peer));
     result = coordinator.Submit(local, route, remaining, payload, sizeof(payload), 110, 200);
     assert(result.Disposition == Mesh::ForwardingSubmissionDisposition::PeerUnavailable);
+    assert(result.DirectLinkEvidence() == Mesh::ForwardingDirectLinkEvidence::None);
 
     result = coordinator.Submit(local, route, 0, payload, sizeof(payload), 110, 200);
     assert(result.Disposition == Mesh::ForwardingSubmissionDisposition::HopLimitExhausted);
