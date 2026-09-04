@@ -1,0 +1,28 @@
+name: Clock Coordination
+
+on:
+  push:
+    branches:
+      - structural_realignment_propagation
+      - 'structural_realignment_propagation*'
+  pull_request:
+
+jobs:
+  host-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment_propagation_ESPressio-Mesh
+          path: ESPressio-System
+      - name: Build clock coordination regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src
+          ESPressio-Mesh/tests/clock_coordination_test.cpp -o clock_coordination_test
+      - name: Run clock coordination regression
+        run: ./clock_coordination_test
