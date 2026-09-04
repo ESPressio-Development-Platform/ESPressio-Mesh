@@ -4,6 +4,7 @@
 
 #include <ESPressio_ClockCoordination.hpp>
 
+using namespace ESPressio;
 using namespace ESPressio::Mesh;
 
 namespace {
