@@ -2,7 +2,7 @@
 
 ## Status
 
-**TRANCHE IN PROGRESS — ARCHITECTURE FROZEN / IMPLEMENTATION READY.** System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal and Event provenance propagation are validated. Mesh now has validated bounded membership/delivery/liveness/admission foundations, Radio peer lifecycle, Primitive receiver exposure, traffic governance, topology storage/freshness/publication, route planning/cache/retry orchestration, authenticated direct-peer bindings, and an explicit successful-forwarding transition boundary.
+**TRANCHE IN PROGRESS — ARCHITECTURE FROZEN / IMPLEMENTATION READY.** System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal and Event provenance propagation are validated. Mesh now has validated bounded membership/delivery/liveness/admission foundations, Radio peer lifecycle, Primitive receiver exposure, traffic governance, topology storage/freshness/publication, route planning/cache/retry orchestration, authenticated direct-peer bindings, explicit successful-forwarding transition semantics, and authenticated next-hop Radio submission.
 
 This is the authoritative implementation handoff for the tranche originating in `ESPressio-Mesh`. Do not alter public/distributed semantics, dependency direction, authentication/identity semantics, locked bounds or Policy without Simon's explicit decision.
 
@@ -91,9 +91,9 @@ Routing uses injected `IRoutingStrategy`; route plans are local disposable artif
 
 Radio accepts complete immutable bounded logical transfers to one directly reachable Radio peer and owns fragmentation/reassembly/physical retry. `RadioPeerHandle` is process-local generation-safe link capability only, never Mesh identity/distributed topology identity.
 
-Successful authentication may now return an `AuthenticatedDirectPeerBinding` containing authenticated neighbour DeviceIdentifier + MembershipIncarnation plus the local RadioIdentifier and RadioPeerHandle which produced that candidate. `AuthenticatedDirectPeerBindingTable<96>` retains these executable local bindings. Rebinding the same neighbour/local-radio replaces the prior incarnation/peer; exact incarnation is required for resolution. Radio peer invalidation removes executable binding only and **never removes authenticated membership**.
+Successful authentication may return an `AuthenticatedDirectPeerBinding` containing authenticated neighbour DeviceIdentifier + MembershipIncarnation plus the local RadioIdentifier and RadioPeerHandle which produced that candidate. `AuthenticatedDirectPeerBindingTable<96>` retains these executable local bindings. Rebinding the same neighbour/local-radio replaces the prior incarnation/peer; exact incarnation is required for resolution. Radio peer invalidation removes executable binding only and **never removes authenticated membership**.
 
-`RadioTransportSendStatus::Accepted` is admission, not proof of successful Mesh forwarding. Hop-limit commitment therefore remains separated from Radio submission.
+`ForwardingSubmissionCoordinator` resolves an already-validated local route's next hop against the current authenticated neighbour record and exact-incarnation direct peer binding before calling `RadioTransport::Send(peer, ...)`. It never falls back to raw RadioAddress or pre-auth candidate state. Submission checks immutable deadline and nonzero hop budget first. `RadioTransportSendStatus::Accepted` means Radio admission/submission only, not successful Mesh forwarding, so HopLimit remains unchanged until `CommitSuccessfulForwardingTransition()` is invoked from later proven Mesh-hop evidence.
 
 ## Traffic/execution/payload
 
@@ -105,6 +105,7 @@ MaxMeshNodes32; MaxRadiosPerNode4; MaxGroupsPerNode8; MaxPrimitiveReceivers8; Ma
 
 Provisional memory baseline remains ~70,160 B fixed/cardinality+starting stacks before variable payload/control/reassembly/runtime overhead:
 `DRAM ≈ 70,160 + 20*Papp + 8*Pinfra + 4*Pclock + 8*Pgeneral + R + C + A + X`.
+The new direct-peer binding table adds fixed metadata and must be included when the provisional memory model is next remeasured; the earlier estimate is not a final whole-device DRAM guarantee.
 
 ---
 
@@ -132,7 +133,8 @@ Validated Mesh foundations:
 - `AuthenticatedDirectPeerBindingTable<96>`.
 - admission promotion can emit only the **authenticated** peer binding; untrusted claim never becomes authority.
 - `DirectPeerLifecycleCoordinator` removes stale executable peer bindings on Radio invalidation without mutating membership.
-- `CommitSuccessfulForwardingTransition()` is the sole new hop-budget mutation primitive; it refuses decrement at zero.
+- `CommitSuccessfulForwardingTransition()` is the sole hop-budget mutation primitive and refuses decrement at zero.
+- `ForwardingSubmissionCoordinator` performs authenticated current-incarnation next-hop resolution and RadioPeerHandle submission, with explicit immediate dispositions for deadline/hop-limit/membership/peer/resource/retryable/permanent failures. Accepted submission remains distinct from Mesh-hop completion.
 
 ---
 
@@ -141,10 +143,15 @@ Validated Mesh foundations:
 Earlier green Mesh/Radio runs include `33785734451`, `33786121103`, `33786446663`, `33786968405`, `33787189204`, `33789240336`, `33792457888`, `33792536582`, `33793151350`, Radio `33793581249`, `33797082636`, `33798291517`, `33799876449`, Mesh `33793950787`, `33794119177`, `33797422944`, `33797806648`, `33798395545`, `33800204015`, `33800502633`, `33801088318`, `33801088364`, `33801574428`, `33801574478`, `33804484722`, `33804812963`, `33805171842`, `33805171816`, `33807676687`, `33807676751`, `33808650254`, `33810738804`, `33815259671`.
 
 Current continuation:
-- commit `a22bb18d03def92eaf21202e7e82bcccf1501057` added dedicated direct-peer/forward-transition workflow coverage.
-- Topology Evolution run **`33845580307` passed**, including topology publication, global graph, route/cache, routing policy, route planner/attempts, direct peer binding/hop transition regression and umbrella build.
-- General CI run `33845580185` passed its full host regression suite against the same commit.
-- subsequent admission regression was strengthened to verify emitted peer binding uses separately authenticated identity and remains empty on conflicting-incarnation failure.
+- `a22bb18d03def92eaf21202e7e82bcccf1501057`: dedicated direct-peer/forward-transition workflow coverage. Topology Evolution `33845580307` and general CI `33845580185` passed.
+- `451daa8b5dfa6c7349a56bbf55e9abb9ead06710`: admission regression strengthened to prove emitted peer binding uses separately authenticated identity and remains empty on conflicting-incarnation failure.
+- `c2c9aa4668339184b0c6b3547fcfaf549521f87e`: direct-peer lifecycle convergence.
+- `2c293ba4d6c0d08856a0d34afda7f9cc5c54e459`: authenticated forwarding submission coordinator.
+- `0d1714761330cf7b082c75a4cb9731d28567543f`: forwarding submission regression.
+- `4dcdd9a3d3258a34104cddd0efbdf92b07d4e049`: dedicated forwarding-submission workflow coverage.
+- Topology Evolution **`33845944637` passed** the topology publication, global graph, route/cache, routing-policy, route planner/attempt, direct-peer/transition, forwarding-submission and umbrella checks.
+- General CI **`33845944459` passed** its complete host-regression suite.
+- Topology Freshness **`33845944550` passed** and Control Work Lifetime **`33845944552` passed** against the same forwarding-submission commit.
 - no Actions-budget symptom has occurred.
 
 ---
@@ -154,6 +161,7 @@ Current continuation:
 - Pre-auth state cannot mutate authenticated membership/dedup/liveness.
 - Radio peer handles are local capabilities only; their loss never implies member departure.
 - Direct executable peer binding is incarnation-qualified and may only be created after authenticated promotion.
+- Forwarding submission must resolve current authenticated membership and exact current incarnation before Radio execution.
 - `RadioTransport::Send` acceptance is not a successful Mesh hop transition and cannot consume HopLimit.
 - Route/cache state is disposable local optimization and never distributed authority.
 - No universal RouteCost or hidden cache-eviction/topology threshold has been introduced.
@@ -164,8 +172,8 @@ Current continuation:
 
 # 7. Immediate next work
 
-1. Add a narrow forwarding submission/coordinator layer which resolves a validated route's local next-hop against current authenticated membership + `AuthenticatedDirectPeerBindingTable`, submits through Radio peer handle, and treats submission acceptance separately from later direct-link/Mesh transition evidence.
-2. Add explicit outcome translation only where Radio can provide a technology-independent completed direct-link result; do not label mere admission as delivered.
+1. Inspect/realign the Radio completion contract so Mesh can receive technology-independent **completed direct-link outcome evidence** distinct from `Send()` admission. The frozen architecture requires admission vs transmission completion vs peer acknowledgement to remain distinguishable where supported; do not fabricate asynchronous completion in Mesh if Radio cannot yet provide it.
+2. Once Radio exposes a sound completion boundary, feed completed direct-link outcomes into `RouteAttemptCoordinator` and commit HopLimit only on proven successful Mesh forwarding transition.
 3. Continue wire-neutral `IMeshSecurityAuthority` / `IMeshAdmissionPolicy` composition using ESPressio-Security facilities without inventing handshake schema.
 4. Reconcile Command `CommandResult` source/docs wording to local-disposition semantics.
 5. Keep Event identity and full NodeProfile paused until Simon resolves Event IDs/MessageId and Group identifier semantics.
@@ -180,5 +188,6 @@ Current continuation:
 - 20:43–20:57 — Security audit and bounded topology/freshness.
 - 21:18–21:34 — publication materiality, globally bounded topology graph, bounded route/cache.
 - 21:56–22:55 — routing strategy, retry policies, route revalidation/planner and immutable-deadline attempt coordinator; dedicated run `33815259671` green.
-- 2026-09-04 06:39–06:44 — added authenticated direct-peer binding retention, admission binding capture, explicit successful forwarding transition/hop-limit primitive and dedicated regression. Topology Evolution `33845580307` and general CI `33845580185` green.
-- 06:44 onward — strengthened admission regression and added direct peer lifecycle convergence; executable binding loss remains link-local only and cannot remove membership.
+- 2026-09-04 06:39–06:44 — authenticated direct-peer binding retention, admission binding capture, explicit successful forwarding transition/hop-limit primitive and dedicated regression. Topology Evolution `33845580307` and general CI `33845580185` green.
+- 06:44–06:47 — strengthened admission regression and added direct-peer lifecycle convergence; executable binding loss remains link-local only and cannot remove membership.
+- 06:47–06:49 — added authenticated current-incarnation `ForwardingSubmissionCoordinator` and regression. It submits only through RadioPeerHandle, enforces immutable deadline/nonzero hop budget, and leaves HopLimit untouched on Radio admission. Topology Evolution `33845944637`, General CI `33845944459`, Topology Freshness `33845944550`, and Control Work Lifetime `33845944552` all green.
