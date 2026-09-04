@@ -114,6 +114,13 @@ jobs:
           ESPressio-Mesh/tests/admission_promotion_test.cpp -o admission_promotion_test -pthread
       - name: Run admission promotion regression
         run: ./admission_promotion_test
+      - name: Build composed admission lifecycle regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/admission_lifecycle_coordinator_test.cpp -o admission_lifecycle_coordinator_test -pthread
+      - name: Run composed admission lifecycle regression
+        run: ./admission_lifecycle_coordinator_test
       - name: Build primitive receiver registry regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
