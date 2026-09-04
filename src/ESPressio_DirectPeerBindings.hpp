@@ -13,11 +13,6 @@
 
 namespace ESPressio::Mesh {
 
-/// <summary>One authenticated Mesh identity bound to a current executable Radio peer capability.</summary>
-/// <remarks>
-/// This is local process state only. RadioPeerHandle is never distributed or persisted as Mesh identity. The binding
-/// is valid only for the exact authenticated neighbour MembershipIncarnation and current local RadioIdentifier.
-/// </remarks>
 struct AuthenticatedDirectPeerBinding final {
     System::DeviceIdentifier Neighbour{};
     MembershipIncarnation Incarnation{};
@@ -30,30 +25,12 @@ struct AuthenticatedDirectPeerBinding final {
     }
 };
 
-enum class DirectPeerBindingResult : std::uint8_t {
-    Bound,
-    Replaced,
-    ResourceUnavailable,
-    Invalid
-};
+enum class DirectPeerBindingResult : std::uint8_t { Bound, Replaced, ResourceUnavailable, Invalid };
 
-/// <summary>
-/// Fixed-capacity local mapping from authenticated neighbour incarnations to executable Radio peer handles.
-/// </summary>
-/// <remarks>
-/// Capacity defaults to the graph-wide topology-link bound because each executable direct neighbour binding can support
-/// at most one retained local directed topology edge for the same local Radio/neighbour pairing. The table performs no
-/// authentication itself; callers may bind only after security/admission has established the exact neighbour identity.
-/// </remarks>
 template<std::size_t Capacity = Limits::MaxTopologyLinks>
 class AuthenticatedDirectPeerBindingTable final {
     static_assert(Capacity > 0, "Direct peer binding capacity must be non-zero.");
-
-    struct Slot final {
-        AuthenticatedDirectPeerBinding Binding{};
-        bool Occupied{false};
-    };
-
+    struct Slot final { AuthenticatedDirectPeerBinding Binding{}; bool Occupied{false}; };
     std::array<Slot, Capacity> _slots{};
     std::size_t _size{0};
 
@@ -63,7 +40,6 @@ public:
 
     DirectPeerBindingResult Bind(const AuthenticatedDirectPeerBinding& binding) noexcept {
         if (!binding.IsValid()) return DirectPeerBindingResult::Invalid;
-
         for (auto& slot : _slots) {
             if (!slot.Occupied) continue;
             if (slot.Binding.Neighbour == binding.Neighbour && slot.Binding.LocalRadio == binding.LocalRadio) {
@@ -71,13 +47,9 @@ public:
                 return DirectPeerBindingResult::Replaced;
             }
         }
-
         for (auto& slot : _slots) {
             if (slot.Occupied) continue;
-            slot.Binding = binding;
-            slot.Occupied = true;
-            ++_size;
-            return DirectPeerBindingResult::Bound;
+            slot.Binding = binding; slot.Occupied = true; ++_size; return DirectPeerBindingResult::Bound;
         }
         return DirectPeerBindingResult::ResourceUnavailable;
     }
@@ -96,7 +68,19 @@ public:
         return nullptr;
     }
 
-    /// <summary>Resolves a local route edge only when its advertiser is the current local Mesh device.</summary>
+    /// <summary>Returns true when at least one executable Radio binding exists for the exact authenticated neighbour incarnation.</summary>
+    bool HasNeighbour(
+        const System::DeviceIdentifier& neighbour,
+        const MembershipIncarnation& incarnation
+    ) const noexcept {
+        if (!neighbour || !incarnation) return false;
+        for (const auto& slot : _slots) {
+            if (slot.Occupied && slot.Binding.Neighbour == neighbour && slot.Binding.Incarnation == incarnation &&
+                slot.Binding.IsValid()) return true;
+        }
+        return false;
+    }
+
     const AuthenticatedDirectPeerBinding* ResolveNextHop(
         const TopologyLinkIdentity& nextHop,
         const System::DeviceIdentifier& localDevice,
@@ -111,9 +95,7 @@ public:
         std::size_t removed = 0U;
         for (auto& slot : _slots) {
             if (!slot.Occupied || slot.Binding.Neighbour != neighbour) continue;
-            slot = {};
-            --_size;
-            ++removed;
+            slot = {}; --_size; ++removed;
         }
         return removed;
     }
@@ -123,9 +105,7 @@ public:
         std::size_t removed = 0U;
         for (auto& slot : _slots) {
             if (!slot.Occupied || slot.Binding.LocalRadio != localRadio) continue;
-            slot = {};
-            --_size;
-            ++removed;
+            slot = {}; --_size; ++removed;
         }
         return removed;
     }
@@ -134,17 +114,12 @@ public:
         if (!peer) return false;
         for (auto& slot : _slots) {
             if (!slot.Occupied || slot.Binding.Peer != peer) continue;
-            slot = {};
-            --_size;
-            return true;
+            slot = {}; --_size; return true;
         }
         return false;
     }
 
-    void Clear() noexcept {
-        for (auto& slot : _slots) slot = {};
-        _size = 0U;
-    }
+    void Clear() noexcept { for (auto& slot : _slots) slot = {}; _size = 0U; }
 };
 
 } // namespace ESPressio::Mesh
