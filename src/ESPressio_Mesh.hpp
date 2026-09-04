@@ -37,3 +37,4 @@
 #include "ESPressio_ForwardingTransition.hpp"
 #include "ESPressio_ForwardingSubmissionCoordinator.hpp"
 #include "ESPressio_DeliveryAcknowledgementTracker.hpp"
+#include "ESPressio_DeliveryAcknowledgementCoordinator.hpp"
