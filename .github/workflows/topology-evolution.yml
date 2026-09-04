@@ -72,7 +72,7 @@ jobs:
       - name: Build direct peer/forwarding transition regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESpressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/direct_peer_forwarding_transition_test.cpp -o direct_peer_forwarding_transition_test -pthread
       - name: Run direct peer/forwarding transition regression
         run: ./direct_peer_forwarding_transition_test
@@ -93,7 +93,7 @@ jobs:
       - name: Build forwarding attempt lifecycle regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESpressio-System/src -IESPressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/forwarding_attempt_lifecycle_test.cpp -o forwarding_attempt_lifecycle_test -pthread
       - name: Run forwarding attempt lifecycle regression
         run: ./forwarding_attempt_lifecycle_test
