@@ -12,6 +12,7 @@
 #include "ESPressio_MembershipLiveness.hpp"
 #include "ESPressio_MembershipLifecycleCoordinator.hpp"
 #include "ESPressio_AdmissionResources.hpp"
+#include "ESPressio_DirectPeerBindings.hpp"
 #include "ESPressio_AdmissionPromotionCoordinator.hpp"
 #include "ESPressio_PrimitiveReceiverRegistry.hpp"
 #include "ESPressio_PrimitiveSupportSnapshot.hpp"
@@ -32,3 +33,4 @@
 #include "ESPressio_RouteAttemptPolicy.hpp"
 #include "ESPressio_RoutePlanner.hpp"
 #include "ESPressio_RouteAttemptCoordinator.hpp"
+#include "ESPressio_ForwardingTransition.hpp"
