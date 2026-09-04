@@ -58,7 +58,7 @@ jobs:
       - name: Build routing policy regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESpressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
           ESPressio-Mesh/tests/routing_policy_test.cpp -o routing_policy_test -pthread
       - name: Run routing policy regression
         run: ./routing_policy_test
@@ -107,7 +107,7 @@ jobs:
       - name: Build delivery acknowledgement coordinator regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESpressio-System/src
+          -IESPressio-Mesh/src -IESPressio-System/src
           ESPressio-Mesh/tests/delivery_acknowledgement_coordinator_test.cpp -o delivery_acknowledgement_coordinator_test -pthread
       - name: Run delivery acknowledgement coordinator regression
         run: ./delivery_acknowledgement_coordinator_test
