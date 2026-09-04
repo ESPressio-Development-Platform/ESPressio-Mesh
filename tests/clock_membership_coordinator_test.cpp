@@ -8,10 +8,10 @@ using namespace ESPressio::Mesh;
 namespace {
 struct Quality final { std::uint16_t Score{0}; };
 
-System::DeviceIdentifier Device(std::uint8_t value) {
-    System::DeviceIdentifier::Storage bytes{};
+ESPressio::System::DeviceIdentifier Device(std::uint8_t value) {
+    ESPressio::System::DeviceIdentifier::Storage bytes{};
     bytes[15] = value;
-    return System::DeviceIdentifier(bytes);
+    return ESPressio::System::DeviceIdentifier(bytes);
 }
 
 MembershipIncarnation Incarnation(std::uint8_t value) {
@@ -21,9 +21,9 @@ MembershipIncarnation Incarnation(std::uint8_t value) {
 }
 
 ClockCoordinationAdvertisement<Quality> Advertisement(
-    const System::DeviceIdentifier& sender,
+    const ESPressio::System::DeviceIdentifier& sender,
     const MembershipIncarnation& incarnation,
-    const System::DeviceIdentifier& root,
+    const ESPressio::System::DeviceIdentifier& root,
     ClockStratum stratum,
     std::uint64_t observedAt
 ) {
@@ -58,23 +58,19 @@ int main() {
     assert(coordinator.ObserveAuthenticated(current) == ClockObservationDisposition::Observed);
     assert(clock.Size() == 1U);
 
-    // An authenticated identity for another incarnation cannot refresh or replace the retained observation.
     const auto stale = Advertisement(peer, oldIncarnation, root, 1, 200);
     assert(coordinator.ObserveAuthenticated(stale) == ClockObservationDisposition::MembershipUnavailable);
     assert(clock.Size() == 1U);
 
-    // Same-incarnation monotonic regression is rejected by the clock table and cannot overwrite newer evidence.
     const auto regressed = Advertisement(peer, currentIncarnation, root, 1, 99);
     assert(coordinator.ObserveAuthenticated(regressed) == ClockObservationDisposition::ResourceUnavailable);
     assert(clock.Size() == 1U);
 
-    // Retirement cleanup is exact-incarnation: a stale incarnation cannot remove current clock state.
     assert(!coordinator.ForgetRetiredMembership(peer, oldIncarnation));
     assert(clock.Size() == 1U);
     assert(coordinator.ForgetRetiredMembership(peer, currentIncarnation));
     assert(clock.Size() == 0U);
 
-    // A replacement incarnation becomes eligible only after membership authority has retired the old record and admitted it.
     assert(membership.Remove(peer, currentIncarnation));
     assert(membership.UpsertAuthenticated(
         peer,
