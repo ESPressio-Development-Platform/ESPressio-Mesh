@@ -76,6 +76,13 @@ jobs:
           ESPressio-Mesh/tests/direct_peer_forwarding_transition_test.cpp -o direct_peer_forwarding_transition_test -pthread
       - name: Run direct peer/forwarding transition regression
         run: ./direct_peer_forwarding_transition_test
+      - name: Build forwarding submission regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/forwarding_submission_test.cpp -o forwarding_submission_test -pthread
+      - name: Run forwarding submission regression
+        run: ./forwarding_submission_test
       - name: Build current Mesh umbrella
         run: >-
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
