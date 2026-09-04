@@ -4,7 +4,7 @@
 
 **TRANCHE IN PROGRESS — ARCHITECTURE FROZEN / IMPLEMENTATION READY.**
 
-Validated work now spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership/delivery/routing/security foundations. Radio now explicitly distinguishes synchronous send-attempt observation from qualified direct-link completion/acknowledgement evidence. Mesh continues to keep Radio peer acknowledgement separate from Mesh destination-delivery acknowledgement and from requested-operation completion.
+Validated work now spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership/delivery/routing/security foundations. Radio explicitly distinguishes synchronous send-attempt observation from qualified direct-link completion/acknowledgement evidence. Mesh separately distinguishes Radio evidence, authenticated next-hop Mesh acceptance, end-to-end destination delivery acknowledgement, and requested-operation completion.
 
 This file is the authoritative implementation handoff for the tranche originating in `ESPressio-Mesh`. Do not alter public/distributed semantics, dependency direction, authentication/identity semantics, locked capacities or Policy without Simon Stuart's explicit decision.
 
@@ -107,11 +107,11 @@ API destinations: Node, Group, CapabilitySelector, Broadcast. Group/CapabilitySe
 
 Dedup is per authenticated source DeviceIdentifier + MembershipIncarnation using uint64 high-water plus 128-position bitmap. Unseen inbound delivery reserves bounded InProgress state. Definitive disposition commits dedup; retryable/resource-unavailable releases without commit. Old-incarnation traffic never mutates current dedup state.
 
-Mesh delivery ACK means destination-framework delivery confirmation only. It is not requested-operation completion and is distinct from Radio peer acknowledgement. Sender-local pending-ACK state is keyed by exact destination DeviceIdentifier + MembershipIncarnation + MeshMessageId and uses the immutable delivery deadline. A later incarnation cannot acknowledge an older delivery.
+Mesh delivery ACK means destination-framework delivery confirmation only. It is not requested-operation completion and is distinct from Radio peer acknowledgement and intermediate next-hop acceptance. Sender-local pending-ACK state is keyed by exact destination DeviceIdentifier + MembershipIncarnation + MeshMessageId and uses the immutable delivery deadline. A later incarnation cannot acknowledge an older delivery.
 
 `DeliveryAcknowledgementTracker<Capacity>` requires an explicit finite composition-supplied capacity because architecture does not freeze one universal ACK cardinality. `DeliveryAcknowledgementCoordinator<Capacity>` creates only wire-neutral `DeliveryAcknowledgementIntent` after definitive destination semantic acceptance and applies only already-authenticated ACKs. No ACK wire schema, route, security mechanism or control family ID is implied.
 
-## 3.7 Topology / routing
+## 3.7 Topology / routing / forwarding transition
 
 Topology is a globally bounded directed graph; each member is authoritative only for its own outbound set. A→B and B→A are independent. `TopologyGeneration` versions one complete outbound set per authority+incarnation. `MaxTopologyLinks=96` is graph-wide.
 
@@ -119,7 +119,11 @@ Topology stores technology-independent observations and defines no universal `Ro
 
 Routing uses injected `IRoutingStrategy`. `ResolvedRoute<16>` is a local disposable planning artifact, never source-routing wire state. `RouteCache<32>` is optimization only. Every cache hit/fresh plan is revalidated against current membership/topology/freshness/link/policy evidence. Same-route attempts bounded to 3, distinct routes to 4, under one immutable delivery deadline.
 
-`RemainingHopLimit` decrements **only when a successful Mesh forwarding transition is explicitly committed**. It does not decrement during planning, cache lookup, queue admission, Radio submission, Radio transmission completion, Radio peer acknowledgement or failed work. A successful Mesh transition requires Mesh-level evidence that the next Mesh node accepted the forwarded message.
+`RemainingHopLimit` decrements **only when a successful Mesh forwarding transition is explicitly committed**. It does not decrement during planning, cache lookup, queue admission, Radio submission, Radio transmission completion, Radio peer acknowledgement or failed work. A successful Mesh transition requires authenticated Mesh-level evidence that the exact next Mesh node/incarnation accepted the same MeshMessageId.
+
+`ForwardingTransitionCoordinator` is per-delivery, owns exactly one fixed pending transition record, and introduces no hidden global cardinality. It arms exact `(NextHop DeviceIdentifier, NextHop MembershipIncarnation, MeshMessageId, immutable deadline)` and accepts only already-authenticated matching next-hop acceptance. Only then does it invoke `CommitSuccessfulForwardingTransition()` and consume one HopLimit. Wrong next hop, wrong incarnation, wrong MessageId, expired evidence and exhausted HopLimit cannot commit. It defines no wire packet and allocates no control family ID.
+
+Intermediate next-hop acceptance transfers forwarding responsibility for one hop. It remains distinct from the end-to-end destination delivery acknowledgement tracked by `DeliveryAcknowledgementTracker`.
 
 ## 3.8 Radio / executable direct peers / direct-link evidence
 
@@ -148,7 +152,7 @@ Concrete semantics:
 - ESP32 BLE advertising = queued/submitted bearer work only; no proven per-packet peer acknowledgement.
 - NRF24 `RF24::write()` successful unicast = transmission completed + hardware peer acknowledged; successful broadcast = transmission completed + acknowledgement unavailable.
 
-Even `PeerAcknowledged` is direct-link evidence only. It is not a Mesh delivery ACK and cannot consume HopLimit or mean the next Mesh node semantically accepted the Mesh message.
+Even `PeerAcknowledged` is direct-link evidence only. It is not next-hop Mesh acceptance, is not a Mesh destination delivery ACK, and cannot consume HopLimit by itself.
 
 ## 3.9 Traffic / execution / payload / memory
 
@@ -158,7 +162,7 @@ Payload forms: Borrowed Stable / Bounded Owned / Repeatable Serialized Source. F
 
 Locked capacities: MaxMeshNodes32; MaxRadiosPerNode4; MaxGroupsPerNode8; MaxPrimitiveReceivers8; MaxActiveApplicationTransmissions8; MaxTopologyLinks96; MaxRouteHops16; DefaultHopLimit16; MaxRouteCacheEntries32; MaxActiveInboundDeliveries8; MaxPendingNeighbourCandidates8; MaxActiveLivenessProbes4; MaxActiveInboundAuthentications4; MaxRecipientsPerTransmission32; MaxMembershipTombstones64; DedupWindow128; MaxSameRouteAttempts3; MaxRoutesAttempted4; protected traffic 8/4/8/8.
 
-Provisional baseline remains ~70,160 B fixed/cardinality + starting stacks before variable payload/control/reassembly/runtime overhead: `DRAM ≈ 70,160 + 20*Papp + 8*Pinfra + 4*Pclock + 8*Pgeneral + R + C + A + X`. Direct-peer metadata and whichever finite delivery-ACK capacity a composition selects must be included in the next measured accounting.
+Provisional baseline remains ~70,160 B fixed/cardinality + starting stacks before variable payload/control/reassembly/runtime overhead: `DRAM ≈ 70,160 + 20*Papp + 8*Pinfra + 4*Pclock + 8*Pgeneral + R + C + A + X`. Direct-peer metadata and whichever finite delivery-ACK capacity a composition selects must be included in the next measured accounting. `ForwardingTransitionCoordinator` contributes only one fixed record per already-bounded active forwarding/delivery object and therefore introduces no new global cardinality.
 
 ---
 
@@ -186,8 +190,9 @@ Validated Mesh foundations:
 - IRouteAttemptPolicy / IRetryPolicy / deadline-aware RouteAttemptCoordinator;
 - AuthenticatedDirectPeerBindingTable<96> and DirectPeerLifecycleCoordinator;
 - ForwardingSubmissionCoordinator and `ForwardingDirectLinkEvidence::{None,SubmissionAccepted,TransmissionCompleted,PeerAcknowledged}`;
-- `CommitSuccessfulForwardingTransition()` as sole hop-budget mutation;
-- `DeliveryAcknowledgementTracker<Capacity>` / `DeliveryAcknowledgementCoordinator<Capacity>`;
+- `CommitSuccessfulForwardingTransition()` as the hop-budget mutation primitive;
+- `ForwardingTransitionCoordinator` as the authenticated exact-next-hop acceptance gate before that mutation;
+- `DeliveryAcknowledgementTracker<Capacity>` / `DeliveryAcknowledgementCoordinator<Capacity>` for end-to-end destination-framework ACK semantics;
 - dependency-inverted `IMeshSecurityAuthority` / `IMeshAdmissionPolicy` plus exact `AuthenticatedMeshIdentity`.
 
 ---
@@ -211,6 +216,14 @@ Current Radio observer/evidence realignment:
 - ESP32 Raw80211 `c551a489f01a67a3ac911fe260a6442c45866547` and BLE `ba97d162dfe7478605d0bb7c25328b87ef8a7f89` use `NotifySendAttempted`; ESP32 run `33858336799` provider job passed.
 - NRF24 propagation uses `NotifySendAttempted`; NRF24 CI `33854264847` passed.
 
+Authenticated next-hop forwarding transition continuation:
+- `a9179dda5572c609b2165904ef0e7bb07a3cd6f5` added `ForwardingTransitionCoordinator`, a per-delivery single pending-record gate requiring exact authenticated next-hop identity/incarnation + MeshMessageId + immutable deadline before HopLimit commitment.
+- `d673a27068ffd2e3b065a44ea3382abb712fae35` added regression coverage for exact-source/incarnation/message matching, deadline expiry, zero-HopLimit rejection, cancellation and single decrement.
+- `ae77ebf04c3a0fc2264700a3a238b02d41b9d405` exposed the coordinator through `ESPressio_Mesh.hpp`.
+- `5d36f8f906b7f0d70187a9054a307ef867897c42` added workflow coverage; a case typo in one Radio include path was immediately corrected by `3de808a66b3258acac90aae4b297aea82cd5a86a` before CI evidence was accepted.
+- Topology Evolution run **`33859388270` passed** the complete topology/routing/forwarding-submission/new forwarding-transition/delivery-ACK/security/umbrella regression set.
+- General Mesh CI run **`33859388136` passed** the broad host regression suite against the same branch tip.
+
 No Actions-budget symptom has occurred.
 
 ---
@@ -221,8 +234,10 @@ No Actions-budget symptom has occurred.
 - Radio peer handles are local capabilities only; their loss never implies member departure.
 - Direct executable peer binding is exact-incarnation-qualified and created only after authenticated promotion.
 - Radio send-attempt return is not transmission completion unless `RadioDirectLinkEvidence` says so.
-- Radio transmission completion/peer acknowledgement are not Mesh destination-delivery acknowledgement.
-- Mesh destination-delivery acknowledgement is not requested-operation completion.
+- Radio transmission completion/peer acknowledgement are not authenticated next-hop Mesh acceptance.
+- Authenticated next-hop Mesh acceptance transfers forwarding responsibility and alone may consume one local HopLimit.
+- Next-hop acceptance is not end-to-end destination delivery acknowledgement.
+- Mesh destination delivery acknowledgement is not requested-operation completion.
 - Route/cache state is disposable local optimization and never distributed authority.
 - No universal RouteCost, hidden topology threshold or implicit cache eviction policy has been introduced.
 - No unresolved Primitive/Event/Group identifier has been allocated.
@@ -232,12 +247,11 @@ No Actions-budget symptom has occurred.
 
 # 7. Immediate next work
 
-1. Keep Mesh forwarding transition/HopLimit commitment driven only by Mesh-level next-node acceptance evidence; never map `SubmissionAccepted`, `TransmissionCompleted`, or `PeerAcknowledged` directly to `RouteAttemptOutcome::Delivered`.
-2. Compose the existing wire-neutral `DeliveryAcknowledgementCoordinator` with the forwarding/attempt lifecycle so a valid destination-framework ACK can close the attempt and only the correct Mesh-level next-node acceptance path can commit a forwarding transition. Do not invent ACK wire encoding or a control-family numeric ID.
-3. Continue wire-neutral security/admission composition and bounded traffic/control work only where no unresolved wire IDs are required.
-4. Finish the remaining Command source IDE-comment wording cleanup without changing `CommandResult` runtime shape or callback semantics.
-5. Keep Event distributed identity and full NodeProfile paused until Simon resolves Event IDs/MessageId and Group identifier semantics.
-6. Create/verify `ESPressio-MeshAdapters` propagation branch only when adapter implementation starts.
+1. Compose forwarding submission, `ForwardingTransitionCoordinator`, route-attempt state and end-to-end `DeliveryAcknowledgementCoordinator` through a narrow per-delivery lifecycle surface. Keep intermediate next-hop acceptance distinct from final destination ACK and do not invent ACK wire encoding or a control-family numeric ID.
+2. Continue wire-neutral security/admission composition and bounded traffic/control work only where no unresolved wire IDs are required.
+3. Finish the remaining Command source IDE-comment wording cleanup without changing `CommandResult` runtime shape or callback semantics.
+4. Keep Event distributed identity and full NodeProfile paused until Simon resolves Event IDs/MessageId and Group identifier semantics.
+5. Create/verify `ESPressio-MeshAdapters` propagation branch only when adapter implementation starts.
 
 ---
 
@@ -253,3 +267,4 @@ No Actions-budget symptom has occurred.
 - 07:39–07:42 — dependency-inverted Mesh security/admission contracts added and validated.
 - 08:33–08:39 — Radio send observation semantics audited across Radio/ESP32/NRF24. Added `IRadioSendAttemptObserver`, renamed optional send Events, aligned Event bridge, added regression and migrated NRF24 provider. Initial stale-test references were exposed and corrected rather than hidden behind compatibility.
 - 09:20–09:34 — completed the no-legacy Radio semantic cleanup: removed `NotifySendCompleted`, renamed RadioTransport consumer callback to attempt semantics, migrated Raw80211/BLE/Event bridge/native tests/clock stub, and updated Radio README. Radio run `33858866923` fully green across native and ESP32-worker smoke jobs.
+- 09:35–09:40 — added per-delivery `ForwardingTransitionCoordinator` requiring authenticated exact next-hop/incarnation/MessageId acceptance before HopLimit decrement; added regression/umbrella/workflow coverage. Topology Evolution `33859388270` and General CI `33859388136` passed.
