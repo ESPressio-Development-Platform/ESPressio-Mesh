@@ -90,6 +90,13 @@ jobs:
           ESPressio-Mesh/tests/delivery_acknowledgement_tracker_test.cpp -o delivery_acknowledgement_tracker_test -pthread
       - name: Run delivery acknowledgement tracker regression
         run: ./delivery_acknowledgement_tracker_test
+      - name: Build delivery acknowledgement coordinator regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src
+          ESPressio-Mesh/tests/delivery_acknowledgement_coordinator_test.cpp -o delivery_acknowledgement_coordinator_test -pthread
+      - name: Run delivery acknowledgement coordinator regression
+        run: ./delivery_acknowledgement_coordinator_test
       - name: Build current Mesh umbrella
         run: >-
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
