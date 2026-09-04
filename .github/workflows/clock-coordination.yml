@@ -26,3 +26,10 @@ jobs:
           ESPressio-Mesh/tests/clock_coordination_test.cpp -o clock_coordination_test
       - name: Run clock coordination regression
         run: ./clock_coordination_test
+      - name: Build authenticated clock membership regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src
+          ESPressio-Mesh/tests/clock_membership_coordinator_test.cpp -o clock_membership_coordinator_test
+      - name: Run authenticated clock membership regression
+        run: ./clock_membership_coordinator_test
