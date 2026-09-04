@@ -97,6 +97,13 @@ jobs:
           ESPressio-Mesh/tests/delivery_acknowledgement_coordinator_test.cpp -o delivery_acknowledgement_coordinator_test -pthread
       - name: Run delivery acknowledgement coordinator regression
         run: ./delivery_acknowledgement_coordinator_test
+      - name: Build Mesh security authority contract regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src
+          ESPressio-Mesh/tests/mesh_security_authority_test.cpp -o mesh_security_authority_test -pthread
+      - name: Run Mesh security authority contract regression
+        run: ./mesh_security_authority_test
       - name: Build current Mesh umbrella
         run: >-
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp &&
