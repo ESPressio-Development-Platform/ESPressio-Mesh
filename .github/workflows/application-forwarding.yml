@@ -46,5 +46,9 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_delivery_acknowledgement_test.cpp -o application_delivery_acknowledgement_test -pthread
       - name: Run application destination ACK regression
         run: ./application_delivery_acknowledgement_test
+      - name: Build application Radio terminal regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_radio_terminal_coordinator_test.cpp -o application_radio_terminal_coordinator_test -pthread
+      - name: Run application Radio terminal regression
+        run: ./application_radio_terminal_coordinator_test
       - name: Build current Mesh umbrella
         run: printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp && g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src umbrella.cpp -o umbrella -pthread
