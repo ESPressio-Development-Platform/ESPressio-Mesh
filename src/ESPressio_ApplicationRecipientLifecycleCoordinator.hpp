@@ -51,7 +51,7 @@ class ApplicationRecipientLifecycleCoordinator final {
             return ApplicationRecipientTerminalizationResult::Invalid;
         }
 
-        const auto update = _transmissions.SetRecipientOutcome(transmission, messageId, outcome);
+        const auto update = _transmissions.SetRecipientOutcomeAuthoritative(transmission, messageId, outcome);
         switch (update) {
             case ApplicationTransmissionUpdateResult::Updated:
                 external.Reset();
