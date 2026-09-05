@@ -74,15 +74,56 @@ int main() {
     assert(coordinator.Begin(sweepA, 1, payload, 100, 300, early) == ApplicationTransmissionAdmissionResult::Begun);
     assert(coordinator.Begin(sweepB, 1, payload, 100, 400, later) == ApplicationTransmissionAdmissionResult::Begun);
     assert(traffic.Active(MeshTrafficClass::Application) == 2U);
-    assert(coordinator.ExpireDue(299) == 0U && traffic.Active(MeshTrafficClass::Application) == 2U);
-    assert(coordinator.ExpireDue(300) == 1U && transmissions.IsTerminal(early) && !transmissions.IsTerminal(later));
+
+    // The early recipient owns an active ACK-bearing external lifecycle when the aggregate deadline arrives.
+    RouteAttemptCoordinator sweepAttempts(routePolicy, retryPolicy);
+    OutboundDeliveryLifecycle<4> sweepDelivery(sweepAttempts, acknowledgements);
+    assert(coordinator.BeginRecipient(early, 0, 110, true, sweepDelivery) == ApplicationRecipientBeginResult::Begun);
+    assert(sweepDelivery.IsActive());
+    assert(sweepDelivery.AwaitingDestinationAcknowledgement());
+    assert(tracker.Size() == 1U);
+
+    assert(coordinator.ExpireDueWithRecipients(299, [&](ApplicationTransmissionHandle, MeshMessageId) noexcept {
+        assert(false && "recipient callback must not run before the deadline");
+    }) == 0U);
+    assert(traffic.Active(MeshTrafficClass::Application) == 2U);
+    assert(sweepDelivery.IsActive() && tracker.Size() == 1U);
+
+    std::size_t expiredRecipientCallbacks = 0U;
+    assert(coordinator.ExpireDueWithRecipients(300, [&](ApplicationTransmissionHandle handle, MeshMessageId messageId) noexcept {
+        ++expiredRecipientCallbacks;
+        assert(handle == early);
+        assert(messageId == 201U);
+
+        // Aggregate authority must already be committed before external bounded state is retired.
+        ApplicationRecipientOutcome outcome{};
+        assert(coordinator.TryGetRecipientOutcome(handle, messageId, outcome));
+        assert(outcome == ApplicationRecipientOutcome::DeadlineExpired);
+        assert(sweepDelivery.IsActive() && sweepDelivery.MessageId() == messageId);
+        sweepDelivery.Reset();
+    }) == 1U);
+    assert(expiredRecipientCallbacks == 1U);
+    assert(transmissions.IsTerminal(early) && !transmissions.IsTerminal(later));
+    assert(!sweepDelivery.IsActive() && tracker.Empty());
     assert(traffic.Active(MeshTrafficClass::Application) == 1U && transmissions.Contains(early));
+
     ApplicationTransmissionRecipient inspected{}; ApplicationRecipientOutcome inspectedOutcome{};
     assert(transmissions.TryGetRecipient(early, 0, inspected, inspectedOutcome));
     assert(inspectedOutcome == ApplicationRecipientOutcome::DeadlineExpired);
-    assert(coordinator.ExpireDue(450) == 1U && transmissions.IsTerminal(later));
+
+    assert(coordinator.ExpireDueWithRecipients(450, [&](ApplicationTransmissionHandle handle, MeshMessageId messageId) noexcept {
+        ++expiredRecipientCallbacks;
+        assert(handle == later);
+        assert(messageId == 202U);
+        ApplicationRecipientOutcome outcome{};
+        assert(coordinator.TryGetRecipientOutcome(handle, messageId, outcome));
+        assert(outcome == ApplicationRecipientOutcome::DeadlineExpired);
+    }) == 1U);
+    assert(expiredRecipientCallbacks == 2U && transmissions.IsTerminal(later));
     assert(traffic.Active(MeshTrafficClass::Application) == 0U);
-    assert(coordinator.ExpireDue(500) == 0U);
+    assert(coordinator.ExpireDueWithRecipients(500, [&](ApplicationTransmissionHandle, MeshMessageId) noexcept {
+        assert(false && "already-terminal recipients must not be reported twice");
+    }) == 0U);
     assert(coordinator.Release(early)); assert(coordinator.Release(later));
 
     MeshTrafficReservation held[Limits::ApplicationTransmissionCapacity]{};
