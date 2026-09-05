@@ -1,119 +1,189 @@
-# ESPressio Mesh Implementation Tranche — Authoritative Handoff
+# ESPressio-Mesh Structural Realignment Tranche Handoff
 
-## Status
-
-**TRANCHE IN PROGRESS — ARCHITECTURE FROZEN / IMPLEMENTATION READY.**
-
-This is the authoritative implementation handoff for the tranche originating in `ESPressio-Mesh`. Validated propagation spans System, Primitive, Radio, ESP32, NRF24, State, Command RPC-removal/documentation realignment, Event provenance, and substantial Mesh membership, admission, topology, routing, forwarding, delivery, clock coordination and target-native memory-accounting foundations.
-
-Do not alter public/distributed semantics, dependency direction, identity/authentication semantics, locked capacities or Policy without Simon Stuart's explicit decision.
-
-### Unresolved public/wire decisions
-Do **not** invent concrete ESPressio `PrimitiveFamilyId` allocations, distributed EventTypeId allocation/derivation, conceptual Event MessageId generation scope/strategy, or Group identifier contract.
+Authoritative implementation handoff for the ESPressio-Mesh-origin structural-realignment tranche. Maintain this file on `ESPressio-Mesh/structural_realignment_propagation` after every meaningful implementation, validation, branch, dependency, architecture or correction change.
 
 ## Branch scope
 
-Primary: `ESPressio-Mesh` → `structural_realignment_propagation`.
+Primary context repository:
+- `ESPressio-Mesh`: `structural_realignment_propagation`
 
-Affected repositories use `structural_realignment_propagation_ESPressio-Mesh`: System, Primitive **singular**, Radio, ESP32, NRF24, State, Command and Event. `ESPressio-MeshAdapters` is architecturally required but has not yet needed a propagation branch/implementation.
+Affected repositories:
+- `ESPressio-System`: `structural_realignment_propagation_ESPressio-Mesh`
+- `ESPressio-Primitive`: `structural_realignment_propagation_ESPressio-Mesh`
+- `ESPressio-Radio`: `structural_realignment_propagation_ESPressio-Mesh`
+- `ESPressio-ESP32`: `structural_realignment_propagation_ESPressio-Mesh`
+- `ESPressio-NRF24`: `structural_realignment_propagation_ESPressio-Mesh`
+- `ESPressio-State`: `structural_realignment_propagation_ESPressio-Mesh`
+- `ESPressio-Command`: `structural_realignment_propagation_ESPressio-Mesh`
+- `ESPressio-Event`: `structural_realignment_propagation_ESPressio-Mesh`
 
-## Mandatory Policy/workflow rules
+`ESPressio-MeshAdapters` propagation work remains deferred until adapter implementation starts.
 
-- Ordinary libraries do not call hardware/platform APIs directly; use ESPressio-System abstractions. Hardware concretes belong in platform/technology repositories.
-- Reuse existing abstractions; preserve strict SRP and dependency direction. No circular dependency, including optional dependency; stop and ask Simon if one becomes unavoidable.
-- Participating manifests/tests/jobs/docs/source references target matching propagation branches.
-- Documentation and IDE-compatible doc comments move with APIs. Useful public discrete components receive Arduino IDE + PlatformIO demos where appropriate.
-- Internal diagnostics use compile-switchable ESPressio-Logging after inspecting its current API. Optional callback surfaces use ESPressio-Observable; optional Event bridges live with the source subsystem.
-- Do not alter version numbering merely because of tranche work. Do not preserve legacy behavior unless Simon explicitly requests it.
-- Maintain this file after meaningful implementation/validation/decision/correction changes. At full completion offer it to Simon for download, then remove it from Git.
-- If Actions begins failing immediately because of monthly task/job budget exhaustion, record it and stop treating CI as correctness evidence until reset. No such symptom has occurred.
+## Mandatory tranche rules
+
+- Every Markdown policy in `ESPressio-Development-Platform/Policy` is authoritative unless Simon explicitly states an exception.
+- Ordinary libraries do not call hardware/platform APIs directly; use `ESPressio-System` abstractions. Platform/technology concretes belong in their platform repositories.
+- Do not introduce circular dependencies, including optional ones. Stop and ask Simon if one would be required.
+- All participating dependency references, tests, jobs and documentation must point to the matching propagation branches.
+- No version-number changes merely as tranche work.
+- Do not preserve obsolete APIs merely for compatibility.
+- Documentation/comments evolve with code; prefer IDE-compatible doc comments.
+- Logging uses `ESPressio-Logging` and must remain compile-switchable; optional callback behavior follows `ESPressio-Observable` patterns.
+- If Actions fail immediately because the monthly task/job budget is exhausted, record that fact and switch to recursive self-review rather than treating CI as evidence.
+- The repository is `ESPressio-Primitive` singular.
 
 ## Frozen architecture
 
-### Layering
-System owns foundational platform-neutral identities/services; Primitive owns dependency-neutral conceptual-message vocabulary; Command is asynchronous intent; Event is occurrence; State is authoritative fact/replication; Radio is opaque direct-link physical/link transport with hop-local packetization/reassembly/retry/evidence; Mesh owns membership/topology/routing/control/logical addressing/admission/multi-radio forwarding/end-to-end delivery and must not depend on Command/Event/State; MeshAdapters integrates above those layers; Timing owns synchronization math/discipline/quality while Mesh coordinates root/parent and Radio owns direct timestamp mechanics.
+Layering:
+- System: foundational platform-neutral identities/services; canonical `DeviceIdentifier`.
+- Primitive: common conceptual-message vocabulary only.
+- Command/Event/State: semantic primitive libraries.
+- Radio: opaque direct-link transport and link-local mechanics.
+- Mesh: membership, topology, routing, admission, multi-radio forwarding, logical addressing and end-to-end delivery over Radio. Mesh must not depend on Command/Event/State.
+- MeshAdapters: optional integration above Mesh and semantic primitive libraries.
+- Timing: clock math/discipline/quality; Mesh coordinates root/parent; Radio owns direct timestamp mechanics.
 
-### Identity / primitive
-`DeviceIdentifier` exact 16 B permanent transport-independent zero-invalid and never authentication. `MeshIdentifier` exact nonzero 16 B app-supplied. `MembershipIncarnation` exact nonzero 16 B participation instance. `MeshNodeAlias` uint16 Mesh-local only. `RadioIdentifier` uint8, 0 invalid, 1–254 usable, 255 reserved, incarnation-local. `MeshMessageId` uint64 nonzero monotonic/nonwrapping scoped to authenticated DeviceIdentifier+MembershipIncarnation and retained across retries/routes/fragments. ProfileGeneration/TopologyGeneration uint64 nonzero. CanonicalName mandatory Mesh-unique printable ASCII 1–32 B. ContractFingerprint exact 32 B SHA-256 semantic digest, never auth. PrimitiveFamilyId uint16 ranges remain frozen; concrete ESPressio IDs remain unallocated.
+Identity and bounds:
+- `DeviceIdentifier`: exact 16 bytes, zero invalid, permanent and transport-independent.
+- `MeshIdentifier`: exact nonzero 16 bytes.
+- `MembershipIncarnation`: exact nonzero 16 bytes.
+- `MeshNodeAlias`: uint16 Mesh-local routing handle.
+- `RadioIdentifier`: uint8; 0 invalid, 1-254 usable, 255 reserved.
+- `MeshMessageId`: uint64 nonzero monotonic per authenticated source DeviceIdentifier+MembershipIncarnation; never wraps/reuses. One independent Node delivery gets one ID; each selective-multicast recipient gets one ID; Broadcast keeps one ID through the flood.
+- `ProfileGeneration`/`TopologyGeneration`: uint64 nonzero.
+- `CanonicalName`: mandatory Mesh-unique NodeProfile property, 1-32 printable ASCII bytes, exact case-sensitive comparison.
 
-### Command / Event / State
-Command has no intrinsic wait/requested-operation completion/result timeout/destination/reply/RPC semantics. Existing `CommandResult` is only local parser/validation/middleware/dispatch/callback disposition and its misleading completion/result vocabulary remains cleanup work. Later operation progress/completion belongs to independent Event/State messages, optionally correlated.
+Primitive:
+- `PrimitiveFamilyId`: 0 invalid; 0x0001-0x7FFF ESPressio-defined; 0x8000-0xFFFE application/private; 0xFFFF reserved.
+- `ContractFingerprint`: exact 32-byte SHA-256 semantic compatibility digest, not authentication.
+- Family version ranges negotiate highest mutual version.
+- Support, Compatible, Reachable and Authorized are distinct concepts.
+- Concrete ESPressio family IDs remain deliberately unallocated. Do not invent one.
 
-Event intrinsic data is EventTypeId, SchemaVersion, conceptual MessageId, priority, payload and optional CorrelationId. Local/Remote is dispatch context; no transport HopCount/response/completion. Distributed EventTypeId and Event MessageId generation remain unresolved.
+Destinations/delivery:
+- API destinations: Node, Group, CapabilitySelector, Broadcast.
+- Group/CapabilitySelector resolve once at sender into a frozen bounded recipient set, then become independent Node deliveries.
+- Selective multicast owns one sender-local aggregate handle/deadline and immutable shared payload backing, but independent recipient MessageIds/outcomes/receipts. No wire MulticastOperationId.
+- Broadcast is best-effort controlled flooding with no frozen recipient set, destination ACK or complete-to-all promise.
+- Delivery ACK means authenticated destination acceptance only; it is not command completion or business-operation success.
 
-`StateAddress = DeviceIdentifier + StateTypeId`; local State is app-owned/non-owningly bound and remote replicas State-owned. Availability is separate from value. Wire concepts Publication/Availability/Subscribe/Unsubscribe/Resynchronize; no ReplicaAcknowledgement/generic Disconnect. StateEpoch is independent of MembershipIncarnation.
+Membership/security:
+- Admission states: Unknown -> Discovered -> Authenticating -> Validating -> Joining -> Active.
+- Cheap Mesh/protocol/signature checks precede crypto.
+- Any Active member may sponsor a candidate; sponsor is not leader.
+- MembershipState and ReachabilityState are separate.
+- Authenticated Leave is authoritative; FastRejoin never replaces authentication.
+- Security/admission behavior is injected through `IMeshSecurityAuthority`/`IMeshAdmissionPolicy`.
+- Reachability hysteresis: Reachable -> Suspect -> Unreachable. Default policy floors approximately 5 s and 15 s; authenticated evidence may immediately restore Reachable.
+- Full unreachable record retention default 60 s; compact membership tombstones default approximately 5 min.
 
-### Membership / admission / liveness
-Admission: Unknown→Discovered→Authenticating→Validating→Joining→Active. DeviceIdentifier is never authentication. Candidate context contains generation-safe candidate handle, local RadioIdentifier/RadioPeerHandle and explicitly untrusted identity claim. Only separately established AuthenticatedMeshIdentity enters membership. IMeshSecurityAuthority performs security behind Mesh dependency inversion; IMeshAdmissionPolicy runs only after authentication. Reachability Unknown/Reachable/Suspect/Unreachable through injected policy, approximate defaults 5 s/15 s; valid authenticated evidence may restore Reachable immediately. Full unreachable retention 60 s. Active liveness probes 4. Tombstones 64, default ~5 min, deterministic bounded eviction; pressure never weakens auth/admission.
+Routing/topology:
+- Directed link-state graph, global `MaxTopologyLinks=96`, route cache 32, `MaxRouteHops=16`, `DefaultHopLimit=16`.
+- Same-route maximum attempts 3; distinct-route maximum 4.
+- Route cache is disposable local optimization, never authority.
+- Routing is adaptive hop-by-hop; no mandatory source routing.
+- RemainingHopLimit decrements only on a proven successful Mesh forwarding transition, never merely because Radio accepted a submission.
+- Routing strategy is injected and no universal scalar RouteCost has been imposed.
 
-### Routing / delivery / forwarding
-Destinations Node/Group/CapabilitySelector/Broadcast. Selective destinations freeze a bounded recipient set then normalize to independent Node deliveries. Broadcast is bounded best-effort flood with one MessageId, no frozen set/complete-delivery promise.
+Radio:
+- Public abstraction accepts a complete immutable bounded logical transfer for one directly reachable Radio peer.
+- Radio owns hop-local fragmentation/reassembly/physical retries and Radio-owned peer identity.
+- `RadioPeerHandle` is generation-safe and process-local; Mesh never falls back to raw Radio addresses for authenticated forwarding.
+- Immediate `Send` acceptance is admission only. Direct-link terminal evidence is separate and may distinguish transmission completion from peer acknowledgement.
+- Precision timing exchange remains a separate protected Radio/Timing path.
+- ESP32 Wi-Fi and Raw80211 share one platform-level PHY coordinator; incompatible active services produce restriction/unavailability, never disruption.
 
-Dedup is per authenticated source+incarnation, high-water plus 128-bit window. Definitive inbound disposition commits; retryable/resource unavailable releases InProgress without commit. Destination ACK is destination-framework delivery confirmation only, distinct from Radio ACK, intermediate next-hop acceptance and requested-operation completion.
+Clock:
+- Every eligible node is elective; no configured fixed clock roles.
+- Injectable quality, eligibility, root-election and parent-selection policies.
+- Quality-first deterministic DeviceIdentifier tie-break.
+- Precision T1/T2/T3/T4 bypass normal Mesh queues/fragmentation.
+- Same-root and strictly-better-stratum rules prevent loops.
 
-Topology is a graph-wide bounded directed graph; each member is authoritative only for its complete outbound set and TopologyGeneration. MaxTopologyLinks=96 graph-wide. No universal RouteCost. Publication materiality/freshness are policy-injected; Expired topology cannot originate a route.
+Traffic/execution/payload:
+- `IMeshTrafficGovernor` injected. Default protected capacities: Infrastructure Responses 8, Clock Control 4, General Control 8, Application 8.
+- Mandatory delivery ACKs remain serviceable under application saturation.
+- Control work has finite injected lifetime policy.
+- Single-owner mutable state; one serialized Mesh execution domain is acceptable. Prefer ESPressio Task/PrecisionThread, never direct FreeRTOS in Mesh.
+- Payload models: Borrowed Stable Payload, Bounded Owned Payload, Repeatable Serialized Source. Finite length is known before acceptance; one MessageId maps to immutable logical bytes through retries/routes/fragments.
 
-Routing uses injected IRoutingStrategy. ResolvedRoute<16> is disposable local planning state, never source-routing wire state. RouteCache<32> is optimization only. Same-route max attempts3; distinct routes4; immutable deadline outer bound.
+Locked capacities:
+`MaxMeshNodes=32`, `MaxRadiosPerNode=4`, `MaxGroupsPerNode=8`, `MaxPrimitiveReceivers=8`, `MaxActiveApplicationTransmissions=8`, `MaxTopologyLinks=96`, `MaxRouteHops=16`, `DefaultHopLimit=16`, route cache 32, `MaxActiveInboundDeliveries=8`, `MaxPendingNeighbourCandidates=8`, `MaxActiveLivenessProbes=4`, `MaxActiveInboundAuthentications=4`, `MaxRecipientsPerTransmission=32`, `MaxMembershipTombstones=64`, dedup 128, same-route attempts 3, routes 4.
 
-RemainingHopLimit decrements only after authenticated successful Mesh next-hop forwarding transition. Planning/cache/Radio admission/Radio completion/Radio peer ACK/failure do not decrement it. ForwardingSubmissionCoordinator resolves current authenticated exact-incarnation direct peer before RadioTransport send and now returns the exact authenticated NextHop + NextHopIncarnation used for that resolution so higher composition never reconstructs acceptance authority from discovery state.
+## Implemented tranche state
 
-`ForwardingRadioTerminalCorrelation<Capacity>` is an explicit-capacity Mesh-side correlation store for deferred Radio logical-transfer terminal evidence. `ForwardingRadioAttemptCoordinator` reserves correlation before Radio submission, maps saturation to ResourceUnavailable before physical work, binds accepted deferred RadioTransport handles immediately, and consumes terminal observations through the route-attempt lifecycle.
+System:
+- Canonical exact-16-byte DeviceIdentifier implemented; ESP32-specific derivation remains outside System.
 
-`OutboundRadioDeliveryCoordinator<AckCapacity,CorrelationCapacity,...>` now composes the Radio attempt coordinator with `OutboundDeliveryLifecycle`. One active delivery owns at most one retained Radio-terminal correlation handle. Correlation is released when terminal evidence is consumed, authenticated exact-next-hop acceptance supersedes it, retry/replan/stop abandons the attempt, or Reset/cancellation ends the delivery. Completed/peer-ACKed Radio terminal evidence leaves Mesh acceptance pending. Terminal Radio failure cancels the no-longer-valid pending acceptance transition before retry/replanning. Only authenticated exact-next-hop acceptance can decrement RemainingHopLimit. `OutboundDeliveryLifecycle::ArmAcceptedSubmission` exists specifically to avoid evaluating/mutating RouteAttemptCoordinator twice when the Radio attempt coordinator has already classified submission.
+Primitive:
+- PrimitiveFamilyId, PrimitiveProtocolVersion, ConceptualMessageId, CorrelationId, inclusive protocol range/highest-mutual negotiation, exact 32-byte ContractFingerprint and registry boundaries implemented. No concrete family ID allocated.
 
-### Radio / evidence
-Radio accepts complete immutable bounded logical transfers to direct peers and owns fragmentation/reassembly/physical retry. RadioPeerHandle is generation-safe process-local capability only. AuthenticatedDirectPeerBindingTable<96> maps authenticated neighbour incarnation + local RadioIdentifier to executable RadioPeerHandle; peer invalidation removes executable binding only, never membership.
+Radio/ESP32/NRF24:
+- Radio realigned to direct-peer complete logical transfer.
+- Generation-safe `RadioPeerHandle`/bounded peer registry implemented.
+- RadioTransport owns bounded fragmentation/reassembly and peer lifecycle.
+- Direct-link evidence separates submission/admission from actual terminal transmission/peer-ack evidence.
+- Deferred logical-transfer correlation is explicitly bounded and reserved before partial submission; saturation returns ResourceUnavailable before any fragment is sent.
+- ESP32 Raw80211/BLE and NRF24 propagation implementations remain within the Radio abstraction; shared ESP32 PHY coordination is implemented.
 
-Radio evidence stages are explicitly distinct: synchronous Send attempt/admission; provider-established transmission completion/failure; peer acknowledgement where supported. IRadioSendAttemptObserver is attempt-only. RadioSendResult carries synchronous RadioDirectLinkEvidence. RadioTransmissionCompletion is Unknown/Completed/Failed. Accepted non-terminal work may carry provider-local RadioTransmissionHandle; IRadioTransmissionObserver publishes exactly one terminal observation for a promised handle.
+State:
+- Canonical StateAddress, local non-owning authority binding, remote replicas, availability/reachability separation, epoch/revision behavior, observer serialization/reentrancy protection and v2 transport primitives implemented and validated.
 
-`DeferredLogicalTransferTracker<Capacity>` provides finite composition-owned aggregation of provider-local fragment handles. RadioTransport optionally receives this tracker plus `ILogicalTransferTerminalObserver` from the composition root; no universal capacity was introduced. It reserves correlation before submitting the first fragment, registers every accepted fragment, releases on provider rejection/unobservable correlation, retains the generation-safe deferred logical-transfer handle only while correlation remains pending, and subscribes each registered Radio interface to `DeferredLogicalTransferObserverBridge`. Tracker saturation returns explicit `RadioTransportSendStatus::ResourceUnavailable` before any fragment is submitted. `DeferredLogicalTransferDescriptor` retains the originating `RadioPeerHandle` for peer-handle sends so eventual terminal observation can be correlated upward without recovering raw provider addresses. Synchronously terminal all-fragment evidence emits the same logical terminal contract immediately; deferred provider callbacks aggregate to exactly one later terminal observation. Stale provider handles remain inert.
+Command:
+- Intrinsic RPC request/response, pending-response and timeout machinery removed; `CommandMessage` is Primitive-backed conceptual/correlation/version + bounded payload. Remaining cleanup: rename/reframe local `CommandResult` and completion-oriented wording so local success means framework acceptance only.
 
-Raw80211 `esp_wifi_80211_tx` success remains submission only. BLE advertising remains queued/submitted bearer work only. NRF24 successful unicast `RF24::write` proves transmission completion + hardware peer ACK; successful broadcast proves completion with ACK unavailable. Radio peer ACK is still not Mesh next-hop acceptance.
+Event:
+- Transport provenance removed from Event object state; dispatch context carries Local/Remote origin; remote Events are not auto-forwarded; EVTT v2 removes HopCount semantics. Full intrinsic Event identity integration remains blocked on canonical distributed EventTypeId allocation/derivation and Event ConceptualMessageId generation strategy.
 
-### Clock / traffic / payload
-Clock roles elective; quality-first deterministic DeviceIdentifier tie-break. Precision T1/T2/T3/T4 bypass ordinary Mesh queues. ClockCoordinationTable<32> retains authenticated informational advertisements; clock quality/eligibility/root/parent policies injected. Membership gating requires exact current Active incarnation. Unreachable removes informational clock state. Root eligibility and immediate-parent usability are separate: DirectClockParentUsabilityPolicy requires current executable exact-incarnation direct authenticated peer, while elected root may remain non-direct.
+Mesh:
+- Membership tombstones, deduplication window, MeshMessageId generator, inbound reservations/coordinator, authenticated membership, retention/liveness/lifecycle composition, bounded pre-auth admission resources and security/admission boundaries implemented.
+- Primitive receiver registry/support snapshot, neighbour discovery, Mesh Radio registry, peer lifecycle and authenticated direct-peer bindings implemented.
+- Directed topology snapshot/freshness/publication/graph storage, route/cache, injected routing strategy/planner, bounded route-attempt/retry policies and forwarding transition/submission lifecycle implemented.
+- Radio terminal correlation and forwarding attempt composition preserve admission-vs-terminal evidence separation.
+- Delivery acknowledgement tracking/coordinator and outbound delivery lifecycle are implemented without conflating ACK with application completion.
+- Clock coordination, membership/reachability integration and parent usability foundations are implemented.
+- Target-native fixed/cardinality memory accounting exists and intentionally uses `sizeof` rather than presenting host ABI numbers as ESP32 measurements.
+- **New:** `ApplicationTransmissionTable<8,32>` now owns bounded sender-local selective application transmission aggregates. Each accepted aggregate has one generation-safe handle and immutable absolute deadline, a frozen set of at most 32 unique recipient Devices/incarnations, one independent nonzero MeshMessageId per recipient, and independent terminal outcome. It owns no payload bytes, routes, Radio state, ACK tracker, selector identity or Broadcast semantics. Capacity exhaustion is explicit. Expiry marks only still-pending recipients. Slot reuse advances generation so stale handles cannot mutate replacements.
+- Application transmission metadata is now included in target-native fixed/cardinality memory accounting; immutable shared payload backing remains a separate variable-capacity term.
 
-Protected traffic capacities InfrastructureResponse8, ClockControl4, GeneralControl8, Application8 through injected governor. Control work finite injected lifetime. Mesh services remain narrow/serialized-domain compatible; no direct FreeRTOS in Mesh. Payload forms Borrowed Stable / Bounded Owned / Repeatable Serialized Source; finite length before acceptance and immutable logical bytes per MessageId.
+## Validation status
 
-## Locked capacities
-MaxMeshNodes32; MaxRadiosPerNode4; MaxGroupsPerNode8; MaxPrimitiveReceivers8; MaxActiveApplicationTransmissions8; MaxTopologyLinks96; MaxRouteHops16; DefaultHopLimit16; RouteCache32; MaxActiveInboundDeliveries8; MaxPendingNeighbourCandidates8; MaxActiveLivenessProbes4; MaxActiveInboundAuthentications4; MaxRecipientsPerTransmission32; MaxMembershipTombstones64; Dedup128; same-route attempts3; routes4; traffic8/4/8/8; unreachable retention60s; tombstone retention~5min. Deferred Radio logical-transfer correlation and Mesh forwarding-terminal correlation capacities remain explicit application/composition choices, not new locked universal constants.
+Representative green tranche runs before the latest change:
+- Radio native + ESP32 worker after deferred logical-transfer correlation: `33956249777` green.
+- Mesh forwarding Radio-attempt composition: Topology Evolution `33959946510` green.
+- Mesh outbound Radio delivery correlation: Topology Evolution `33960956661` green.
+- General CI before this continuation: `33961248712` green.
+- Memory Accounting before this continuation: `33961248739` green.
+- Clock Coordination before this continuation: `33961248717` green.
 
-## Current implementation state
+Application-transmission continuation:
+- Initial Topology Evolution `33963070378` reached the new test and exposed only a test namespace typo (`System` vs `ESPressio::System`); all preceding routing/delivery regressions were green. The typo was corrected in commit `94398a0a19ee5d2ea4619b26befae09dcb832236`.
+- Follow-up Topology Evolution `33963104967`: all topology, routing, forwarding, acknowledgement, outbound-delivery, new application-transmission, security-authority and umbrella-build steps completed successfully.
+- Memory accounting was then extended to include `ApplicationTransmissionTable<>` and its regression was updated; validation for those final accounting commits is pending at handoff-write time.
 
-Validated lower/platform: System canonical DeviceIdentifier; Primitive conceptual IDs/version/fingerprint/family boundaries; Radio bounded logical transfer/peer registry/peer-handle unicast/evidence/deferred correlation tracker, observer bridge and RadioTransport fragmentation integration; ESP32 shared PHY + Raw80211 + BLE alignment; NRF24 qualified direct-link evidence; State structural realignment; Command intrinsic RPC removed with naming cleanup remaining; Event provenance/EVTT v2 with distributed identity paused.
+## Unresolved public/wire decisions — do not cross silently
 
-Validated Mesh: membership tombstones/dedup/MessageId/inbound reservations; authenticated membership/retention/lifecycle/liveness/probes; bounded pre-auth/authentication; security/admission/promotion; PrimitiveReceiverRegistry<8>; MeshRadioRegistry<4>/discovery/peer cleanup; traffic governor/control lifetime; topology/freshness/publication; routes/cache/strategy/planner/retry; authenticated direct peers; forwarding submission/transition/attempt lifecycle including bounded Radio terminal correlation and pre-submission orchestration; delivery ACK/outbound lifecycle; outbound Radio-delivery correlation ownership; clock coordination/membership/reachability/direct-parent usability; host+ESP32 fixed/cardinality memory accounting.
-
-## Memory accounting
-Representative topology type int16 SignalDbm + uint16 CostHint: x86-64 principal stores 37,448 B + DeliveryAcknowledgementTracker<8> 456 B; ESP32 Xtensa principal 37,096 B + ACK(8) 456 B. These are structure measurements, not whole-device runtime RAM. Whole-device budgeting additionally includes stacks, RadioTransport/provider storage, payload/reassembly/control buffers, security private state, application objects and explicitly selected `DeferredLogicalTransferTracker<N>` plus `ForwardingRadioTerminalCorrelation<N>`. `OutboundRadioDeliveryCoordinator` retains only one correlation handle plus references and introduces no new capacity-bearing store. Reference-only formula: `DRAM ≈ 70,160 + 20*Papp + 8*Pinfra + 4*Pclock + 8*Pgeneral + R + C + A + X`.
-
-## Recent validation
-- Radio `33925240787` green: deferred provider terminal contract plus native/ESP32 smoke.
-- Mesh `33925482314` green; Clock Coordination `33925498775` green.
-- Mesh Topology Evolution `33953468039` green: forwarding-attempt lifecycle proves deferred Radio completion/ACK remains pending Mesh acceptance and terminal Radio failure may enter retry policy.
-- Radio `33953561820`: native job green including deferred logical-transfer observer bridge.
-- Radio `33956140263`: first RadioTransport integration validation exposed only a `-Werror=misleading-indentation` formatting defect in the rewritten Stop path; corrected immediately, not treated as behavioral evidence.
-- Radio `33956249777` **green native + ESP32 worker**: RadioTransport deferred logical-transfer integration validated.
-- Mesh Topology Evolution `33959946510` **green**: complete routing/forwarding suite including `forwarding_radio_terminal_correlation_test` and `forwarding_radio_attempt_coordinator_test`; current Mesh umbrella warning-clean under C++17.
-- Mesh CI `33960942439` green after exposing the new outbound Radio delivery composition through the umbrella.
-- Mesh Topology Evolution `33960956661` **green**: complete routing/forwarding suite including new `outbound_radio_delivery_coordinator_test`; validates deterministic correlation release on Radio terminal consumption, authenticated acceptance, terminal failure/retry and cancellation/reset.
-
-## Critical boundaries
-Pre-auth cannot mutate authenticated state. Claimed identity is not authenticated identity. Security Pending grants no authority. Radio peer loss is not membership departure. Radio attempt is not completion; Radio completion/peer ACK is not authenticated Mesh next-hop acceptance. Only exact authenticated next-hop acceptance consumes one HopLimit. Next-hop acceptance is not destination ACK; destination ACK is not requested-operation completion. Route/cache is disposable local state. Clock root need not be direct; immediate parent must be current executable exact-incarnation direct authenticated peer. No concrete PrimitiveFamilyId/EventTypeId/Group ID may be invented. Host/ESP32 memory measurements must not be misrepresented as each other or whole-device runtime RAM.
+1. Concrete ESPressio-defined `PrimitiveFamilyId` allocations.
+2. Canonical distributed EventTypeId derivation/allocation.
+3. Event ConceptualMessageId generation scope/strategy.
+4. Group identity/wire representation when Group implementation becomes unavoidable.
+5. Concrete Mesh security handshake/profile/wire schema.
+6. Final concrete ordinary/control/reassembly byte capacities required for a whole-device DRAM budget.
 
 ## Immediate next work
-1. Finish Command local-disposition terminology cleanup without compatibility aliases: replace misleading `CommandResult` / completion/result vocabulary with names that describe local parser/validation/middleware/dispatch/callback disposition only. Preserve the architectural rule that successful local dispatch says nothing about requested-operation completion.
-2. Continue frozen Mesh outbound composition toward bounded multi-delivery/application traffic ownership only where existing locked capacities/policies are sufficient; do not invent Group identity or wire contracts.
-3. Continue only frozen Mesh control-plane semantics; stop before concrete Mesh PrimitiveFamilyId or unresolved Event/wire identity. Start MeshAdapters propagation only when adapter implementation requires it. Keep memory accounting current for new bounded retained stores.
+
+1. Confirm latest Memory Accounting and full Mesh CI after adding application-transmission metadata accounting.
+2. Compose application aggregate ownership with `IMeshTrafficGovernor` Application reservations and per-recipient outbound delivery lifecycles without duplicating payload ownership or acknowledgement state.
+3. Perform Command local-dispatch terminology cleanup when practical; do not preserve misleading `CommandResult` semantics for compatibility.
+4. Continue memory accounting as new fixed stores are introduced; keep variable payload/reassembly/security-provider storage separate.
+5. Do not begin Event/MeshAdapters wire integration until the unresolved ID decisions are explicitly approved.
 
 ## Chronological continuation log
-- 2026-09-03: Decisions 1–50D frozen; implementation-readiness audit PASS.
-- 2026-09-03–04: System/Primitive/Radio/ESP32/NRF24/State/Command/Event propagation foundations and Mesh membership/admission/liveness/peer/topology/routing/forwarding/delivery implemented incrementally with bounded regressions.
-- 2026-09-04: Radio send-attempt/direct-link evidence separated from Mesh next-hop acceptance; outbound delivery/admission lifecycle validated; fixed memory accounting added and ESP32-native measurement validated; clock coordination/membership/reachability/direct-parent usability added.
-- 2026-09-04T22:20Z–22:23Z: Radio IRadioSendAttemptObserver, provider-local RadioTransmissionHandle, terminal Failed evidence and IRadioTransmissionObserver implemented; Radio `33925240787` green.
-- 2026-09-05T07:44Z–07:46Z: Added Mesh forwarding Radio-terminal evidence classification and lifecycle integration. Completed/peer-ACKed Radio terminal evidence remains pending authenticated next-hop acceptance; failed terminal evidence enters bounded route retry. Topology Evolution `33953468039` green.
-- 2026-09-05T07:47Z–07:49Z: Added Radio `DeferredLogicalTransferObserverBridge` + `ILogicalTransferTerminalObserver`, regression for multi-fragment completion, terminal failure and stale handles, umbrella/ESP32 smoke exposure.
-- 2026-09-05T08:42Z–08:50Z: Integrated explicit-capacity deferred logical-transfer correlation into RadioTransport. Added pre-fragment reservation, per-fragment registration, interface observer subscriptions, explicit ResourceUnavailable before partial submission, peer-handle retention in terminal descriptor, synchronous/deferred terminal emission, and saturation/completion/failure/stale-handle regression. Radio run `33956249777` completed green native + ESP32 worker.
-- 2026-09-05T09:17Z–09:20Z: Added Mesh `ForwardingRadioTerminalCorrelation` and responsibility-focused regression; generation-safe bounded correlation is reserved independently of payload/route/HopLimit/acceptance state.
-- 2026-09-05T10:07Z–10:11Z: Added `ForwardingRadioAttemptCoordinator`, which reserves Mesh-side correlation before submission, binds deferred RadioTransport handles only after accepted Send return, maps saturation to pre-submission ResourceUnavailable, releases rejected/synchronous attempts, and feeds later terminal evidence through `ForwardingAttemptLifecycle`. Regression covers saturation-before-send, terminal failure→same-route retry, completed+peer-ACKed Radio evidence remaining pending Mesh acceptance, and deadline dominance. Topology Evolution `33959946510` green. A workflow include-path typo introduced while adding the regression was corrected immediately in `fd50b1be50718826707076c4b187fee0022d9dfc` before the successful validation run.
-- 2026-09-05T10:29Z–10:33Z: Added exact authenticated NextHop/NextHopIncarnation to accepted `ForwardingSubmissionResult`; added `OutboundDeliveryLifecycle::ArmAcceptedSubmission`/pending-acceptance cancellation so higher composition never double-mutates route-attempt state; added `OutboundRadioDeliveryCoordinator` to own one delivery's retained Radio-terminal correlation and deterministically relinquish it on terminal consumption, stronger authenticated acceptance, retry/replan/stop or reset. Added regression covering Radio-completion-vs-Mesh-acceptance separation, acceptance-before-Radio-terminal, terminal failure retry and cancellation cleanup. Topology Evolution `33960956661` green.
+
+- 2026-09-05T08:42Z-08:50Z: Integrated explicit-capacity deferred logical-transfer correlation into RadioTransport. Added pre-fragment reservation, per-fragment registration, interface observer subscriptions, explicit ResourceUnavailable before partial submission, peer-handle retention in terminal descriptor, synchronous/deferred terminal emission, and saturation/completion/failure/stale-handle regression. Radio run `33956249777` green native + ESP32 worker.
+- 2026-09-05T09:17Z-09:20Z: Added Mesh `ForwardingRadioTerminalCorrelation` and responsibility-focused regression.
+- 2026-09-05T10:07Z-10:11Z: Added `ForwardingRadioAttemptCoordinator`; saturation is pre-submission, accepted Send binds deferred handles, later terminal evidence feeds forwarding lifecycle. Topology Evolution `33959946510` green.
+- 2026-09-05T10:29Z-10:33Z: Added authenticated NextHop/Incarnation to accepted forwarding result and `OutboundRadioDeliveryCoordinator`; acceptance-before-Radio-terminal, terminal failure retry and cancellation cleanup covered. Topology Evolution `33960956661` green.
+- 2026-09-05T11:16Z-11:20Z: Added bounded `ApplicationTransmissionTable<8,32>`, regression, umbrella export and Topology Evolution coverage. Initial run `33963070378` exposed only a test namespace typo after all prior steps passed.
+- 2026-09-05T11:21Z: Corrected the test namespace in `94398a0a19ee5d2ea4619b26befae09dcb832236`; follow-up Topology Evolution `33963104967` completed every regression and umbrella build successfully.
+- 2026-09-05T11:23Z: Added application-transmission metadata to `MeshFixedMemoryAccounting` and updated its regression. Immutable shared payload backing remains intentionally outside fixed/cardinality accounting.
