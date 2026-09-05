@@ -143,8 +143,9 @@ Mesh:
 - Delivery acknowledgement tracking/coordinator and outbound delivery lifecycle are implemented without conflating ACK with application completion.
 - Clock coordination, membership/reachability integration and parent usability foundations are implemented.
 - Target-native fixed/cardinality memory accounting exists and intentionally uses `sizeof` rather than presenting host ABI numbers as ESP32 measurements.
-- **New:** `ApplicationTransmissionTable<8,32>` now owns bounded sender-local selective application transmission aggregates. Each accepted aggregate has one generation-safe handle and immutable absolute deadline, a frozen set of at most 32 unique recipient Devices/incarnations, one independent nonzero MeshMessageId per recipient, and independent terminal outcome. It owns no payload bytes, routes, Radio state, ACK tracker, selector identity or Broadcast semantics. Capacity exhaustion is explicit. Expiry marks only still-pending recipients. Slot reuse advances generation so stale handles cannot mutate replacements.
-- Application transmission metadata is now included in target-native fixed/cardinality memory accounting; immutable shared payload backing remains a separate variable-capacity term.
+- `ApplicationTransmissionTable<8,32>` owns bounded sender-local selective application transmission aggregates. Each accepted aggregate has one generation-safe handle and immutable absolute deadline, a frozen set of at most 32 unique recipient Devices/incarnations, one independent nonzero MeshMessageId per recipient, and independent terminal outcome. It owns no payload bytes, routes, Radio state, ACK tracker, selector identity or Broadcast semantics. Capacity exhaustion is explicit. Expiry marks only still-pending recipients. Slot reuse advances generation so stale handles cannot mutate replacements.
+- `ApplicationTransmissionCoordinator<8,32>` now composes exactly one `IMeshTrafficGovernor` Application reservation with each accepted aggregate and can begin independently supplied per-recipient `OutboundDeliveryLifecycle`s using the aggregate's frozen identity, MessageId and deadline. It deliberately does not allocate a hidden 8*32 active-delivery pool. Invalid/table-capacity failures roll back traffic admission; the Application reservation remains held while any recipient is pending and is released when the aggregate becomes terminal or is explicitly released. Aggregate results may remain queryable after governance capacity is released.
+- Application transmission metadata is included in target-native fixed/cardinality memory accounting; immutable shared payload backing remains a separate variable-capacity term.
 
 ## Validation status
 
@@ -152,14 +153,16 @@ Representative green tranche runs before the latest change:
 - Radio native + ESP32 worker after deferred logical-transfer correlation: `33956249777` green.
 - Mesh forwarding Radio-attempt composition: Topology Evolution `33959946510` green.
 - Mesh outbound Radio delivery correlation: Topology Evolution `33960956661` green.
-- General CI before this continuation: `33961248712` green.
-- Memory Accounting before this continuation: `33961248739` green.
-- Clock Coordination before this continuation: `33961248717` green.
+- General CI before application-transmission work: `33961248712` green.
+- Memory Accounting before application-transmission work: `33961248739` green.
+- Clock Coordination before application-transmission work: `33961248717` green.
 
 Application-transmission continuation:
-- Initial Topology Evolution `33963070378` reached the new test and exposed only a test namespace typo (`System` vs `ESPressio::System`); all preceding routing/delivery regressions were green. The typo was corrected in commit `94398a0a19ee5d2ea4619b26befae09dcb832236`.
-- Follow-up Topology Evolution `33963104967`: all topology, routing, forwarding, acknowledgement, outbound-delivery, new application-transmission, security-authority and umbrella-build steps completed successfully.
-- Memory accounting was then extended to include `ApplicationTransmissionTable<>` and its regression was updated; validation for those final accounting commits is pending at handoff-write time.
+- Initial Topology Evolution `33963070378` reached the new table test and exposed only a test namespace typo (`System` vs `ESPressio::System`); all preceding routing/delivery regressions were green. The typo was corrected in commit `94398a0a19ee5d2ea4619b26befae09dcb832236`.
+- Follow-up Topology Evolution `33963104967`: all topology, routing, forwarding, acknowledgement, application-transmission, security-authority and umbrella-build steps completed successfully.
+- Application-transmission metadata accounting was added and validated by the subsequent memory-accounting commit sequence.
+- Application lifecycle composition Topology Evolution `33963873242`: all topology/routing/forwarding/ACK/application aggregate tests, the new application coordinator regression, security-authority regression and current Mesh umbrella build completed successfully.
+- At this handoff write, other workflows triggered by the final workflow commit (Memory Accounting `33963873147`, Topology Freshness `33963873196`, Control Work Lifetime `33963873213`, Clock Coordination `33963873194`, CI `33963873269`) were queued/running; do not claim them green until checked.
 
 ## Unresolved public/wire decisions — do not cross silently
 
@@ -172,8 +175,8 @@ Application-transmission continuation:
 
 ## Immediate next work
 
-1. Confirm latest Memory Accounting and full Mesh CI after adding application-transmission metadata accounting.
-2. Compose application aggregate ownership with `IMeshTrafficGovernor` Application reservations and per-recipient outbound delivery lifecycles without duplicating payload ownership or acknowledgement state.
+1. Confirm the remaining workflows triggered by application lifecycle composition.
+2. Continue sender-side application composition toward immutable shared payload ownership/source semantics without duplicating payload bytes per recipient; do not choose final payload byte capacities without explicit approval.
 3. Perform Command local-dispatch terminology cleanup when practical; do not preserve misleading `CommandResult` semantics for compatibility.
 4. Continue memory accounting as new fixed stores are introduced; keep variable payload/reassembly/security-provider storage separate.
 5. Do not begin Event/MeshAdapters wire integration until the unresolved ID decisions are explicitly approved.
@@ -187,3 +190,4 @@ Application-transmission continuation:
 - 2026-09-05T11:16Z-11:20Z: Added bounded `ApplicationTransmissionTable<8,32>`, regression, umbrella export and Topology Evolution coverage. Initial run `33963070378` exposed only a test namespace typo after all prior steps passed.
 - 2026-09-05T11:21Z: Corrected the test namespace in `94398a0a19ee5d2ea4619b26befae09dcb832236`; follow-up Topology Evolution `33963104967` completed every regression and umbrella build successfully.
 - 2026-09-05T11:23Z: Added application-transmission metadata to `MeshFixedMemoryAccounting` and updated its regression. Immutable shared payload backing remains intentionally outside fixed/cardinality accounting.
+- 2026-09-05T11:35Z-11:39Z: Added `ApplicationTransmissionCoordinator<8,32>` to bind one Application traffic-governor reservation to one accepted aggregate while beginning externally owned per-recipient `OutboundDeliveryLifecycle`s from frozen recipient identity/MessageId/deadline. No hidden 256-delivery allocation was introduced. Added rollback/terminal/expiry/saturation regression, umbrella export and Topology Evolution coverage. Run `33963873242` completed successfully.
