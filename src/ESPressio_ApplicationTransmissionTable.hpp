@@ -74,15 +74,33 @@ class ApplicationTransmissionTable final {
         const auto& record = _records[handle.Slot]; return record.Used && record.Generation == handle.Generation ? &record : nullptr;
     }
 
-    static bool ExpireRecord(Record& record, std::uint64_t nowMilliseconds) noexcept {
+    template<typename TExpiredRecipientCallback>
+    static bool ExpireRecord(
+        Record& record,
+        std::uint64_t nowMilliseconds,
+        TExpiredRecipientCallback&& onExpiredRecipient
+    ) noexcept {
         if (!record.Used || nowMilliseconds < record.AbsoluteDeadlineMilliseconds || record.TerminalCount == record.RecipientCount) return false;
+
+        std::array<MeshMessageId, RecipientCapacity> newlyExpired{};
+        std::size_t newlyExpiredCount = 0U;
         for (std::size_t index = 0; index < record.RecipientCount; ++index) {
             auto& recipient = record.Recipients[index];
             if (recipient.Outcome != ApplicationRecipientOutcome::Pending) continue;
             recipient.Outcome = ApplicationRecipientOutcome::DeadlineExpired;
             ++record.TerminalCount;
+            newlyExpired[newlyExpiredCount++] = recipient.Recipient.MessageId;
         }
-        return true;
+
+        // All aggregate recipient outcomes are authoritative before any external owner is invited to retire local state.
+        for (std::size_t index = 0; index < newlyExpiredCount; ++index) {
+            onExpiredRecipient(newlyExpired[index]);
+        }
+        return newlyExpiredCount != 0U;
+    }
+
+    static bool ExpireRecord(Record& record, std::uint64_t nowMilliseconds) noexcept {
+        return ExpireRecord(record, nowMilliseconds, [](MeshMessageId) noexcept {});
     }
 
 public:
@@ -140,6 +158,34 @@ public:
             if (!ExpireRecord(record, nowMilliseconds)) continue;
             ++expired;
             onExpired(ApplicationTransmissionHandle{static_cast<std::uint16_t>(slot), record.Generation});
+        }
+        return expired;
+    }
+
+    /// <summary>
+    /// Expires due aggregate recipients and reports every newly expired MessageId after its aggregate outcomes are committed.
+    /// </summary>
+    /// <remarks>
+    /// This avoids hidden ownership of per-recipient delivery objects. A composition root can use the recipient callback to
+    /// retire its exact ACK/Radio/forwarding lifecycle synchronously after aggregate DeadlineExpired authority exists. The
+    /// aggregate callback is invoked once after all newly expired recipient callbacks for that aggregate. Both callbacks
+    /// execute synchronously and should be non-throwing.
+    /// </remarks>
+    template<typename TExpiredRecipientCallback, typename TExpiredAggregateCallback>
+    std::size_t ExpireDueWithRecipients(
+        std::uint64_t nowMilliseconds,
+        TExpiredRecipientCallback&& onExpiredRecipient,
+        TExpiredAggregateCallback&& onExpiredAggregate
+    ) noexcept {
+        std::size_t expired = 0U;
+        for (std::size_t slot = 0; slot < TransmissionCapacity; ++slot) {
+            auto& record = _records[slot];
+            const ApplicationTransmissionHandle handle{static_cast<std::uint16_t>(slot), record.Generation};
+            if (!ExpireRecord(record, nowMilliseconds, [&](MeshMessageId messageId) noexcept {
+                    onExpiredRecipient(handle, messageId);
+                })) continue;
+            ++expired;
+            onExpiredAggregate(handle);
         }
         return expired;
     }
