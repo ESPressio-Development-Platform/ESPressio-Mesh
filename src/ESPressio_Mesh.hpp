@@ -22,6 +22,8 @@
 #include "ESPressio_MeshV1ResponderAdmissionCoordinator.hpp"
 #include "ESPressio_MeshV1InitiatorAdmissionCoordinator.hpp"
 #include "ESPressio_MeshV1ProtectedFrame.hpp"
+#include "ESPressio_MeshV1Control.hpp"
+#include "ESPressio_MeshV1ControlProtectionCoordinator.hpp"
 #include "ESPressio_MeshV1FrameWorkspace.hpp"
 #include "ESPressio_MeshV1ApplicationProtectionCoordinator.hpp"
 #include "ESPressio_MeshV1RelayCoordinator.hpp"

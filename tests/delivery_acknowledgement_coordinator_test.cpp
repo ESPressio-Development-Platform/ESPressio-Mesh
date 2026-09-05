@@ -24,15 +24,18 @@ int main() {
 
     const Mesh::InboundDeliveryIdentity accepted{Device(4), Incarnation(5), 77};
     Mesh::DeliveryAcknowledgementIntent intent{};
-    assert(coordinator.CreateIntent(accepted, intent) == Mesh::DeliveryAcknowledgementIntentResult::Created);
+    assert(coordinator.CreateIntent(accepted, 200U, intent) == Mesh::DeliveryAcknowledgementIntentResult::Created);
     assert(intent);
     assert(intent.Recipient == accepted.Source);
     assert(intent.RecipientIncarnation == accepted.Incarnation);
     assert(intent.AcknowledgedMessageId == accepted.MessageId);
+    assert(intent.AbsoluteDeadlineMilliseconds == 200U);
 
     // Invalid inbound identity cannot create a control-plane intent.
     Mesh::DeliveryAcknowledgementIntent invalidIntent{};
-    assert(coordinator.CreateIntent({}, invalidIntent) == Mesh::DeliveryAcknowledgementIntentResult::Invalid);
+    assert(coordinator.CreateIntent({}, 200U, invalidIntent) == Mesh::DeliveryAcknowledgementIntentResult::Invalid);
+    assert(!invalidIntent);
+    assert(coordinator.CreateIntent(accepted, 0U, invalidIntent) == Mesh::DeliveryAcknowledgementIntentResult::Invalid);
     assert(!invalidIntent);
 
     // Sender-local tracking remains separate from destination-side intent creation.

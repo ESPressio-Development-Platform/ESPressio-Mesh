@@ -4,7 +4,10 @@
 #include <cstdint>
 #include <cstring>
 
+#include <ESPressio_ApplicationDeliveryAcknowledgementCoordinator.hpp>
+#include <ESPressio_ApplicationNextHopAcceptanceCoordinator.hpp>
 #include <ESPressio_MeshV1ApplicationProtectionCoordinator.hpp>
+#include <ESPressio_MeshV1ControlProtectionCoordinator.hpp>
 #include <ESPressio_MeshV1RelayCoordinator.hpp>
 
 using namespace ESPressio;
@@ -251,16 +254,39 @@ int main() {
 
     const std::array<std::uint8_t, 4> payload{{1U, 2U, 3U, 4U}};
     Mesh::ApplicationTransmissionTable<2, 1> transmissions;
+    Mesh::DefaultMeshTrafficGovernor traffic;
+    Mesh::ApplicationTransmissionCoordinator<2, 1> aggregate(transmissions, traffic);
+    Mesh::ApplicationRecipientLifecycleCoordinator<2, 2, 1> recipientLifecycle(aggregate);
+    Mesh::ApplicationRadioSubmissionCoordinator<2, 2, 2, 1, 2, 2, 2> applicationSubmission(
+        recipientLifecycle);
+    Mesh::DefaultRouteAttemptPolicy routeAttemptPolicy;
+    Mesh::DefaultRetryPolicy retryPolicy;
+    Mesh::RouteAttemptCoordinator routeAttempts(routeAttemptPolicy, retryPolicy);
+    Mesh::DeliveryAcknowledgementTracker<2> sourceAcknowledgementTracker;
+    Mesh::DeliveryAcknowledgementCoordinator<2> sourceAcknowledgements(sourceAcknowledgementTracker);
+    Mesh::OutboundDeliveryLifecycle<2> delivery(routeAttempts, sourceAcknowledgements);
+    Mesh::ForwardingRadioTerminalCorrelation<2> radioCorrelation;
+    Mesh::ForwardingRadioAttemptCoordinator<2, 2, 2, 2> radioAttempts(
+        forwarding, radioCorrelation, routeAttempts);
+    Mesh::OutboundRadioDeliveryCoordinator<2, 2, 2, 2, 2> radioDelivery(delivery, radioAttempts);
     Mesh::ApplicationTransmissionHandle transmission{};
     const Mesh::ApplicationTransmissionRecipient recipient{destination, destinationIncarnation, 101U};
-    assert(transmissions.Begin(
+    assert(aggregate.Begin(
         &recipient, 1U, {Primitive::FamilyIds::Event, 1U},
         Mesh::ApplicationPayload::Borrowed(payload.data(), payload.size()), 100U, 200U, transmission) ==
-        Mesh::ApplicationTransmissionBeginResult::Begun);
+        Mesh::ApplicationTransmissionAdmissionResult::Begun);
+
+    const auto prepareDelivery = [&](Mesh::ApplicationTransmissionHandle handle, std::uint64_t now) {
+        if (radioDelivery.IsActive()) radioDelivery.Reset();
+        assert(aggregate.BeginRecipient(handle, 0U, now, true, delivery) ==
+            Mesh::ApplicationRecipientBeginResult::Begun);
+        assert(delivery.BeginDistinctRouteAttempt(now));
+    };
+    prepareDelivery(transmission, 109U);
 
     Mesh::MeshV1FrameWorkspace<256, 512> sourceWorkspace;
-    Mesh::MeshV1ProtectedApplicationSubmissionCoordinator<256, 512, 2, 1, 2, 2, 2, 2> protector(
-        transmissions, sourceMemberships, sourceSessions, sourceProvider, forwarding, sourceWorkspace,
+    Mesh::MeshV1ProtectedApplicationSubmissionCoordinator<256, 512, 2, 2, 2, 1, 2, 2, 2, 2> protector(
+        transmissions, sourceMemberships, sourceSessions, sourceProvider, applicationSubmission, sourceWorkspace,
         mesh, source, sourceIncarnation);
     Mesh::InboundDeliveryReservationTable<2> reservations;
     Mesh::InboundDeliveryCoordinator<2, 2> inbound(destinationMemberships, reservations);
@@ -275,7 +301,7 @@ int main() {
         destinationMemberships, destinationSessions, destinationProvider, inbound, receivers,
         destinationWorkspace, mesh, destination, destinationIncarnation);
 
-    auto submission = protector.SubmitRecipient(transmission, 0U, route, 3U, 110U);
+    auto submission = protector.SubmitRecipient(transmission, 0U, radioDelivery, route, 3U, 110U);
     assert(submission && radio.Sends == 1U && radio.LastPhysicalPacketBytes > RadioHeaderBytes);
     auto received = opener.Receive(
         radio.LastPhysicalPacket.data() + RadioHeaderBytes,
@@ -287,16 +313,20 @@ int main() {
     assert(receiver.LastContext.DeliveryMessageId == 101U && receiver.LastContext.RemainingHops == 2U);
 
     // A freshly protected retry consumes new security sequences but is deduplicated by authenticated MessageId.
-    submission = protector.SubmitRecipient(transmission, 0U, route, 3U, 111U);
+    prepareDelivery(transmission, 111U);
+    submission = protector.SubmitRecipient(transmission, 0U, radioDelivery, route, 3U, 111U);
     assert(submission && radio.Sends == 2U);
     received = opener.Receive(
         radio.LastPhysicalPacket.data() + RadioHeaderBytes,
         radio.LastPhysicalPacketBytes - RadioHeaderBytes, 111U);
     assert(received.Disposition == Mesh::MeshV1ProtectedDestinationDisposition::Duplicate);
+    assert(received.Acknowledgement && received.Acknowledgement.AcknowledgedMessageId == 101U);
+    assert(received.NextHopAcceptance && received.NextHopAcceptance.Recipient == source);
     assert(receiver.Calls == 1U);
 
     // Hop authentication failure cannot reach end-to-end replay state, deduplication or family dispatch.
-    submission = protector.SubmitRecipient(transmission, 0U, route, 3U, 112U);
+    prepareDelivery(transmission, 112U);
+    submission = protector.SubmitRecipient(transmission, 0U, radioDelivery, route, 3U, 112U);
     assert(submission && radio.Sends == 3U);
     radio.LastPhysicalPacket[radio.LastPhysicalPacketBytes - 1U] ^= 1U;
     received = opener.Receive(
@@ -308,12 +338,17 @@ int main() {
     // Receiver backpressure releases only semantic reservation; a new protected retry may dispatch the same MessageId.
     const Mesh::ApplicationTransmissionRecipient retryRecipient{destination, destinationIncarnation, 102U};
     Mesh::ApplicationTransmissionHandle retryTransmission{};
-    assert(transmissions.Begin(
+    assert(recipientLifecycle.TerminalizeComposed(
+        transmission, 101U, Mesh::ApplicationRecipientOutcome::PermanentFailure, radioDelivery) ==
+        Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+    assert(aggregate.Release(transmission));
+    assert(aggregate.Begin(
         &retryRecipient, 1U, {Primitive::FamilyIds::Event, 1U},
         Mesh::ApplicationPayload::Borrowed(payload.data(), payload.size()), 100U, 200U, retryTransmission) ==
-        Mesh::ApplicationTransmissionBeginResult::Begun);
+        Mesh::ApplicationTransmissionAdmissionResult::Begun);
     receiver.Next = Mesh::PrimitiveReceiveDisposition::ResourceUnavailable;
-    submission = protector.SubmitRecipient(retryTransmission, 0U, route, 3U, 113U);
+    prepareDelivery(retryTransmission, 113U);
+    submission = protector.SubmitRecipient(retryTransmission, 0U, radioDelivery, route, 3U, 113U);
     assert(submission);
     received = opener.Receive(
         radio.LastPhysicalPacket.data() + RadioHeaderBytes,
@@ -321,7 +356,8 @@ int main() {
     assert(received.Disposition == Mesh::MeshV1ProtectedDestinationDisposition::RetryableReceiver);
     assert(reservations.Empty() && receiver.Calls == 2U);
     receiver.Next = Mesh::PrimitiveReceiveDisposition::Accepted;
-    submission = protector.SubmitRecipient(retryTransmission, 0U, route, 3U, 114U);
+    prepareDelivery(retryTransmission, 114U);
+    submission = protector.SubmitRecipient(retryTransmission, 0U, radioDelivery, route, 3U, 114U);
     assert(submission);
     received = opener.Receive(
         radio.LastPhysicalPacket.data() + RadioHeaderBytes,
@@ -332,30 +368,44 @@ int main() {
     // The authenticated immutable deadline remains authoritative at the destination.
     const Mesh::ApplicationTransmissionRecipient expiredRecipient{destination, destinationIncarnation, 103U};
     Mesh::ApplicationTransmissionHandle expiredTransmission{};
-    assert(transmissions.Release(transmission));
-    assert(transmissions.Begin(
+    assert(recipientLifecycle.TerminalizeComposed(
+        retryTransmission, 102U, Mesh::ApplicationRecipientOutcome::PermanentFailure, radioDelivery) ==
+        Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+    assert(aggregate.Release(retryTransmission));
+    assert(aggregate.Begin(
         &expiredRecipient, 1U, {Primitive::FamilyIds::Event, 1U},
         Mesh::ApplicationPayload::Borrowed(payload.data(), payload.size()), 100U, 150U, expiredTransmission) ==
-        Mesh::ApplicationTransmissionBeginResult::Begun);
-    submission = protector.SubmitRecipient(expiredTransmission, 0U, route, 3U, 149U);
+        Mesh::ApplicationTransmissionAdmissionResult::Begun);
+    prepareDelivery(expiredTransmission, 149U);
+    submission = protector.SubmitRecipient(expiredTransmission, 0U, radioDelivery, route, 3U, 149U);
     assert(submission);
     received = opener.Receive(
         radio.LastPhysicalPacket.data() + RadioHeaderBytes,
         radio.LastPhysicalPacketBytes - RadioHeaderBytes, 150U);
     assert(received.Disposition == Mesh::MeshV1ProtectedDestinationDisposition::DeadlineExpired);
     assert(receiver.Calls == 3U && reservations.Empty());
+    prepareDelivery(expiredTransmission, 149U);
+    const auto expiredAtSource = protector.SubmitRecipient(
+        expiredTransmission, 0U, radioDelivery, route, 3U, 150U);
+    assert(expiredAtSource.Disposition ==
+        Mesh::MeshV1ProtectedApplicationSubmissionDisposition::DeadlineExpired);
+    assert(!radioDelivery.IsActive());
+    Mesh::ApplicationRecipientOutcome expiredOutcome{};
+    assert(aggregate.TryGetRecipientOutcome(expiredTransmission, 103U, expiredOutcome));
+    assert(expiredOutcome == Mesh::ApplicationRecipientOutcome::DeadlineExpired);
 
     // Repeatable immutable sources materialize inside the already-accounted packet workspace, not a plaintext path.
-    assert(transmissions.Release(retryTransmission));
+    assert(aggregate.Release(expiredTransmission));
     Repeatable repeatable(payload.data(), payload.size());
     const Mesh::ApplicationTransmissionRecipient repeatableRecipient{
         destination, destinationIncarnation, 104U};
     Mesh::ApplicationTransmissionHandle repeatableTransmission{};
-    assert(transmissions.Begin(
+    assert(aggregate.Begin(
         &repeatableRecipient, 1U, {Primitive::FamilyIds::Event, 1U},
         Mesh::ApplicationPayload::Repeatable(repeatable), 100U, 250U, repeatableTransmission) ==
-        Mesh::ApplicationTransmissionBeginResult::Begun);
-    submission = protector.SubmitRecipient(repeatableTransmission, 0U, route, 3U, 160U);
+        Mesh::ApplicationTransmissionAdmissionResult::Begun);
+    prepareDelivery(repeatableTransmission, 160U);
+    submission = protector.SubmitRecipient(repeatableTransmission, 0U, radioDelivery, route, 3U, 160U);
     assert(submission);
     received = opener.Receive(
         radio.LastPhysicalPacket.data() + RadioHeaderBytes,
@@ -366,8 +416,10 @@ int main() {
 
     // A relay accepts bounded responsibility for the opaque EndToEnd frame, rewraps only Hop protection, and retains
     // the frame until exact authenticated downstream acceptance transfers responsibility.
-    assert(transmissions.Release(expiredTransmission));
-    assert(transmissions.Release(repeatableTransmission));
+    assert(recipientLifecycle.TerminalizeComposed(
+        repeatableTransmission, 104U, Mesh::ApplicationRecipientOutcome::PermanentFailure, radioDelivery) ==
+        Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+    assert(aggregate.Release(repeatableTransmission));
     const auto finalDestination = Device(3U);
     const auto finalIncarnation = Incarnation(3U);
     Mesh::MeshSecuritySessionIdentifier sourceToFinalIdentifier{};
@@ -408,15 +460,25 @@ int main() {
         finalProvider, finalFromRelay));
 
     FakeRadio relayRadio;
+    FakeRadio relayBackRadio;
     Radio::RadioTransport relayTransport;
-    assert(relayTransport.AddInterface(relayRadio) && relayTransport.Start());
+    assert(relayTransport.AddInterface(relayRadio));
+    assert(relayTransport.AddInterface(relayBackRadio));
+    assert(relayTransport.Start());
     const std::uint8_t finalAddress = 8U;
     Radio::RadioPeerHandle finalPeer{};
     assert(relayTransport.Peers().Observe(
         relayRadio, Radio::RadioAddress::FromBytes(&finalAddress, 1U), finalPeer) ==
         Radio::RadioPeerObserveResult::Observed);
+    const std::uint8_t sourceAddress = 9U;
+    Radio::RadioPeerHandle sourcePeer{};
+    assert(relayTransport.Peers().Observe(
+        relayBackRadio, Radio::RadioAddress::FromBytes(&sourceAddress, 1U), sourcePeer) ==
+        Radio::RadioPeerObserveResult::Observed);
     Mesh::AuthenticatedDirectPeerBindingTable<2> relayBindings;
     assert(relayBindings.Bind({finalDestination, finalIncarnation, 1U, finalPeer}) ==
+        Mesh::DirectPeerBindingResult::Bound);
+    assert(relayBindings.Bind({source, sourceIncarnation, 2U, sourcePeer}) ==
         Mesh::DirectPeerBindingResult::Bound);
     Mesh::ForwardingSubmissionCoordinator<2, 2, 2> relayForwarding(
         destinationMemberships, relayBindings, relayTransport);
@@ -428,10 +490,10 @@ int main() {
     const Mesh::ApplicationTransmissionRecipient relayRecipient{
         finalDestination, finalIncarnation, 105U};
     Mesh::ApplicationTransmissionHandle relayTransmission{};
-    assert(transmissions.Begin(
+    assert(aggregate.Begin(
         &relayRecipient, 1U, {Primitive::FamilyIds::Event, 1U},
         Mesh::ApplicationPayload::Borrowed(payload.data(), payload.size()), 100U, 300U, relayTransmission) ==
-        Mesh::ApplicationTransmissionBeginResult::Begun);
+        Mesh::ApplicationTransmissionAdmissionResult::Begun);
     const std::array<Mesh::TopologyLinkIdentity, 2> sourceToFinalLinks{{
         {source, 1U, destination, 1U},
         {destination, 1U, finalDestination, 1U}
@@ -439,7 +501,9 @@ int main() {
     Mesh::ResolvedRoute<2> sourceToFinalRoute;
     assert(sourceToFinalRoute.Assign(
         source, finalDestination, sourceToFinalLinks.data(), sourceToFinalLinks.size()));
-    submission = protector.SubmitRecipient(relayTransmission, 0U, sourceToFinalRoute, 3U, 170U);
+    prepareDelivery(relayTransmission, 170U);
+    submission = protector.SubmitRecipient(
+        relayTransmission, 0U, radioDelivery, sourceToFinalRoute, 3U, 170U);
     assert(submission);
     const auto relayReceive = relay.Receive(
         radio.LastPhysicalPacket.data() + RadioHeaderBytes,
@@ -447,6 +511,46 @@ int main() {
     assert(relayReceive.Disposition == Mesh::MeshV1RelayReceiveDisposition::AcceptedResponsibility);
     assert(relayReceive.Relay && relayReceive.PreviousHop == source && relayReceive.MessageId == 105U);
     assert(relay.Size() == 1U);
+
+    // B acknowledges retained responsibility to A over the concrete Hop-authenticated control wire. Only that
+    // authenticated evidence commits A's pending forwarding transition; the aggregate remains pending for final ACK.
+    Mesh::MeshV1FrameWorkspace<256, 512> relayAcceptanceWorkspace;
+    Mesh::MeshV1NextHopAcceptanceSubmissionCoordinator<256, 512, 2, 2, 2, 2> relayAcceptance(
+        destinationMemberships, destinationSessions, destinationProvider, relayForwarding,
+        relayAcceptanceWorkspace, mesh, destination, destinationIncarnation);
+    const Mesh::TopologyLinkIdentity relayToSourceAcceptanceLink{destination, 2U, source, 1U};
+    Mesh::ResolvedRoute<2> relayToSourceAcceptanceRoute;
+    assert(relayToSourceAcceptanceRoute.Assign(
+        destination, source, &relayToSourceAcceptanceLink, 1U));
+    const Mesh::MeshV1NextHopAcceptanceIntent sourceAcceptanceIntent{
+        source, sourceIncarnation,
+        {source, sourceIncarnation, relayReceive.MessageId, relayReceive.AbsoluteDeadlineMilliseconds}};
+    auto sourceAcceptanceSubmission = relayAcceptance.Submit(
+        sourceAcceptanceIntent, relayToSourceAcceptanceRoute, 171U);
+    assert(sourceAcceptanceSubmission.Disposition == Mesh::MeshV1ControlSubmissionDisposition::Submitted);
+    Mesh::MeshV1FrameWorkspace<256, 512> sourceControlWorkspace;
+    Mesh::MeshV1ControlReceiveCoordinator<256, 512, 2, 2> sourceControlReceiver(
+        sourceMemberships, sourceSessions, sourceProvider, sourceControlWorkspace,
+        mesh, source, sourceIncarnation);
+    const auto authenticatedSourceAcceptance = sourceControlReceiver.Receive(
+        relayBackRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        relayBackRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 171U);
+    assert(authenticatedSourceAcceptance.Disposition ==
+        Mesh::MeshV1AuthenticatedControlDisposition::NextHopAcceptance);
+    assert(sourceControlReceiver.Receive(
+        relayBackRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        relayBackRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 171U).Disposition ==
+        Mesh::MeshV1AuthenticatedControlDisposition::ReplayRejected);
+    Mesh::ApplicationNextHopAcceptanceCoordinator<2, 2, 2, 1, 2, 2, 2> sourceAcceptance(
+        recipientLifecycle);
+    Mesh::RemainingHopLimit sourceRemaining = 3U;
+    assert(sourceAcceptance.ApplyAuthenticated(
+        relayTransmission, radioDelivery,
+        authenticatedSourceAcceptance.AuthenticatedSource,
+        authenticatedSourceAcceptance.AuthenticatedSourceIncarnation,
+        authenticatedSourceAcceptance.Acknowledged.MessageId, 171U, sourceRemaining) ==
+        Mesh::ApplicationNextHopAcceptanceDisposition::ForwardingTransitionCommitted);
+    assert(sourceRemaining == 2U && delivery.AwaitingDestinationAcknowledgement());
 
     const Mesh::TopologyLinkIdentity relayToFinalLink{
         destination, 1U, finalDestination, 1U};
@@ -480,15 +584,113 @@ int main() {
     assert(finalReceiver.Calls == 1U && finalReceiver.LastContext.Source == source);
     assert(finalReceiver.LastContext.DeliveryMessageId == 105U &&
            finalReceiver.LastContext.RemainingHops == 1U);
+    assert(finalReceived.Acknowledgement &&
+           finalReceived.Acknowledgement.AcknowledgedMessageId == 105U &&
+           finalReceived.Acknowledgement.AbsoluteDeadlineMilliseconds == 300U);
+    assert(finalReceived.NextHopAcceptance &&
+           finalReceived.NextHopAcceptance.Recipient == destination);
+
+    // C emits concrete Hop-authenticated responsibility acceptance back to B.
+    FakeRadio controlRadio;
+    Radio::RadioTransport controlTransport;
+    assert(controlTransport.AddInterface(controlRadio) && controlTransport.Start());
+    const std::uint8_t relayAddress = 10U;
+    Radio::RadioPeerHandle relayPeer{};
+    assert(controlTransport.Peers().Observe(
+        controlRadio, Radio::RadioAddress::FromBytes(&relayAddress, 1U), relayPeer) ==
+        Radio::RadioPeerObserveResult::Observed);
+    Mesh::AuthenticatedDirectPeerBindingTable<2> finalBindings;
+    assert(finalBindings.Bind({destination, destinationIncarnation, 1U, relayPeer}) ==
+        Mesh::DirectPeerBindingResult::Bound);
+    Mesh::ForwardingSubmissionCoordinator<2, 2, 2> finalForwarding(
+        finalMemberships, finalBindings, controlTransport);
+    Mesh::MeshV1FrameWorkspace<256, 512> controlSendWorkspace;
+    Mesh::MeshV1NextHopAcceptanceSubmissionCoordinator<256, 512, 2, 2, 2, 2> nextHopAcceptance(
+        finalMemberships, finalSessions, finalProvider, finalForwarding,
+        controlSendWorkspace, mesh, finalDestination, finalIncarnation);
+    const Mesh::TopologyLinkIdentity finalToRelayLink{
+        finalDestination, 1U, destination, 1U};
+    Mesh::ResolvedRoute<2> finalToRelayRoute;
+    assert(finalToRelayRoute.Assign(finalDestination, destination, &finalToRelayLink, 1U));
+    auto controlSubmission = nextHopAcceptance.Submit(
+        finalReceived.NextHopAcceptance, finalToRelayRoute, 174U);
+    assert(controlSubmission.Disposition == Mesh::MeshV1ControlSubmissionDisposition::Submitted);
+    Mesh::MeshV1FrameWorkspace<256, 512> relayControlReceiveWorkspace;
+    Mesh::MeshV1ControlReceiveCoordinator<256, 512, 2, 2> relayControlReceiver(
+        destinationMemberships, destinationSessions, destinationProvider,
+        relayControlReceiveWorkspace, mesh, destination, destinationIncarnation);
+    const auto authenticatedAcceptance = relayControlReceiver.Receive(
+        controlRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        controlRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 175U);
+    assert(authenticatedAcceptance.Disposition ==
+        Mesh::MeshV1AuthenticatedControlDisposition::NextHopAcceptance);
     assert(relay.AcceptNextHop(
-        relayReceive.Relay, source, sourceIncarnation, 105U, 174U) ==
+        relayReceive.Relay, source, sourceIncarnation, source, sourceIncarnation, 105U, 174U) ==
         Mesh::MeshV1RelayAcceptanceDisposition::Unrelated);
     assert(relay.Size() == 1U);
     assert(relay.AcceptNextHop(
-        relayReceive.Relay, finalDestination, finalIncarnation, 105U, 174U) ==
+        relayReceive.Relay,
+        authenticatedAcceptance.AuthenticatedSource,
+        authenticatedAcceptance.AuthenticatedSourceIncarnation,
+        authenticatedAcceptance.Acknowledged.Source,
+        authenticatedAcceptance.Acknowledged.SourceIncarnation,
+        authenticatedAcceptance.Acknowledged.MessageId, 175U) ==
         Mesh::MeshV1RelayAcceptanceDisposition::ResponsibilityTransferred);
     assert(relay.Size() == 0U);
 
+    // C's distinct final-destination ACK is EndToEnd protected for A and can itself traverse B opaquely.
+    Mesh::MeshV1DestinationAcknowledgementSubmissionCoordinator<256, 512, 2, 2, 2, 2> destinationAck(
+        finalMemberships, finalSessions, finalProvider, finalForwarding,
+        controlSendWorkspace, mesh, finalDestination, finalIncarnation);
+    const std::array<Mesh::TopologyLinkIdentity, 2> finalToSourceLinks{{
+        {finalDestination, 1U, destination, 1U},
+        {destination, 2U, source, 1U}
+    }};
+    Mesh::ResolvedRoute<2> finalToSourceRoute;
+    assert(finalToSourceRoute.Assign(
+        finalDestination, source, finalToSourceLinks.data(), finalToSourceLinks.size()));
+    controlSubmission = destinationAck.Submit(
+        finalReceived.Acknowledgement, 500U, finalToSourceRoute, 176U);
+    assert(controlSubmission.Disposition == Mesh::MeshV1ControlSubmissionDisposition::Submitted);
+    const auto ackRelayReceive = relay.Receive(
+        controlRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        controlRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 177U);
+    assert(ackRelayReceive.Disposition == Mesh::MeshV1RelayReceiveDisposition::AcceptedResponsibility);
+    const Mesh::TopologyLinkIdentity relayToSourceLink{destination, 2U, source, 1U};
+    Mesh::ResolvedRoute<2> relayToSourceRoute;
+    assert(relayToSourceRoute.Assign(destination, source, &relayToSourceLink, 1U));
+    relaySubmission = relay.Submit(ackRelayReceive.Relay, relayToSourceRoute, 178U);
+    assert(relaySubmission.Disposition == Mesh::MeshV1RelaySubmissionDisposition::Submitted);
+    const auto authenticatedDestinationAck = sourceControlReceiver.Receive(
+        relayBackRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        relayBackRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 179U);
+    assert(authenticatedDestinationAck.Disposition ==
+        Mesh::MeshV1AuthenticatedControlDisposition::DestinationDeliveryAcknowledgement);
+    assert(authenticatedDestinationAck.AuthenticatedSource == finalDestination);
+    assert(authenticatedDestinationAck.Acknowledged.MessageId == 105U);
+    assert(sourceControlReceiver.Receive(
+        relayBackRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        relayBackRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 179U).Disposition ==
+        Mesh::MeshV1AuthenticatedControlDisposition::ReplayRejected);
+    Mesh::ApplicationDeliveryAcknowledgementCoordinator<2, 2, 1> sourceDeliveryAcknowledgement(
+        recipientLifecycle);
+    assert(sourceDeliveryAcknowledgement.ApplyAuthenticated(
+        relayTransmission, delivery,
+        authenticatedDestinationAck.AuthenticatedSource,
+        authenticatedDestinationAck.AuthenticatedSourceIncarnation,
+        authenticatedDestinationAck.Acknowledged.MessageId, 179U) ==
+        Mesh::ApplicationDeliveryAcknowledgementResult::Delivered);
+    Mesh::ApplicationRecipientOutcome relayOutcome{};
+    assert(aggregate.TryGetRecipientOutcome(relayTransmission, 105U, relayOutcome));
+    assert(relayOutcome == Mesh::ApplicationRecipientOutcome::Delivered);
+    assert(relay.AcceptNextHop(
+        ackRelayReceive.Relay, source, sourceIncarnation,
+        finalDestination, finalIncarnation, 500U, 179U) ==
+        Mesh::MeshV1RelayAcceptanceDisposition::ResponsibilityTransferred);
+    assert(relay.Size() == 0U);
+    assert(aggregate.Release(relayTransmission));
+
+    controlTransport.Stop();
     relayTransport.Stop();
     transport.Stop();
     return 0;

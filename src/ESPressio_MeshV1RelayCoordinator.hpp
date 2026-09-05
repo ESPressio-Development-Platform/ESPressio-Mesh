@@ -35,6 +35,7 @@ struct MeshV1RelayReceiveResult final {
     System::DeviceIdentifier PreviousHop{};
     MembershipIncarnation PreviousHopIncarnation{};
     MeshMessageId MessageId{0U};
+    std::uint64_t AbsoluteDeadlineMilliseconds{0U};
 
     constexpr explicit operator bool() const noexcept {
         return Disposition == MeshV1RelayReceiveDisposition::AcceptedResponsibility ||
@@ -193,7 +194,8 @@ public:
             _sessions.CommitAuthenticatedInbound(hopSession, MeshSecurityTrafficPurpose::Hop, hop.Sequence);
             return {MeshV1RelayReceiveDisposition::AlreadyAccepted,
                     {static_cast<std::uint16_t>(index), state.Generation},
-                    hop.Sender, hop.SenderIncarnation, hop.MessageId};
+                    hop.Sender, hop.SenderIncarnation, hop.MessageId,
+                    state.AbsoluteDeadlineMilliseconds};
         }
         if (nowMilliseconds >= endToEnd.AbsoluteDeadlineMilliseconds) {
             _sessions.CommitAuthenticatedInbound(hopSession, MeshSecurityTrafficPurpose::Hop, hop.Sequence);
@@ -224,7 +226,8 @@ public:
             return {MeshV1RelayReceiveDisposition::ReplayRejected};
         }
         return {MeshV1RelayReceiveDisposition::AcceptedResponsibility, handle,
-                hop.Sender, hop.SenderIncarnation, hop.MessageId};
+                hop.Sender, hop.SenderIncarnation, hop.MessageId,
+                endToEnd.AbsoluteDeadlineMilliseconds};
     }
 
     MeshV1RelaySubmissionResult Submit(
@@ -300,11 +303,17 @@ public:
         MeshV1RelayHandle handle,
         const System::DeviceIdentifier& authenticatedSource,
         const MembershipIncarnation& authenticatedSourceIncarnation,
+        const System::DeviceIdentifier& acknowledgedSource,
+        const MembershipIncarnation& acknowledgedSourceIncarnation,
         MeshMessageId messageId,
         std::uint64_t nowMilliseconds
     ) noexcept {
         auto* state = Resolve(handle);
         if (state == nullptr) return MeshV1RelayAcceptanceDisposition::UnknownRelay;
+        if (acknowledgedSource != state->Source ||
+            acknowledgedSourceIncarnation != state->SourceIncarnation) {
+            return MeshV1RelayAcceptanceDisposition::Unrelated;
+        }
         const auto accepted = state->Transition.AcceptAuthenticated(
             authenticatedSource, authenticatedSourceIncarnation, messageId,
             nowMilliseconds, state->Remaining);

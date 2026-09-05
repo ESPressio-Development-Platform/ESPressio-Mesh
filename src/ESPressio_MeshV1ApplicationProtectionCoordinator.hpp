@@ -5,10 +5,13 @@
 #include <cstring>
 #include <limits>
 
+#include "ESPressio_ApplicationRadioSubmissionCoordinator.hpp"
 #include "ESPressio_ApplicationTransmissionTable.hpp"
+#include "ESPressio_DeliveryAcknowledgementCoordinator.hpp"
 #include "ESPressio_ForwardingSubmissionCoordinator.hpp"
 #include "ESPressio_InboundDeliveryCoordinator.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
+#include "ESPressio_MeshV1Control.hpp"
 #include "ESPressio_MeshV1FrameWorkspace.hpp"
 #include "ESPressio_MeshV1ProtectedFrame.hpp"
 #include "ESPressio_PrimitiveReceiverRegistry.hpp"
@@ -16,19 +19,20 @@
 namespace ESPressio::Mesh {
 
 enum class MeshV1ProtectedApplicationSubmissionDisposition : std::uint8_t {
-    Submitted, UnknownTransmission, UnknownRecipient, RecipientTerminal, RouteMismatch,
-    DeadlineExpired, HopLimitExhausted, WorkspaceCapacityExceeded, SerializationFailed, DestinationSessionUnavailable,
-    NextHopSessionUnavailable, SequenceExhausted, ProtectionFailed, ForwardingFailed, Invalid
+    Submitted, RetryCurrentRoute, ReplanDistinctRoute, DeadlineExpired, PermanentFailure,
+    UnknownTransmission, UnknownRecipient, RecipientTerminal, RouteMismatch,
+    WorkspaceCapacityExceeded, SerializationFailed, DestinationSessionUnavailable,
+    NextHopSessionUnavailable, SequenceExhausted, ProtectionFailed, Invalid
 };
 
 struct MeshV1ProtectedApplicationSubmissionResult final {
     MeshV1ProtectedApplicationSubmissionDisposition Disposition{
         MeshV1ProtectedApplicationSubmissionDisposition::Invalid};
-    ForwardingSubmissionResult Submission{};
+    ApplicationRadioSubmissionResult Radio{};
 
     constexpr explicit operator bool() const noexcept {
         return Disposition == MeshV1ProtectedApplicationSubmissionDisposition::Submitted &&
-               static_cast<bool>(Submission);
+               static_cast<bool>(Radio.Radio.Submission);
     }
 };
 
@@ -43,11 +47,15 @@ struct MeshV1ProtectedDestinationResult final {
     MeshV1ProtectedDestinationDisposition Disposition{MeshV1ProtectedDestinationDisposition::Invalid};
     PrimitiveDispatchResult Dispatch{PrimitiveDispatchResult::Invalid};
     PrimitiveReceiveDisposition ReceiverDisposition{PrimitiveReceiveDisposition::Malformed};
+    DeliveryAcknowledgementIntent Acknowledgement{};
+    MeshV1NextHopAcceptanceIntent NextHopAcceptance{};
 };
 
 /// <summary>Protects one frozen application recipient and submits the complete Hop frame to existing routing.</summary>
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
+         std::size_t AcknowledgementCapacity,
+         std::size_t CorrelationCapacity,
          std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes,
@@ -55,15 +63,47 @@ template<std::size_t InnerWorkspaceBytes,
          std::size_t HopCapacity = Limits::MaxRouteHops,
          std::size_t SessionCapacity = Limits::MaxMeshNodes>
 class MeshV1ProtectedApplicationSubmissionCoordinator final {
+    using ApplicationSubmission = ApplicationRadioSubmissionCoordinator<
+        AcknowledgementCapacity, CorrelationCapacity, TransmissionCapacity, RecipientCapacity,
+        MembershipCapacity, BindingCapacity, HopCapacity>;
+    using RadioDelivery = OutboundRadioDeliveryCoordinator<
+        AcknowledgementCapacity, CorrelationCapacity, MembershipCapacity, BindingCapacity, HopCapacity>;
+
     const ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>& _transmissions;
     const AuthenticatedMembershipTable<MembershipCapacity>& _memberships;
     MeshSecuritySessionTable<SessionCapacity>& _sessions;
     IMeshV1CryptographicProvider& _provider;
-    ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& _forwarding;
+    ApplicationSubmission& _applicationSubmission;
     MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>& _workspace;
     MeshIdentifier _mesh;
     System::DeviceIdentifier _localDevice;
     MembershipIncarnation _localIncarnation;
+
+    static MeshV1ProtectedApplicationSubmissionResult Map(
+        const ApplicationRadioSubmissionResult& radio
+    ) noexcept {
+        switch (radio.Disposition) {
+            case ApplicationRadioSubmissionDisposition::AwaitingNextHopAcceptance:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::Submitted, radio};
+            case ApplicationRadioSubmissionDisposition::RetryCurrentRoute:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::RetryCurrentRoute, radio};
+            case ApplicationRadioSubmissionDisposition::ReplanDistinctRoute:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::ReplanDistinctRoute, radio};
+            case ApplicationRadioSubmissionDisposition::DeadlineExpired:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::DeadlineExpired, radio};
+            case ApplicationRadioSubmissionDisposition::PermanentFailure:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::PermanentFailure, radio};
+            case ApplicationRadioSubmissionDisposition::UnknownTransmission:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::UnknownTransmission, radio};
+            case ApplicationRadioSubmissionDisposition::UnknownRecipient:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::UnknownRecipient, radio};
+            case ApplicationRadioSubmissionDisposition::AlreadyTerminal:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::RecipientTerminal, radio};
+            case ApplicationRadioSubmissionDisposition::Invalid:
+                return {MeshV1ProtectedApplicationSubmissionDisposition::Invalid, radio};
+        }
+        return {MeshV1ProtectedApplicationSubmissionDisposition::Invalid, radio};
+    }
 
 public:
     MeshV1ProtectedApplicationSubmissionCoordinator(
@@ -71,19 +111,20 @@ public:
         const AuthenticatedMembershipTable<MembershipCapacity>& memberships,
         MeshSecuritySessionTable<SessionCapacity>& sessions,
         IMeshV1CryptographicProvider& provider,
-        ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& forwarding,
+        ApplicationSubmission& applicationSubmission,
         MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>& workspace,
         const MeshIdentifier& mesh,
         const System::DeviceIdentifier& localDevice,
         const MembershipIncarnation& localIncarnation
     ) noexcept :
         _transmissions(transmissions), _memberships(memberships), _sessions(sessions), _provider(provider),
-        _forwarding(forwarding), _workspace(workspace), _mesh(mesh), _localDevice(localDevice),
+        _applicationSubmission(applicationSubmission), _workspace(workspace), _mesh(mesh), _localDevice(localDevice),
         _localIncarnation(localIncarnation) {}
 
     MeshV1ProtectedApplicationSubmissionResult SubmitRecipient(
         ApplicationTransmissionHandle transmission,
         std::size_t recipientIndex,
+        RadioDelivery& delivery,
         const ResolvedRoute<HopCapacity>& route,
         RemainingHopLimit remainingHopLimit,
         std::uint64_t nowMilliseconds
@@ -103,12 +144,27 @@ public:
         if (outcome != ApplicationRecipientOutcome::Pending) {
             return {MeshV1ProtectedApplicationSubmissionDisposition::RecipientTerminal, {}};
         }
+        if (!delivery.IsActive() || delivery.MessageId() != recipient.MessageId) {
+            return {MeshV1ProtectedApplicationSubmissionDisposition::Invalid, {}};
+        }
         if (route.Source() != _localDevice || route.Destination() != recipient.Device) {
             return {MeshV1ProtectedApplicationSubmissionDisposition::RouteMismatch, {}};
         }
         const auto* nextHop = route.NextHop();
         if (nextHop == nullptr || nextHop->Advertiser != _localDevice) {
             return {MeshV1ProtectedApplicationSubmissionDisposition::RouteMismatch, {}};
+        }
+        const auto* primitive = _transmissions.PrimitiveDescriptor(transmission);
+        const auto* payload = _transmissions.Payload(transmission);
+        const auto deadline = _transmissions.AbsoluteDeadlineMilliseconds(transmission);
+        if (primitive == nullptr || !*primitive || payload == nullptr || !*payload || deadline == 0U ||
+            payload->Size() > std::numeric_limits<std::uint16_t>::max()) {
+            return {MeshV1ProtectedApplicationSubmissionDisposition::Invalid, {}};
+        }
+        if (nowMilliseconds >= deadline || remainingHopLimit == 0U) {
+            return Map(_applicationSubmission.Submit(
+                transmission, delivery, _localDevice, route, remainingHopLimit,
+                nullptr, 0U, nowMilliseconds));
         }
         const auto* nextHopMembership = _memberships.FindDevice(nextHop->Neighbour);
         if (nextHopMembership == nullptr || !nextHopMembership->IsValid() ||
@@ -122,19 +178,6 @@ public:
         const auto hopSession = _sessions.Find(nextHop->Neighbour, nextHopMembership->Incarnation);
         if (!hopSession) {
             return {MeshV1ProtectedApplicationSubmissionDisposition::NextHopSessionUnavailable, {}};
-        }
-        const auto* primitive = _transmissions.PrimitiveDescriptor(transmission);
-        const auto* payload = _transmissions.Payload(transmission);
-        const auto deadline = _transmissions.AbsoluteDeadlineMilliseconds(transmission);
-        if (primitive == nullptr || !*primitive || payload == nullptr || !*payload || deadline == 0U ||
-            payload->Size() > std::numeric_limits<std::uint16_t>::max()) {
-            return {MeshV1ProtectedApplicationSubmissionDisposition::Invalid, {}};
-        }
-        if (nowMilliseconds >= deadline) {
-            return {MeshV1ProtectedApplicationSubmissionDisposition::DeadlineExpired, {}};
-        }
-        if (remainingHopLimit == 0U) {
-            return {MeshV1ProtectedApplicationSubmissionDisposition::HopLimitExhausted, {}};
         }
         const auto innerBytes = MeshV1ProtectedFrameCodec::EndToEndPacketBytes(payload->Size());
         const auto packetBytes = MeshV1ProtectedFrameCodec::HopPacketBytes(innerBytes);
@@ -198,11 +241,9 @@ public:
             return {MeshV1ProtectedApplicationSubmissionDisposition::ProtectionFailed, {}};
         }
         std::memcpy(packet + packetBytes - hopTag.Value.size(), hopTag.Value.data(), hopTag.Value.size());
-        const auto submission = _forwarding.Submit(
-            _localDevice, route, remainingHopLimit, packet, packetBytes, nowMilliseconds, deadline);
-        return {submission ? MeshV1ProtectedApplicationSubmissionDisposition::Submitted
-                           : MeshV1ProtectedApplicationSubmissionDisposition::ForwardingFailed,
-                submission};
+        return Map(_applicationSubmission.Submit(
+            transmission, delivery, _localDevice, route, remainingHopLimit,
+            packet, packetBytes, nowMilliseconds));
     }
 };
 
@@ -313,7 +354,16 @@ public:
             endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId};
         switch (_inbound.TryBegin(identity)) {
             case InboundDeliveryBeginResult::Duplicate:
-                return {MeshV1ProtectedDestinationDisposition::Duplicate};
+                return {MeshV1ProtectedDestinationDisposition::Duplicate,
+                        PrimitiveDispatchResult::Invalid, PrimitiveReceiveDisposition::Malformed,
+                        _inbound.WasAccepted(identity) == InboundDeliveryAcceptanceResult::Accepted
+                            ? DeliveryAcknowledgementIntent{
+                                  endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
+                                  endToEnd.AbsoluteDeadlineMilliseconds}
+                            : DeliveryAcknowledgementIntent{},
+                        {hop.Sender, hop.SenderIncarnation,
+                         {endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
+                          endToEnd.AbsoluteDeadlineMilliseconds}}};
             case InboundDeliveryBeginResult::TooOld:
                 return {MeshV1ProtectedDestinationDisposition::TooOld};
             case InboundDeliveryBeginResult::AlreadyInProgress:
@@ -348,21 +398,38 @@ public:
             _inbound.ReleaseRetryable(identity);
             return {MeshV1ProtectedDestinationDisposition::RetryableReceiver, dispatch, receiverDisposition};
         }
-        const auto committed = _inbound.CommitDefinitive(identity);
+        const auto committed = dispatch == PrimitiveDispatchResult::Dispatched &&
+                                       receiverDisposition == PrimitiveReceiveDisposition::Accepted
+            ? _inbound.CommitAccepted(identity)
+            : _inbound.CommitDefinitive(identity);
         if (committed != InboundDeliveryCommitResult::Committed &&
             committed != InboundDeliveryCommitResult::AlreadyCommitted) {
             return {MeshV1ProtectedDestinationDisposition::ResourceUnavailable, dispatch, receiverDisposition};
         }
         if (dispatch == PrimitiveDispatchResult::UnsupportedFamily) {
-            return {MeshV1ProtectedDestinationDisposition::UnsupportedFamily, dispatch, receiverDisposition};
+            return {MeshV1ProtectedDestinationDisposition::UnsupportedFamily, dispatch, receiverDisposition, {},
+                    {hop.Sender, hop.SenderIncarnation,
+                     {endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
+                      endToEnd.AbsoluteDeadlineMilliseconds}}};
         }
         if (dispatch == PrimitiveDispatchResult::UnsupportedVersion) {
-            return {MeshV1ProtectedDestinationDisposition::UnsupportedVersion, dispatch, receiverDisposition};
+            return {MeshV1ProtectedDestinationDisposition::UnsupportedVersion, dispatch, receiverDisposition, {},
+                    {hop.Sender, hop.SenderIncarnation,
+                     {endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
+                      endToEnd.AbsoluteDeadlineMilliseconds}}};
         }
         if (dispatch != PrimitiveDispatchResult::Dispatched) {
             return {MeshV1ProtectedDestinationDisposition::Invalid, dispatch, receiverDisposition};
         }
-        return {MeshV1ProtectedDestinationDisposition::Dispatched, dispatch, receiverDisposition};
+        return {MeshV1ProtectedDestinationDisposition::Dispatched, dispatch, receiverDisposition,
+                receiverDisposition == PrimitiveReceiveDisposition::Accepted
+                    ? DeliveryAcknowledgementIntent{
+                          endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
+                          endToEnd.AbsoluteDeadlineMilliseconds}
+                    : DeliveryAcknowledgementIntent{},
+                {hop.Sender, hop.SenderIncarnation,
+                 {endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
+                  endToEnd.AbsoluteDeadlineMilliseconds}}};
     }
 };
 

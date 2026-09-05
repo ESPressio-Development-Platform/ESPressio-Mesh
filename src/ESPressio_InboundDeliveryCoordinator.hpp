@@ -29,6 +29,15 @@ enum class InboundDeliveryCommitResult : std::uint8_t {
     Invalid
 };
 
+/// <summary>Whether a committed duplicate previously reached destination-framework acceptance.</summary>
+enum class InboundDeliveryAcceptanceResult : std::uint8_t {
+    Accepted,
+    NotAccepted,
+    TooOld,
+    MembershipUnavailable,
+    Invalid
+};
+
 /// <summary>
 /// Composes authenticated membership-scoped deduplication with bounded InProgress reservation.
 /// </summary>
@@ -131,6 +140,40 @@ public:
                 return InboundDeliveryCommitResult::Invalid;
         }
         return InboundDeliveryCommitResult::Invalid;
+    }
+
+    /// <summary>
+    /// Commits definitive deduplication and records that this exact delivery reached destination-framework acceptance.
+    /// </summary>
+    InboundDeliveryCommitResult CommitAccepted(
+        const InboundDeliveryIdentity& identity
+    ) noexcept {
+        const auto committed = CommitDefinitive(identity);
+        if (committed != InboundDeliveryCommitResult::Committed &&
+            committed != InboundDeliveryCommitResult::AlreadyCommitted) return committed;
+        auto* membership = _memberships.FindExact(identity.Source, identity.Incarnation);
+        if (membership == nullptr) return InboundDeliveryCommitResult::MembershipUnavailable;
+        const auto acceptance = membership->AcceptedDeliveryDeduplication.Commit(identity.MessageId);
+        return acceptance == DeduplicationDisposition::Unseen ||
+                       acceptance == DeduplicationDisposition::Duplicate
+            ? committed
+            : InboundDeliveryCommitResult::Invalid;
+    }
+
+    /// <summary>Classifies whether an exact committed duplicate belongs to the bounded accepted-delivery subset.</summary>
+    InboundDeliveryAcceptanceResult WasAccepted(
+        const InboundDeliveryIdentity& identity
+    ) const noexcept {
+        if (!identity.IsValid()) return InboundDeliveryAcceptanceResult::Invalid;
+        const auto* membership = _memberships.FindExact(identity.Source, identity.Incarnation);
+        if (membership == nullptr) return InboundDeliveryAcceptanceResult::MembershipUnavailable;
+        switch (membership->AcceptedDeliveryDeduplication.Classify(identity.MessageId)) {
+            case DeduplicationDisposition::Duplicate: return InboundDeliveryAcceptanceResult::Accepted;
+            case DeduplicationDisposition::Unseen: return InboundDeliveryAcceptanceResult::NotAccepted;
+            case DeduplicationDisposition::TooOld: return InboundDeliveryAcceptanceResult::TooOld;
+            case DeduplicationDisposition::Invalid: return InboundDeliveryAcceptanceResult::Invalid;
+        }
+        return InboundDeliveryAcceptanceResult::Invalid;
     }
 
     /// <summary>

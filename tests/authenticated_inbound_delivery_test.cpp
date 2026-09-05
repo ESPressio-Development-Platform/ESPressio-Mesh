@@ -62,6 +62,14 @@ int main() {
     assert(coordinator.TryBegin(first) == InboundDeliveryBeginResult::Reserved);
     assert(coordinator.CommitDefinitive(first) == InboundDeliveryCommitResult::Committed);
     assert(coordinator.TryBegin(first) == InboundDeliveryBeginResult::Duplicate);
+    assert(coordinator.WasAccepted(first) == InboundDeliveryAcceptanceResult::NotAccepted);
+
+    // Positive ACK regeneration is retained only for the bounded subset that reached framework acceptance.
+    const InboundDeliveryIdentity accepted{deviceA, incarnationA, 2};
+    assert(coordinator.TryBegin(accepted) == InboundDeliveryBeginResult::Reserved);
+    assert(coordinator.CommitAccepted(accepted) == InboundDeliveryCommitResult::Committed);
+    assert(coordinator.TryBegin(accepted) == InboundDeliveryBeginResult::Duplicate);
+    assert(coordinator.WasAccepted(accepted) == InboundDeliveryAcceptanceResult::Accepted);
 
     // Unknown authenticated identities cannot create reservation or dedup state.
     const InboundDeliveryIdentity wrongIncarnation{deviceA, incarnationB, 2};
@@ -73,7 +81,7 @@ int main() {
     const InboundDeliveryIdentity newest{deviceA, incarnationA, 200};
     assert(coordinator.TryBegin(newest) == InboundDeliveryBeginResult::Reserved);
     assert(coordinator.CommitDefinitive(newest) == InboundDeliveryCommitResult::Committed);
-    const InboundDeliveryIdentity stale{deviceA, incarnationA, 2};
+    const InboundDeliveryIdentity stale{deviceA, incarnationA, 3};
     assert(coordinator.TryBegin(stale) == InboundDeliveryBeginResult::TooOld);
 
     // If membership disappears during bounded semantic handoff, no orphaned dedup commit occurs.

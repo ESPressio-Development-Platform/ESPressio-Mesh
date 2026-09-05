@@ -14,9 +14,10 @@ namespace ESPressio::Mesh {
 
 /// <summary>One bounded authenticated participation record retained by Mesh.</summary>
 /// <remarks>
-/// The record owns committed ordinary-delivery deduplication for exactly one authenticated
-/// DeviceIdentifier + MembershipIncarnation namespace. Discovery and pre-authentication
-/// candidates do not belong in this table and therefore cannot reserve or advance dedup state.
+/// The record owns committed ordinary-delivery deduplication and the bounded accepted-delivery subset for exactly one
+/// authenticated DeviceIdentifier + MembershipIncarnation namespace. The subset lets a duplicate of an accepted
+/// delivery regenerate a lost positive ACK without treating other definitive dispositions as accepted. Discovery and
+/// pre-authentication candidates do not belong in this table and therefore cannot reserve or advance either window.
 /// </remarks>
 struct AuthenticatedMembershipRecord final {
     System::DeviceIdentifier Device{};
@@ -24,6 +25,7 @@ struct AuthenticatedMembershipRecord final {
     MembershipState State{MembershipState::Unknown};
     ReachabilityState Reachability{ReachabilityState::Unknown};
     DeduplicationWindow<Limits::DeduplicationWindowBits> DeliveryDeduplication{};
+    DeduplicationWindow<Limits::DeduplicationWindowBits> AcceptedDeliveryDeduplication{};
 
     /// <summary>Returns whether this record identifies an authenticated participation state.</summary>
     constexpr bool IsValid() const noexcept {
@@ -180,6 +182,7 @@ public:
             slot.Record.State = state;
             slot.Record.Reachability = reachability;
             slot.Record.DeliveryDeduplication.Reset();
+            slot.Record.AcceptedDeliveryDeduplication.Reset();
             slot.Occupied = true;
             ++_size;
             return AuthenticatedMembershipInsertResult::Inserted;

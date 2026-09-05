@@ -12,20 +12,21 @@ namespace ESPressio::Mesh {
 /// Wire-neutral intent to acknowledge definitive destination-framework acceptance of one inbound Mesh delivery.
 /// </summary>
 /// <remarks>
-/// This value is not a Mesh control message and has no serialization or routing contract. It captures only the semantic
-/// fact a future control-plane encoder will need: acknowledge the original authenticated source incarnation's exact
-/// MeshMessageId. The intent must be created only after the destination framework has made a definitive acceptance
-/// decision; intermediate Radio/link success and forwarding admission are insufficient.
+/// This value remains wire-neutral but contains every semantic field required by the Mesh-v1 control protector:
+/// original authenticated source incarnation, exact MeshMessageId and immutable absolute deadline. The intent must be
+/// created only after the destination framework has made a definitive acceptance decision; intermediate Radio/link
+/// success and forwarding admission are insufficient.
 /// </remarks>
 struct DeliveryAcknowledgementIntent final {
     System::DeviceIdentifier Recipient{};
     MembershipIncarnation RecipientIncarnation{};
     MeshMessageId AcknowledgedMessageId{0};
+    std::uint64_t AbsoluteDeadlineMilliseconds{0U};
 
     constexpr bool IsValid() const noexcept {
         return static_cast<bool>(Recipient) &&
                static_cast<bool>(RecipientIncarnation) &&
-               AcknowledgedMessageId != 0U;
+               AcknowledgedMessageId != 0U && AbsoluteDeadlineMilliseconds != 0U;
     }
 
     constexpr explicit operator bool() const noexcept { return IsValid(); }
@@ -42,8 +43,8 @@ enum class DeliveryAcknowledgementIntentResult : std::uint8_t {
 /// </summary>
 /// <remarks>
 /// This coordinator deliberately knows nothing about the Mesh control PrimitiveFamilyId, wire schema, routing, Radio,
-/// encryption or authentication mechanism. The caller is responsible for transporting a created intent through the
-/// eventual Mesh control plane. On receipt, the caller must authenticate the ACK's exact source identity/incarnation
+/// encryption or authentication mechanism. Mesh-v1 composition transports a created intent through
+/// MeshV1DestinationAcknowledgementSubmissionCoordinator. On receipt, the caller must use authenticated control evidence
 /// before calling ApplyAuthenticated().
 ///
 /// An applied ACK means only that the destination framework accepted the Mesh delivery. It never represents completion
@@ -94,14 +95,18 @@ public:
     /// </summary>
     DeliveryAcknowledgementIntentResult CreateIntent(
         const InboundDeliveryIdentity& acceptedDelivery,
+        std::uint64_t absoluteDeadlineMilliseconds,
         DeliveryAcknowledgementIntent& intent
     ) const noexcept {
         intent = {};
-        if (!acceptedDelivery.IsValid()) return DeliveryAcknowledgementIntentResult::Invalid;
+        if (!acceptedDelivery.IsValid() || absoluteDeadlineMilliseconds == 0U) {
+            return DeliveryAcknowledgementIntentResult::Invalid;
+        }
         intent = DeliveryAcknowledgementIntent{
             acceptedDelivery.Source,
             acceptedDelivery.Incarnation,
-            acceptedDelivery.MessageId
+            acceptedDelivery.MessageId,
+            absoluteDeadlineMilliseconds
         };
         return DeliveryAcknowledgementIntentResult::Created;
     }
