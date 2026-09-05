@@ -180,6 +180,31 @@ public:
         });
     }
 
+    /// <summary>
+    /// Expires all due recipients and reports each newly terminal MessageId after aggregate DeadlineExpired authority exists.
+    /// </summary>
+    /// <remarks>
+    /// The callback lets a composition root synchronously retire exact externally owned ACK/Radio/forwarding lifecycle
+    /// state without this coordinator owning another 8×32 registry. The callback is invoked only for recipients that were
+    /// Pending at the instant of this sweep and must be non-throwing. Aggregate traffic reservations are released after all
+    /// newly expired recipient callbacks for that aggregate have run.
+    /// </remarks>
+    template<typename TExpiredRecipientCallback>
+    std::size_t ExpireDueWithRecipients(
+        std::uint64_t nowMilliseconds,
+        TExpiredRecipientCallback&& onExpiredRecipient
+    ) noexcept {
+        return _transmissions.ExpireDueWithRecipients(
+            nowMilliseconds,
+            [&](ApplicationTransmissionHandle handle, MeshMessageId messageId) noexcept {
+                onExpiredRecipient(handle, messageId);
+            },
+            [&](ApplicationTransmissionHandle handle) noexcept {
+                ReleaseTrafficIfTerminal(handle);
+            }
+        );
+    }
+
     bool Release(ApplicationTransmissionHandle handle) noexcept {
         if (!_transmissions.Contains(handle) || !_transmissions.IsTerminal(handle)) return false;
         if (auto* binding = ResolveBinding(handle); binding != nullptr) {
