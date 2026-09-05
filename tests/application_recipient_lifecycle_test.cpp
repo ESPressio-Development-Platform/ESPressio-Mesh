@@ -128,5 +128,71 @@ int main() {
     assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
     assert(aggregate.Release(racedHandle));
 
+    // The composed sweep retires matching external state synchronously, so bounded ACK/forwarding resources are not
+    // retained merely because no later delivery callback happens to touch an expired aggregate recipient.
+    ApplicationTransmissionRecipient sweptRecipients[] = {
+        {Device(6), Incarnation(16), 501},
+        {Device(7), Incarnation(17), 502}
+    };
+    ApplicationTransmissionHandle sweptHandle{};
+    assert(aggregate.Begin(sweptRecipients, 2, payload, 100, 300, sweptHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    RouteAttemptCoordinator sweptFirstAttempts(routePolicy, retryPolicy);
+    RouteAttemptCoordinator sweptSecondAttempts(routePolicy, retryPolicy);
+    OutboundDeliveryLifecycle<4> sweptFirst(sweptFirstAttempts, acknowledgements);
+    OutboundDeliveryLifecycle<4> sweptSecond(sweptSecondAttempts, acknowledgements);
+    assert(aggregate.BeginRecipient(sweptHandle, 0, 101, true, sweptFirst) == ApplicationRecipientBeginResult::Begun);
+    assert(aggregate.BeginRecipient(sweptHandle, 1, 101, true, sweptSecond) == ApplicationRecipientBeginResult::Begun);
+    assert(sweptFirst.IsActive() && sweptSecond.IsActive());
+
+    const auto sweep = lifecycle.ExpireDueAndRetire(
+        300,
+        [&](ApplicationTransmissionHandle candidate, MeshMessageId messageId) noexcept -> OutboundDeliveryLifecycle<4>* {
+            if (candidate != sweptHandle) return nullptr;
+            if (messageId == 501) return &sweptFirst;
+            if (messageId == 502) return &sweptSecond;
+            return nullptr;
+        }
+    );
+    assert(sweep.ExpiredTransmissions == 1U);
+    assert(sweep.ExpiredRecipients == 2U);
+    assert(sweep.RetiredExternalLifecycles == 2U);
+    assert(sweep.ExternalLifecycleMismatches == 0U);
+    assert(!sweptFirst.IsActive() && !sweptSecond.IsActive());
+    assert(transmissions.IsTerminal(sweptHandle));
+    assert(traffic.Active(MeshTrafficClass::Application) == 0U);
+    assert(aggregate.TryGetRecipientOutcome(sweptHandle, 501, expiredOutcome));
+    assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
+    assert(aggregate.TryGetRecipientOutcome(sweptHandle, 502, expiredOutcome));
+    assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
+    assert(aggregate.Release(sweptHandle));
+
+    // A bad resolver can never reset another recipient. The mismatch is surfaced while the exact aggregate outcome
+    // remains authoritative, allowing composition to diagnose the ownership defect instead of silently cancelling state.
+    ApplicationTransmissionRecipient mismatchRecipient[] = {{Device(8), Incarnation(18), 601}};
+    ApplicationTransmissionHandle mismatchHandle{};
+    assert(aggregate.Begin(mismatchRecipient, 1, payload, 100, 300, mismatchHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    RouteAttemptCoordinator mismatchAttempts(routePolicy, retryPolicy);
+    OutboundDeliveryLifecycle<4> mismatchDelivery(mismatchAttempts, acknowledgements);
+    assert(aggregate.BeginRecipient(mismatchHandle, 0, 101, true, mismatchDelivery) == ApplicationRecipientBeginResult::Begun);
+
+    RouteAttemptCoordinator foreignAttempts(routePolicy, retryPolicy);
+    OutboundDeliveryLifecycle<4> foreignDelivery(foreignAttempts, acknowledgements);
+    assert(foreignDelivery.Begin(Device(9), Incarnation(19), 999, 101, 1000, true) == OutboundDeliveryBeginResult::Begun);
+    const auto mismatchSweep = lifecycle.ExpireDueAndRetire(
+        300,
+        [&](ApplicationTransmissionHandle, MeshMessageId) noexcept -> OutboundDeliveryLifecycle<4>* {
+            return &foreignDelivery;
+        }
+    );
+    assert(mismatchSweep.ExpiredTransmissions == 1U);
+    assert(mismatchSweep.ExpiredRecipients == 1U);
+    assert(mismatchSweep.RetiredExternalLifecycles == 0U);
+    assert(mismatchSweep.ExternalLifecycleMismatches == 1U);
+    assert(mismatchDelivery.IsActive());
+    assert(foreignDelivery.IsActive());
+    mismatchDelivery.Reset();
+    foreignDelivery.Reset();
+    assert(aggregate.Release(mismatchHandle));
+
     return 0;
 }
