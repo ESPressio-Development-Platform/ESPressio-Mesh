@@ -98,6 +98,10 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src ESPressio-Mesh/tests/application_transmission_table_test.cpp -o application_transmission_table_test -pthread
       - name: Run bounded application transmission aggregate regression
         run: ./application_transmission_table_test
+      - name: Build application transmission lifecycle composition regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_transmission_coordinator_test.cpp -o application_transmission_coordinator_test -pthread
+      - name: Run application transmission lifecycle composition regression
+        run: ./application_transmission_coordinator_test
       - name: Build Mesh security authority contract regression
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src ESPressio-Mesh/tests/mesh_security_authority_test.cpp -o mesh_security_authority_test -pthread
       - name: Run Mesh security authority contract regression
