@@ -180,8 +180,15 @@ public:
         });
     }
 
+    /// <summary>Releases a completed aggregate and its retained immutable payload reference.</summary>
+    /// <remarks>
+    /// Non-terminal aggregates are deliberately retained. Releasing one while any recipient remains Pending could discard
+    /// the only aggregate-level payload reference while that recipient still has legitimate retry/forwarding work. Explicit
+    /// cancellation/abandonment is a separate lifecycle semantic and is not inferred by Release(). Callers must first make
+    /// every recipient terminal (including deadline expiry) and retire any external per-recipient delivery lifecycle state.
+    /// </remarks>
     bool Release(ApplicationTransmissionHandle handle) noexcept {
-        if (!_transmissions.Contains(handle)) return false;
+        if (!_transmissions.Contains(handle) || !_transmissions.IsTerminal(handle)) return false;
         if (auto* binding = ResolveBinding(handle); binding != nullptr) {
             (void)_traffic.Release(binding->Reservation);
             *binding = {};
