@@ -4,6 +4,21 @@
 
 using namespace ESPressio::Mesh;
 
+namespace {
+ESPressio::Radio::LogicalTransferTerminalEvidence Terminal(
+    ESPressio::Radio::RadioDirectLinkEvidence evidence
+) {
+    ESPressio::Radio::LogicalTransferTerminalEvidence terminal;
+    terminal.Transfer = {0, 1};
+    terminal.Descriptor.Radio = reinterpret_cast<ESPressio::Radio::IRadio*>(1);
+    terminal.Descriptor.TransferId = 7;
+    const std::uint8_t address = 0x22;
+    terminal.Descriptor.Destination = ESPressio::Radio::RadioAddress::FromBytes(&address, 1);
+    terminal.Evidence = evidence;
+    return terminal;
+}
+}
+
 int main() {
     DefaultRouteAttemptPolicy routePolicy;
     DefaultRetryPolicy retryPolicy;
@@ -22,6 +37,20 @@ int main() {
     assert(accepted.DirectLinkEvidence() == ForwardingDirectLinkEvidence::PeerAcknowledged);
     assert(ForwardingAttemptLifecycle::AfterSubmission(accepted, attempts, 110, 500) ==
            ForwardingAttemptAction::AwaitingNextHopAcceptance);
+
+    // Deferred Radio completion/peer ACK is still only direct-link evidence, never Mesh next-hop acceptance.
+    const auto completed = Terminal(ESPressio::Radio::RadioDirectLinkEvidence::CompletedAndAcknowledged());
+    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(completed, attempts, 115, 500) ==
+           ForwardingAttemptAction::AwaitingNextHopAcceptance);
+
+    // A terminal Radio failure can drive the bounded same-route retry policy without consuming HopLimit.
+    const auto failed = Terminal(ESPressio::Radio::RadioDirectLinkEvidence::Failed());
+    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(failed, attempts, 116, 500) ==
+           ForwardingAttemptAction::RetryCurrentRoute);
+
+    // The immutable delivery deadline dominates even otherwise useful terminal Radio evidence.
+    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(completed, attempts, 500, 500) ==
+           ForwardingAttemptAction::StopDeadlineExpired);
 
     // Exact authenticated Mesh-level next-hop acceptance is what completes this forwarding attempt.
     assert(ForwardingAttemptLifecycle::AfterAuthenticatedAcceptance(
@@ -47,25 +76,21 @@ int main() {
                121,
                500) == ForwardingAcceptanceAction::IgnoreUnrelatedEvidence);
 
-    // Retryable submission failure follows the frozen same-route attempt policy.
     ForwardingSubmissionResult retryable;
     retryable.Disposition = ForwardingSubmissionDisposition::RetryableFailure;
     assert(ForwardingAttemptLifecycle::AfterSubmission(retryable, attempts, 130, 500) ==
            ForwardingAttemptAction::RetryCurrentRoute);
 
-    // Resource pressure is also retryable while current-route budget remains.
     ForwardingSubmissionResult resource;
     resource.Disposition = ForwardingSubmissionDisposition::ResourceUnavailable;
     assert(ForwardingAttemptLifecycle::AfterSubmission(resource, attempts, 130, 500) ==
            ForwardingAttemptAction::RetryCurrentRoute);
 
-    // Missing membership/peer is a route-unavailable condition, so default policy seeks another route.
     ForwardingSubmissionResult unavailable;
     unavailable.Disposition = ForwardingSubmissionDisposition::PeerUnavailable;
     assert(ForwardingAttemptLifecycle::AfterSubmission(unavailable, attempts, 130, 500) ==
            ForwardingAttemptAction::ReplanDistinctRoute);
 
-    // Deadline and permanent failures stop deterministically.
     ForwardingSubmissionResult expired;
     expired.Disposition = ForwardingSubmissionDisposition::DeadlineExpired;
     assert(ForwardingAttemptLifecycle::AfterSubmission(expired, attempts, 500, 500) ==
