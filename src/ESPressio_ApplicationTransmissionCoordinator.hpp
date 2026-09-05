@@ -62,6 +62,17 @@ class ApplicationTransmissionCoordinator final {
         return result;
     }
 
+    template<typename TVisitor>
+    void ForEachRecipientForControlledShutdown(TVisitor&& visitor) const noexcept {
+        _transmissions.ForEachRecipient([&](
+            ApplicationTransmissionHandle handle,
+            const ApplicationTransmissionRecipient& recipient,
+            ApplicationRecipientOutcome outcome
+        ) noexcept {
+            visitor(handle, recipient, outcome);
+        });
+    }
+
     /// <summary>
     /// Releases all aggregate records and Application traffic reservations during controlled local shutdown/reset.
     /// </summary>
