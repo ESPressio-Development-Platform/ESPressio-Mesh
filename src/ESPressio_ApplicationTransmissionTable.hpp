@@ -145,6 +145,22 @@ public:
         return record != nullptr && ExpireRecord(*record, nowMilliseconds);
     }
 
+    /// <summary>
+    /// Expires one exact aggregate and reports each newly expired recipient after all of that aggregate's outcomes are committed.
+    /// </summary>
+    template<typename TExpiredRecipientCallback>
+    bool ExpireWithRecipients(
+        ApplicationTransmissionHandle handle,
+        std::uint64_t nowMilliseconds,
+        TExpiredRecipientCallback&& onExpiredRecipient
+    ) noexcept {
+        auto* record = Resolve(handle);
+        if (record == nullptr) return false;
+        return ExpireRecord(*record, nowMilliseconds, [&](MeshMessageId messageId) noexcept {
+            onExpiredRecipient(messageId);
+        });
+    }
+
     /// <summary>Expires every non-terminal aggregate whose immutable absolute deadline has elapsed.</summary>
     /// <remarks>
     /// The callback is invoked once for each aggregate newly made terminal by this sweep. Records remain retained for
