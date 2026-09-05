@@ -26,14 +26,14 @@ class FakeRadio final : public Radio::IRadio {
     Radio::RadioObserverSubscriptions _observers{}; bool _started{false};
     Radio::RadioAddress _local{Radio::RadioAddress::FromBytes(reinterpret_cast<const std::uint8_t*>("L"), 1)};
 public:
-    const std::uint8_t* LastPayload{nullptr}; std::size_t LastSize{0}; std::size_t Sends{0};
+    const std::uint8_t* LastPhysicalPacket{nullptr}; std::size_t LastPhysicalPacketSize{0}; std::size_t Sends{0};
     bool Start() override { _started = true; return true; }
     void Stop() noexcept override { _started = false; }
     bool IsStarted() const noexcept override { return _started; }
     Radio::RadioCapabilities Capabilities() const noexcept override { return {Radio::RadioCapability::None, 64, 1, 512}; }
     Radio::RadioAddress LocalAddress() const noexcept override { return _local; }
     Radio::RadioSendResult Send(const Radio::RadioAddress&, const std::uint8_t* payload, std::size_t size) override {
-        LastPayload = payload; LastSize = size; ++Sends; return Radio::RadioSendResult::Accepted();
+        LastPhysicalPacket = payload; LastPhysicalPacketSize = size; ++Sends; return Radio::RadioSendResult::Accepted();
     }
     void SetReceiver(Radio::IRadioReceiver*) noexcept override {}
     void SetWorkSignal(Radio::IRadioWorkSignal*) noexcept override {}
@@ -59,11 +59,15 @@ int main() {
 
     Mesh::ApplicationTransmissionTable<2,2> transmissions; Mesh::ApplicationTransmissionHandle aggregate{};
     assert(transmissions.Begin(&recipient, 1, Mesh::ApplicationPayload::Borrowed(bytes, sizeof(bytes)), 100, 200, aggregate) == Mesh::ApplicationTransmissionBeginResult::Begun);
+    assert(transmissions.Payload(aggregate)->StableData() == bytes);
     Mesh::ApplicationForwardingCoordinator<2,2,2,2,2> coordinator{transmissions, forwarding};
     auto result = coordinator.SubmitRecipient(aggregate, 0, local, route, 1, 110);
     assert(result.Disposition == Mesh::ApplicationForwardingDisposition::Submitted);
     assert(result.Submission.Disposition == Mesh::ForwardingSubmissionDisposition::Accepted);
-    assert(radio.Sends == 1U && radio.LastPayload == bytes && radio.LastSize == sizeof(bytes));
+    // The aggregate still aliases the original logical bytes. RadioTransport is then expected to create its own
+    // physical fragment packet, so the provider-level pointer must not be mistaken for the application backing.
+    assert(transmissions.Payload(aggregate)->StableData() == bytes);
+    assert(radio.Sends == 1U && radio.LastPhysicalPacket != nullptr && radio.LastPhysicalPacketSize > sizeof(bytes));
 
     Mesh::TopologyLinkIdentity wrongHop{remote, 1, local, 1}; Mesh::ResolvedRoute<2> wrong;
     assert(wrong.Assign(remote, local, &wrongHop, 1));
