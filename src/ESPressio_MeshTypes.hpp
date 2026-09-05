@@ -47,6 +47,42 @@ public:
     }
 };
 
+/// <summary>Non-zero opaque 128-bit identity of one application-defined Group within a MeshIdentifier domain.</summary>
+/// <remarks>
+/// The storage order is the canonical network representation: codecs copy Bytes()[0] through Bytes()[15] unchanged.
+/// The value is not a native integer and a display name is never an identity or encoding input.
+/// </remarks>
+class GroupIdentifier final {
+public:
+    static constexpr std::size_t Size = 16;
+    using Storage = std::array<std::uint8_t, Size>;
+
+private:
+    Storage _bytes{};
+
+public:
+    constexpr GroupIdentifier() noexcept = default;
+    constexpr explicit GroupIdentifier(const Storage& bytes) noexcept : _bytes(bytes) {}
+    constexpr const Storage& Bytes() const noexcept { return _bytes; }
+    constexpr bool IsZero() const noexcept {
+        for (auto value : _bytes) if (value != 0U) return false;
+        return true;
+    }
+    constexpr explicit operator bool() const noexcept { return !IsZero(); }
+    constexpr bool operator==(const GroupIdentifier& other) const noexcept {
+        for (std::size_t i = 0; i < Size; ++i) if (_bytes[i] != other._bytes[i]) return false;
+        return true;
+    }
+    constexpr bool operator!=(const GroupIdentifier& other) const noexcept { return !(*this == other); }
+    constexpr bool operator<(const GroupIdentifier& other) const noexcept {
+        for (std::size_t i = 0; i < Size; ++i) {
+            if (_bytes[i] < other._bytes[i]) return true;
+            if (_bytes[i] > other._bytes[i]) return false;
+        }
+        return false;
+    }
+};
+
 /// <summary>Non-zero 128-bit identity of one participation incarnation of a device in a Mesh.</summary>
 class MembershipIncarnation final {
 public:
@@ -154,6 +190,7 @@ enum class MembershipTombstoneDisposition : std::uint8_t {
 };
 
 static_assert(sizeof(MeshIdentifier) == 16, "MeshIdentifier must remain exactly 16 bytes.");
+static_assert(sizeof(GroupIdentifier) == 16, "GroupIdentifier must remain exactly 16 bytes.");
 static_assert(sizeof(MembershipIncarnation) == 16, "MembershipIncarnation must remain exactly 16 bytes.");
 static_assert(sizeof(CanonicalName) == 33, "CanonicalName semantic storage must remain one length byte plus 32 bytes.");
 static_assert(sizeof(MeshNodeAlias) == 2, "MeshNodeAlias must remain 16-bit.");

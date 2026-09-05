@@ -86,6 +86,13 @@ jobs:
           ESPressio-Mesh/tests/authenticated_inbound_delivery_test.cpp -o authenticated_inbound_delivery_test -pthread
       - name: Run authenticated inbound delivery regression
         run: ./authenticated_inbound_delivery_test
+      - name: Build Mesh destination resolver regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_destination_resolver_test.cpp -o mesh_destination_resolver_test -pthread
+      - name: Run Mesh destination resolver regression
+        run: ./mesh_destination_resolver_test
       - name: Build membership retention coordinator regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror

@@ -7,6 +7,7 @@ int main() {
     using namespace ESPressio::Mesh;
 
     static_assert(sizeof(MeshIdentifier) == 16);
+    static_assert(sizeof(GroupIdentifier) == 16);
     static_assert(sizeof(MembershipIncarnation) == 16);
     static_assert(sizeof(CanonicalName) == 33);
     static_assert(sizeof(MeshNodeAlias) == 2);
@@ -18,14 +19,22 @@ int main() {
     static_assert(sizeof(CapabilityMask) == 8);
 
     MeshIdentifier invalidMesh;
+    GroupIdentifier invalidGroup;
     MembershipIncarnation invalidIncarnation;
     assert(!static_cast<bool>(invalidMesh));
+    assert(!static_cast<bool>(invalidGroup));
     assert(!static_cast<bool>(invalidIncarnation));
 
     MeshIdentifier::Storage meshBytes{};
     meshBytes[15] = 1;
     const MeshIdentifier mesh(meshBytes);
     assert(static_cast<bool>(mesh));
+
+    GroupIdentifier::Storage groupBytes{};
+    groupBytes[15] = 1;
+    const GroupIdentifier group(groupBytes);
+    assert(static_cast<bool>(group));
+    assert(group.Bytes() == groupBytes);
 
     CanonicalName name;
     assert(CanonicalName::TryCreate("Node A", 6, name));

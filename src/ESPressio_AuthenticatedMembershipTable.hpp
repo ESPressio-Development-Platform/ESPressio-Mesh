@@ -8,6 +8,7 @@
 
 #include "ESPressio_DeduplicationWindow.hpp"
 #include "ESPressio_MeshLimits.hpp"
+#include "ESPressio_MeshNodeProfile.hpp"
 #include "ESPressio_MeshTypes.hpp"
 
 namespace ESPressio::Mesh {
@@ -26,6 +27,7 @@ struct AuthenticatedMembershipRecord final {
     ReachabilityState Reachability{ReachabilityState::Unknown};
     DeduplicationWindow<Limits::DeduplicationWindowBits> DeliveryDeduplication{};
     DeduplicationWindow<Limits::DeduplicationWindowBits> AcceptedDeliveryDeduplication{};
+    MeshNodeProfile Profile{};
 
     /// <summary>Returns whether this record identifies an authenticated participation state.</summary>
     constexpr bool IsValid() const noexcept {
@@ -43,6 +45,17 @@ enum class AuthenticatedMembershipInsertResult : std::uint8_t {
     Updated,
     ConflictingIncarnation,
     ResourceUnavailable,
+    Invalid
+};
+
+enum class AuthenticatedProfileUpdateResult : std::uint8_t {
+    Applied,
+    Unchanged,
+    StaleGeneration,
+    ConflictingGeneration,
+    ConflictingAlias,
+    ConflictingCanonicalName,
+    UnknownAuthenticatedMembership,
     Invalid
 };
 
@@ -183,12 +196,51 @@ public:
             slot.Record.Reachability = reachability;
             slot.Record.DeliveryDeduplication.Reset();
             slot.Record.AcceptedDeliveryDeduplication.Reset();
+            slot.Record.Profile = {};
             slot.Occupied = true;
             ++_size;
             return AuthenticatedMembershipInsertResult::Inserted;
         }
 
         return AuthenticatedMembershipInsertResult::ResourceUnavailable;
+    }
+
+    /// <summary>Applies a verified profile only to its exact authenticated member and non-regressing generation.</summary>
+    AuthenticatedProfileUpdateResult ApplyAuthenticatedProfile(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation,
+        const MeshNodeProfile& profile
+    ) noexcept {
+        if (!device || !incarnation || !profile) return AuthenticatedProfileUpdateResult::Invalid;
+        auto* record = FindExact(device, incarnation);
+        if (record == nullptr) return AuthenticatedProfileUpdateResult::UnknownAuthenticatedMembership;
+        if (record->Profile) {
+            if (profile.Generation() < record->Profile.Generation()) {
+                return AuthenticatedProfileUpdateResult::StaleGeneration;
+            }
+            if (profile.Generation() == record->Profile.Generation()) {
+                return profile == record->Profile
+                    ? AuthenticatedProfileUpdateResult::Unchanged
+                    : AuthenticatedProfileUpdateResult::ConflictingGeneration;
+            }
+        }
+        for (const auto& slot : _slots) {
+            if (!slot.Occupied || &slot.Record == record || !slot.Record.Profile) continue;
+            if (slot.Record.Profile.Alias() == profile.Alias()) {
+                return AuthenticatedProfileUpdateResult::ConflictingAlias;
+            }
+            if (slot.Record.Profile.Name() == profile.Name()) {
+                return AuthenticatedProfileUpdateResult::ConflictingCanonicalName;
+            }
+        }
+        record->Profile = profile;
+        return AuthenticatedProfileUpdateResult::Applied;
+    }
+
+    /// <summary>Visits current authenticated records in fixed slot order inside the serialized Mesh domain.</summary>
+    template<typename TVisitor>
+    void ForEachAuthenticated(TVisitor&& visitor) const noexcept {
+        for (const auto& slot : _slots) if (slot.Occupied) visitor(slot.Record);
     }
 
     /// <summary>Updates membership state only for the exact authenticated incarnation.</summary>

@@ -4,6 +4,8 @@
 #include "ESPressio_BoundedOwnedBytePool.hpp"
 #include "ESPressio_MeshCapacityProfile.hpp"
 #include "ESPressio_MeshTypes.hpp"
+#include "ESPressio_MeshNodeProfile.hpp"
+#include "ESPressio_MeshDestinationResolver.hpp"
 #include "ESPressio_MembershipTombstoneTable.hpp"
 #include "ESPressio_DeduplicationWindow.hpp"
 #include "ESPressio_MeshMessageIdGenerator.hpp"

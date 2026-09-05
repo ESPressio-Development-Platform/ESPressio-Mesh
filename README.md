@@ -32,6 +32,7 @@ Control work is also required to have a finite lifetime. `IControlWorkLifetimePo
 `DeviceIdentifier` is owned by `ESPressio-System` and permanently identifies the device. Mesh adds separate identities for Mesh domain and participation lifecycle:
 
 - `MeshIdentifier`: exact 16-byte application-supplied Mesh identity; all-zero is invalid/unspecified.
+- `GroupIdentifier`: exact non-zero opaque 16-byte Group identity scoped by the containing `MeshIdentifier`.
 - `MembershipIncarnation`: exact 16-byte participation-instance identity; a partition does not change it.
 - `MeshNodeAlias`: 16-bit Mesh-local routing handle only; it is never authority or permanent identity.
 - `RadioIdentifier`: 8-bit node-local Radio handle; 1–254 are usable and are never recycled within one `MembershipIncarnation`.
@@ -39,6 +40,8 @@ Control work is also required to have a finite lifetime. `IControlWorkLifetimePo
 - `ProfileGeneration` and `TopologyGeneration`: independent 64-bit generation domains.
 
 `CanonicalName` is a mandatory bounded human-readable profile property, not identity. Its semantic representation is one length byte plus 32 bytes of backing storage. Valid names contain 1–32 printable ASCII bytes, compare exactly/case-sensitively, and cannot begin/end with a space.
+
+`GroupIdentifier` is not an integer and has no endianness conversion: its 16 stored bytes are copied unchanged in index order whenever encoded. Group display names are mutable diagnostic/application data and never participate in identity. Reusing the same 16 bytes in a different `MeshIdentifier` denotes a different scoped Group.
 
 Radio-owned `RadioPeerHandle` values are deliberately separate from every Mesh identity. They are process-local, generation-safe direct-link handles supplied by `ESPressio-Radio`; Mesh may retain them beside a `RadioIdentifier` as link evidence, but they are never distributed or treated as authenticated node identity.
 
@@ -100,7 +103,9 @@ Whole-device planning must add task stacks, RadioTransport/provider storage, pay
 
 ## Selective multicast and Broadcast
 
-Group and CapabilitySelector destinations are resolved once at the sender into a frozen bounded recipient set. Each resolved recipient receives an independent Node delivery with its own `MeshMessageId` and outcome state, while all recipient deliveries may share one immutable payload backing.
+`MeshNodeProfile` retains a verified non-zero profile generation, Mesh-unique canonical name and alias, application-defined capability mask, and at most eight unique opaque Group identities in canonical byte order. A profile update applies only to the exact authenticated device/incarnation; generations cannot regress, and an equal generation is accepted only when the complete profile is unchanged.
+
+`MeshDestinationResolver` resolves Group and CapabilitySelector destinations once from authenticated `Active` remote-member profiles into a canonical frozen set of exact `DeviceIdentifier` + `MembershipIncarnation` pairs. Capability selection requires every requested bit. Reachability is deliberately not a membership filter because route planning and the immutable delivery deadline own temporary unreachability. If the selected set exceeds its composition capacity, resolution returns `ResourceUnavailable` with an empty result; it never truncates. Each resolved recipient then receives an independent Node delivery with its own `MeshMessageId` and outcome state, while all recipient deliveries may share one immutable payload backing. Local sender dispatch, when its own profile matches, is a separate composition action and is not represented as an authenticated remote Node delivery.
 
 Broadcast is different: it is one bounded best-effort controlled flood with one `MeshMessageId`, no frozen recipient set and no promise of delivery to every member. Applications requiring per-member delivery knowledge use selective multicast rather than reliable Broadcast.
 
