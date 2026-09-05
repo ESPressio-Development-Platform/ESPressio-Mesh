@@ -36,7 +36,7 @@ Radio: complete immutable bounded logical transfer to directly reachable Radio p
 
 Traffic/execution: injected IMeshTrafficGovernor with protected capacities Infrastructure8, Clock4, General8, Application8. Control work finite lifetime. Serialized Mesh mutable-state domain acceptable; no direct FreeRTOS in Mesh.
 
-Payload models: Borrowed Stable Payload, Bounded Owned Payload, Repeatable Serialized Source. Finite length known before acceptance. One MessageId maps to immutable logical bytes through retries/routes/fragments. Selective multicast recipients share one payload backing. Bounded-owned byte capacity remains deliberately unresolved and must not be invented.
+Payload models: Borrowed Stable Payload, Bounded Owned Payload, Repeatable Serialized Source. Finite length known before acceptance. One MessageId maps to immutable logical bytes through retries/routes/fragments. Selective multicast recipients share one payload backing. Bounded-owned byte capacity remains deliberately unresolved and must not be invented. Repeatable Serialized Source forwarding may use a composition-supplied finite `IApplicationPayloadStagingBuffer`; Mesh defines no default staging capacity.
 
 Locked capacities: MaxMeshNodes32, MaxRadiosPerNode4, MaxGroupsPerNode8, MaxPrimitiveReceivers8, MaxActiveApplicationTransmissions8, MaxTopologyLinks96, MaxRouteHops16, DefaultHopLimit16, route cache32, MaxActiveInboundDeliveries8, MaxPendingNeighbourCandidates8, MaxActiveLivenessProbes4, MaxActiveInboundAuthentications4, MaxRecipientsPerTransmission32, MaxMembershipTombstones64, dedup128, same-route attempts3, routes4.
 
@@ -59,7 +59,8 @@ Mesh:
 - `ApplicationTransmissionTable<8,32>` owns bounded selective aggregates with generation-safe handle, immutable deadline, frozen unique recipients, independent MessageIds/outcomes and exactly one immutable `ApplicationPayload` reference shared by all recipients. It still owns no variable-capacity payload bytes, routes, Radio state, ACK tracker, selector identity or Broadcast semantics.
 - `ApplicationPayload` represents Borrowed Stable bytes or a non-owning `IRepeatableSerializedPayloadSource`. Both expose finite size before admission and immutable repeatable bytes for the complete aggregate lifetime. No payload byte capacity was selected. A future bounded-owned backing can satisfy the same aggregate contract once its capacity is explicitly approved.
 - `ApplicationTransmissionCoordinator<8,32>` composes one Application traffic reservation, one aggregate/shared payload and externally supplied per-recipient OutboundDeliveryLifecycle. It exposes the same aggregate payload to every recipient and still introduces no hidden 8*32 active-delivery pool.
-- `ApplicationForwardingCoordinator` composes a frozen recipient, aggregate immutable payload and authenticated forwarding submission. Borrowed Stable payloads are passed directly into RadioTransport without an application-layer/per-recipient copy or re-serialization; RadioTransport remains responsible for constructing physical fragment packets. Repeatable Serialized Source explicitly returns `StagingRequired` until a bounded staging capacity/policy is approved. Terminal recipients and route/recipient mismatches are rejected before Radio submission.
+- `IApplicationPayloadStagingBuffer` is an injected composition-owned finite scratch buffer with no Mesh-default byte capacity. It exists only to materialize a Repeatable Serialized Source for synchronous forwarding submission and never becomes aggregate-owned payload backing.
+- `ApplicationForwardingCoordinator` composes a frozen recipient, aggregate immutable payload and authenticated forwarding submission. Borrowed Stable payloads are passed directly into RadioTransport without an application-layer/per-recipient copy or re-serialization. Repeatable Serialized Source may be materialized into injected staging; missing, unavailable, undersized or failed serialization paths return explicit dispositions. RadioTransport remains responsible for physical fragmentation. Terminal recipients and route/recipient mismatches are rejected before Radio submission.
 
 ## Validation status
 
@@ -71,7 +72,9 @@ Immutable-payload continuation:
 - Follow-up Topology Evolution `33964394229` completed successfully across the full topology/routing/forwarding/ACK/application/security/umbrella suite.
 - Initial Application Forwarding run `33964689414` compiled successfully but exposed an incorrect test assumption: it compared the application backing pointer with the concrete provider's physical-packet pointer even though RadioTransport correctly owns fragmentation and constructs its own physical packet. Production code was not changed for this finding.
 - Regression corrected in commit `d3a541e9b9345dcf2b13dc9d2eaee40c19ac927e` to verify that the aggregate continues to alias the original immutable logical backing while the provider receives a Radio-owned physical fragment packet.
-- Follow-up Application Forwarding run `33964786992`: build, corrected application-forwarding regression and current Mesh umbrella all passed; workflow cleanup was still completing when recorded.
+- Follow-up Application Forwarding run `33964786992` passed build, corrected application-forwarding regression and current Mesh umbrella.
+- Live-tip reconciliation on 2026-09-05 detected that `RoutePlanner` and `RouteAttemptCoordinator` were already present and validated beyond the older handoff snapshot. A redundant tentative `RoutingCoordinator` created while resuming was immediately removed in commit `faa75a383dc1bcdc924bcdb27a32f26caea2e63f`; no production routing semantics changed.
+- Repeatable staging head `e969ada33c4c799169f2a03a7d79c2b6cc9c1c92`: dedicated Application Forwarding run `33965509782` passed; full CI `33965509790` passed; Topology Freshness `33965509791`, Control Work Lifetime `33965509787`, Clock Coordination `33965509804`, Topology Evolution `33965509786` and Memory Accounting `33965509784` also passed. No Actions-budget symptom occurred.
 
 ## Unresolved public/wire decisions — do not cross silently
 
@@ -84,11 +87,10 @@ Immutable-payload continuation:
 
 ## Immediate next work
 
-1. Keep Repeatable Serialized Source forwarding paused at explicit `StagingRequired` until bounded staging/owned-payload byte capacity is approved; do not invent capacity.
-2. Fixed/cardinality memory accounting already captures the ApplicationTransmissionTable by target-native sizeof; no separate coordinator storage term is required because the forwarding coordinator owns only references.
-3. Perform Command local-dispatch terminology cleanup when practical; local success means framework acceptance only.
-4. Continue only Mesh work that does not require unresolved family/Event/Group/security-wire/payload-capacity decisions.
-5. Do not begin Event/MeshAdapters wire integration until unresolved ID decisions are approved.
+1. Perform Command local-dispatch terminology cleanup; local `CommandResult.success` means local parsing/validation/dispatch/handler disposition only, never requested-operation completion.
+2. Continue only Mesh work that does not require unresolved family/Event/Group/security-wire/bounded-owned-capacity decisions. Repeatable Serialized Source forwarding is no longer blocked when composition supplies finite staging.
+3. Keep bounded-owned payload storage capacity unresolved until explicitly approved; do not infer staging capacity as the platform-wide owned-payload capacity.
+4. Do not begin Event/MeshAdapters wire integration until unresolved ID decisions are approved.
 
 ## Chronological continuation log
 
@@ -96,4 +98,6 @@ Immutable-payload continuation:
 - 2026-09-05T09:17Z-10:33Z: Added Mesh forwarding terminal correlation/attempt/outbound delivery composition; runs `33959946510` and `33960956661` green.
 - 2026-09-05T11:16Z-11:39Z: Added bounded ApplicationTransmissionTable and ApplicationTransmissionCoordinator; corrected one test namespace typo; runs `33963104967` and `33963873242` green.
 - 2026-09-05T11:46Z-11:51Z: Added `ApplicationPayload`, Borrowed Stable and Repeatable Serialized Source contracts; bound exactly one immutable payload reference to each aggregate; updated table/coordinator regressions and umbrella export. No byte-capacity constant introduced. Initial run `33964359407` exposed only warning-clean formatting in the coordinator after all preceding tests passed; corrected in `5ec5fea8c8c8a6483e9b39b68e83d4946109e9b5`. Follow-up Topology Evolution `33964394229` completed successfully.
-- 2026-09-05T11:55Z-12:00Z: Added `ApplicationForwardingCoordinator` for Borrowed Stable recipient submission through authenticated forwarding; route/destination and terminal-recipient guards prevent accidental submission; Repeatable Serialized Source returns explicit `StagingRequired`. Initial dedicated run `33964689414` found only a regression-fixture boundary mistake (application logical pointer was incorrectly expected to equal Radio provider physical-fragment pointer). Corrected the test without changing production semantics in `d3a541e9b9345dcf2b13dc9d2eaee40c19ac927e`; follow-up run `33964786992` passed build, regression and umbrella.
+- 2026-09-05T11:55Z-12:00Z: Added `ApplicationForwardingCoordinator` for Borrowed Stable recipient submission through authenticated forwarding; route/destination and terminal-recipient guards prevent accidental submission; Repeatable Serialized Source initially returned explicit `StagingRequired`. Initial dedicated run `33964689414` found only a regression-fixture boundary mistake (application logical pointer was incorrectly expected to equal Radio provider physical-fragment pointer). Corrected the test without changing production semantics in `d3a541e9b9345dcf2b13dc9d2eaee40c19ac927e`; follow-up run `33964786992` passed build, regression and umbrella.
+- 2026-09-05T12:08Z-12:10Z: Reconciled against the live branch tip and discovered routing planner/attempt orchestration had already advanced beyond the stale handoff snapshot. Removed the just-created redundant `RoutingCoordinator` in `faa75a383dc1bcdc924bcdb27a32f26caea2e63f` rather than duplicating validated responsibility.
+- 2026-09-05T12:11Z-12:16Z: Added composition-supplied `IApplicationPayloadStagingBuffer` and Repeatable Serialized Source forwarding through finite injected staging. No default staging/owned-payload capacity was introduced. Explicit outcomes cover staging required, insufficient capacity, unavailable storage and serialization failure. Dedicated Application Forwarding `33965509782`, full CI `33965509790` and all other triggered Mesh workflows passed on head `e969ada33c4c799169f2a03a7d79c2b6cc9c1c92`.
