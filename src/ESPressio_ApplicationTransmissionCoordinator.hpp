@@ -52,6 +52,16 @@ class ApplicationTransmissionCoordinator final {
         return ApplicationTransmissionAdmissionResult::Invalid;
     }
 
+    /// <summary>
+    /// Commits one terminal recipient outcome through the aggregate authority and releases the aggregate's traffic
+    /// reservation only when that commit makes the complete frozen recipient set terminal.
+    /// </summary>
+    /// <remarks>
+    /// This is intentionally private. External delivery/link/acknowledgement owners must reconcile through
+    /// ApplicationRecipientLifecycleCoordinator so aggregate authority is established before their local state is
+    /// retired. Internal aggregate-owned deadline handling may use this path directly because it creates no independent
+    /// external evidence that must first be reconciled.
+    /// </remarks>
     ApplicationTransmissionUpdateResult SetRecipientOutcomeAuthoritative(
         ApplicationTransmissionHandle handle,
         MeshMessageId messageId,
@@ -147,8 +157,11 @@ public:
             case OutboundDeliveryBeginResult::AlreadyActive: return ApplicationRecipientBeginResult::Invalid;
             case OutboundDeliveryBeginResult::ResourceUnavailable: return ApplicationRecipientBeginResult::ResourceUnavailable;
             case OutboundDeliveryBeginResult::DeadlineExpired:
-                if (SetRecipientOutcomeAuthoritative(handle, recipient.MessageId, ApplicationRecipientOutcome::DeadlineExpired) ==
-                    ApplicationTransmissionUpdateResult::Updated) {}
+                (void)SetRecipientOutcomeAuthoritative(
+                    handle,
+                    recipient.MessageId,
+                    ApplicationRecipientOutcome::DeadlineExpired
+                );
                 return ApplicationRecipientBeginResult::DeadlineExpired;
             case OutboundDeliveryBeginResult::Invalid: return ApplicationRecipientBeginResult::Invalid;
         }
