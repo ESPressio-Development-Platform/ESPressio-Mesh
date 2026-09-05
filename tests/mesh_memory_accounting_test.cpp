@@ -33,6 +33,7 @@ int main() {
     static_assert(Accounting::RouteCacheBytes == sizeof(RouteCache<>));
     static_assert(Accounting::PrimitiveReceiverRegistryBytes == sizeof(PrimitiveReceiverRegistry<>));
     static_assert(Accounting::TrafficGovernorBytes == sizeof(DefaultMeshTrafficGovernor));
+    static_assert(Accounting::ApplicationTransmissionBytes == sizeof(ApplicationTransmissionTable<>));
     static_assert(Accounting::ClockCoordinationBytes<TestClockQuality>() == sizeof(ClockCoordinationTable<TestClockQuality>));
     static_assert(Accounting::DeliveryAcknowledgementBytes<8>() == sizeof(DeliveryAcknowledgementTracker<8>));
 
@@ -48,11 +49,13 @@ int main() {
         Accounting::TopologyGraphBytes +
         Accounting::RouteCacheBytes +
         Accounting::PrimitiveReceiverRegistryBytes +
-        Accounting::TrafficGovernorBytes;
+        Accounting::TrafficGovernorBytes +
+        Accounting::ApplicationTransmissionBytes;
     assert(Accounting::PrincipalFixedCardinalityBytes == independentlySummed);
 
     // Printed values are intentionally ABI-specific. CI's x86-64 numbers must never be presented as an ESP32 budget.
     std::cout << "principal_fixed_cardinality_bytes=" << Accounting::PrincipalFixedCardinalityBytes << '\n';
+    std::cout << "application_transmission_bytes=" << Accounting::ApplicationTransmissionBytes << '\n';
     std::cout << "clock_coordination_test_quality_bytes=" << Accounting::ClockCoordinationBytes<TestClockQuality>() << '\n';
     std::cout << "ack_tracker_8_bytes=" << Accounting::DeliveryAcknowledgementBytes<8>() << '\n';
     return 0;
