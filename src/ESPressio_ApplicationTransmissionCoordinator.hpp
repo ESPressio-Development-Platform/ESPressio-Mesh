@@ -90,9 +90,9 @@ public:
         return ApplicationTransmissionAdmissionResult::Begun;
     }
 
+    bool Contains(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.Contains(handle); }
     const ApplicationPayload* Payload(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.Payload(handle); }
 
-    /// <summary>Reads the current aggregate outcome for one exact recipient MessageId.</summary>
     bool TryGetRecipientOutcome(
         ApplicationTransmissionHandle handle,
         MeshMessageId messageId,
