@@ -33,6 +33,8 @@ enum class ForwardingDirectLinkEvidence : std::uint8_t {
 struct ForwardingSubmissionResult final {
     ForwardingSubmissionDisposition Disposition{ForwardingSubmissionDisposition::Invalid};
     Radio::RadioTransportSendResult RadioResult{};
+    System::DeviceIdentifier NextHop{};
+    MembershipIncarnation NextHopIncarnation{};
 
     constexpr explicit operator bool() const noexcept {
         return Disposition == ForwardingSubmissionDisposition::Accepted;
@@ -54,7 +56,9 @@ struct ForwardingSubmissionResult final {
 /// Accepted means Radio accepted every fragment of the direct-link logical transfer. Stronger synchronous Radio evidence
 /// remains link evidence only and never consumes RemainingHopLimit. Explicit RadioTransport deferred-correlation pressure
 /// maps to ResourceUnavailable so route-attempt policy can apply bounded backpressure/retry rather than treating local
-/// bookkeeping exhaustion as a permanent route failure.
+/// bookkeeping exhaustion as a permanent route failure. On Accepted, NextHop and NextHopIncarnation are the exact
+/// authenticated membership identity used to resolve the executable peer binding; callers must use those values rather
+/// than reconstructing acceptance authority from route or discovery state.
 /// </remarks>
 template<std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t BindingCapacity = Limits::MaxTopologyLinks,
@@ -136,7 +140,9 @@ public:
         if (binding == nullptr) return {ForwardingSubmissionDisposition::PeerUnavailable, {}};
 
         const auto radioResult = _transport.Send(binding->Peer, payload, payloadSize);
-        return {MapFailure(radioResult), radioResult};
+        const auto disposition = MapFailure(radioResult);
+        if (disposition != ForwardingSubmissionDisposition::Accepted) return {disposition, radioResult};
+        return {disposition, radioResult, nextHop->Neighbour, membership->Incarnation};
     }
 };
 
