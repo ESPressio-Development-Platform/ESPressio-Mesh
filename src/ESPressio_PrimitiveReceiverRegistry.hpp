@@ -115,8 +115,8 @@ enum class PrimitiveDispatchResult : std::uint8_t {
 /// </summary>
 /// <remarks>
 /// Exactly one active external receiver may own a family. Registration is deterministic and lifetime-safe via a
-/// generation handle. The Mesh control family is intentionally not encoded here because its concrete PrimitiveFamilyId
-/// remains unallocated; when that central allocation is made, the public registration path must additionally reject it.
+/// generation handle. MeshControl is owned internally by Mesh and cannot be registered through this external receiver
+/// boundary. Command, Event, State and application/private families may be registered by their owning integration.
 /// </remarks>
 template<std::size_t Capacity = Limits::MaxPrimitiveReceivers>
 class PrimitiveReceiverRegistry final {
@@ -150,7 +150,9 @@ public:
         PrimitiveReceiverHandle& handle
     ) noexcept {
         handle = {};
-        if (!descriptor.IsValid()) return PrimitiveReceiverRegistrationResult::Invalid;
+        if (!descriptor.IsValid() || descriptor.Family == Primitive::FamilyIds::MeshControl) {
+            return PrimitiveReceiverRegistrationResult::Invalid;
+        }
 
         for (const auto& slot : _slots) {
             if (slot.Occupied && slot.Descriptor.Family == descriptor.Family) {

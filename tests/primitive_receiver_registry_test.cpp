@@ -44,6 +44,17 @@ int main() {
     Receiver first;
     Receiver second;
 
+    Mesh::PrimitiveReceiverHandle reservedHandle{};
+    const Mesh::PrimitiveReceiverDescriptor reservedDescriptor{
+        Primitive::FamilyIds::MeshControl,
+        Primitive::PrimitiveProtocolVersionRange{1, 1},
+        {},
+        Mesh::PrimitiveReceiverExposure::Hidden
+    };
+    assert(registry.Register(reservedDescriptor, first, reservedHandle) ==
+           Mesh::PrimitiveReceiverRegistrationResult::Invalid);
+    assert(!reservedHandle);
+
     Primitive::ContractFingerprint::Storage fingerprintBytes{};
     fingerprintBytes[0] = 0xA5;
     const Mesh::PrimitiveReceiverDescriptor descriptor{

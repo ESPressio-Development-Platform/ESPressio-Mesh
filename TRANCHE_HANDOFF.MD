@@ -24,7 +24,7 @@ Layering: System foundations; Primitive common conceptual-message vocabulary; Co
 
 Identity: DeviceIdentifier exact 16 B zero-invalid; MeshIdentifier and MembershipIncarnation exact nonzero 16 B; MeshNodeAlias uint16 Mesh-local; RadioIdentifier uint8 (0 invalid, 1-254 usable, 255 reserved); MeshMessageId uint64 nonzero monotonic per authenticated source DeviceIdentifier+MembershipIncarnation and never reused; ProfileGeneration/TopologyGeneration uint64 nonzero; CanonicalName mandatory Mesh-unique 1-32 printable ASCII bytes.
 
-PrimitiveFamilyId ranges remain frozen; concrete ESPressio family IDs remain deliberately unallocated. ContractFingerprint is exact 32-byte SHA-256 semantic compatibility digest. Support/Compatible/Reachable/Authorized remain distinct.
+PrimitiveFamilyId ranges remain frozen. Simon approved stable central allocations on 2026-09-05: Mesh Control `0x0001`, Command `0x0002`, Event `0x0003`, State `0x0004`. ContractFingerprint is exact 32-byte SHA-256 semantic compatibility digest. Support/Compatible/Reachable/Authorized remain distinct.
 
 Destinations: Node, Group, CapabilitySelector, Broadcast. Group/CapabilitySelector resolve once into a bounded frozen recipient set and then independent Node deliveries. Selective multicast has one sender-local aggregate/deadline/shared immutable payload but independent recipient MessageIds/outcomes/receipts; no wire MulticastOperationId. Broadcast remains best-effort controlled flooding with no complete-to-all promise. Delivery ACK means authenticated destination acceptance only.
 
@@ -95,12 +95,11 @@ Controlled application teardown was implemented through commits `22c5243974b5fe8
 
 ## Unresolved public/wire decisions — do not cross silently
 
-1. Concrete ESPressio-defined PrimitiveFamilyId allocations.
-2. Canonical distributed EventTypeId derivation/allocation.
-3. Event ConceptualMessageId generation scope/strategy.
-4. Group identity/wire representation when Group implementation becomes unavoidable.
-5. Concrete Mesh security handshake/profile/wire schema.
-6. Final concrete ordinary/control/reassembly and bounded-owned payload byte capacities for whole-device DRAM budgeting.
+1. Canonical distributed EventTypeId derivation/allocation.
+2. Event ConceptualMessageId generation scope/strategy.
+3. Group identity/wire representation when Group implementation becomes unavoidable.
+4. Concrete Mesh security handshake/profile/wire schema.
+5. Final concrete ordinary/control/reassembly and bounded-owned payload byte capacities for whole-device DRAM budgeting.
 
 ## Immediate next work
 
@@ -131,3 +130,4 @@ Controlled application teardown was implemented through commits `22c5243974b5fe8
 - 2026-09-05T16:15Z: Published the completed bounded runtime-reset composition as `5a3cff959d3b85ca2bb1c63347124259f671fd35` through the authorized GitHub integration after the local HTTPS Git remote lacked credentials. All nine workflows passed: General CI `33977276323`, Topology Evolution `33977276331`, Application Forwarding `33977276367`, Topology Freshness `33977276318`, Primitive Support Snapshot `33977276306`, Control Work Lifetime `33977276338`, Liveness Probe Coordinator `33977276313`, Clock Coordination `33977276315`, and Memory Accounting `33977276327`.
 - 2026-09-05T16:20Z-16:22Z: Closed the separately documented local-incarnation lifecycle gap. Added an explicit coordinator for new-incarnation reset versus authenticated continuation, made MessageId high-water restoration non-regressing, and added regression coverage. All 55 host regressions compile cleanly with `-Wall -Wextra -Werror` and pass locally.
 - 2026-09-05T16:23Z: Published the local-incarnation lifecycle as `23e6edffcf7eeb82a0649b0a6bc75242e9714cac`. All nine workflows passed: General CI `33977681143`, Topology Evolution `33977681130`, Application Forwarding `33977681198`, Topology Freshness `33977681125`, Primitive Support Snapshot `33977681119`, Control Work Lifetime `33977681154`, Liveness Probe Coordinator `33977681121`, Clock Coordination `33977681180`, and Memory Accounting `33977681151`. The next implementation boundary is the explicitly unresolved stable PrimitiveFamilyId allocation; it must not be crossed without an approved central allocation.
+- 2026-09-05T16:27Z: Simon approved the stable central PrimitiveFamilyId allocation: Mesh Control `0x0001`, Command `0x0002`, Event `0x0003`, State `0x0004`. Began implementing the registry allocation on Primitive's existing Mesh propagation branch and consuming the reserved Mesh Control constant in Mesh; no arbitrary per-library block was introduced.
