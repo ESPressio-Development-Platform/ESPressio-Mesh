@@ -31,10 +31,17 @@ enum class ApplicationRecipientInspectionResult : std::uint8_t {
     Invalid
 };
 
-/// <summary>Summary of one aggregate-deadline sweep and its synchronous external-lifecycle cleanup.</summary>
 struct ApplicationDeadlineSweepResult final {
     std::size_t ExpiredTransmissions{0};
     std::size_t ExpiredRecipients{0};
+    std::size_t RetiredExternalLifecycles{0};
+    std::size_t ExternalLifecycleMismatches{0};
+};
+
+/// <summary>Summary of one controlled local teardown of application aggregate and external recipient state.</summary>
+struct ApplicationControlledResetResult final {
+    std::size_t ReleasedTransmissions{0};
+    std::size_t RecipientRecordsVisited{0};
     std::size_t RetiredExternalLifecycles{0};
     std::size_t ExternalLifecycleMismatches{0};
 };
@@ -103,7 +110,6 @@ public:
         ApplicationTransmissionCoordinator<TransmissionCapacity, RecipientCapacity>& transmissions
     ) noexcept : _transmissions(transmissions) {}
 
-    /// <summary>Inspects aggregate recipient authority without mutating aggregate or external delivery state.</summary>
     ApplicationRecipientInspectionResult Inspect(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
@@ -122,7 +128,6 @@ public:
             : ApplicationRecipientInspectionResult::Terminal;
     }
 
-    /// <summary>Commits a terminal recipient outcome and retires the exact matching outbound delivery lifecycle.</summary>
     ApplicationRecipientTerminalizationResult Terminalize(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
@@ -132,14 +137,6 @@ public:
         return TerminalizeExternal(transmission, messageId, outcome, delivery);
     }
 
-    /// <summary>
-    /// Commits a terminal recipient outcome and retires a composed external lifecycle exposing IsActive/MessageId/Reset.
-    /// </summary>
-    /// <remarks>
-    /// This overload allows higher composition layers to retire wrappers which own additional bounded state (for example
-    /// a retained Radio-terminal correlation) without duplicating aggregate-authority sequencing. Aggregate state is
-    /// committed first; only Updated/AlreadyTerminal may retire the exact external lifecycle.
-    /// </remarks>
     template<typename TExternalLifecycle>
     ApplicationRecipientTerminalizationResult TerminalizeComposed(
         ApplicationTransmissionHandle transmission,
@@ -150,7 +147,6 @@ public:
         return TerminalizeExternal(transmission, messageId, outcome, external);
     }
 
-    /// <summary>Retires external delivery state after the aggregate recipient became terminal elsewhere.</summary>
     ApplicationRecipientRetirementResult RetireTerminal(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
@@ -159,7 +155,6 @@ public:
         return RetireTerminalExternal(transmission, messageId, delivery);
     }
 
-    /// <summary>Retires a composed exact external lifecycle after aggregate terminality was established elsewhere.</summary>
     template<typename TExternalLifecycle>
     ApplicationRecipientRetirementResult RetireTerminalComposed(
         ApplicationTransmissionHandle transmission,
@@ -169,17 +164,6 @@ public:
         return RetireTerminalExternal(transmission, messageId, external);
     }
 
-    /// <summary>
-    /// Expires every due aggregate recipient and synchronously retires any matching externally owned delivery lifecycle.
-    /// </summary>
-    /// <remarks>
-    /// The resolver is invoked only after the aggregate has committed DeadlineExpired for the exact MessageId. It may
-    /// return nullptr when that recipient has no active external lifecycle (for example, forwarding never began). When it
-    /// returns a lifecycle, that object must expose IsActive(), MessageId() and Reset(). Exact MessageId matching is checked
-    /// before Reset, so a resolver bug cannot cancel another recipient's bounded ACK/Radio/forwarding state. The resolver
-    /// is composition-supplied rather than a Mesh-owned registry, preserving external lifecycle ownership and avoiding a
-    /// second capacity/identity table. All cleanup happens synchronously inside the sweep before the caller regains control.
-    /// </remarks>
     template<typename TExternalLifecycleResolver>
     ApplicationDeadlineSweepResult ExpireDueAndRetire(
         std::uint64_t nowMilliseconds,
@@ -204,6 +188,50 @@ public:
                 }
             }
         );
+        return result;
+    }
+
+    /// <summary>
+    /// Performs controlled local teardown of every retained application aggregate and its exact external recipient state.
+    /// </summary>
+    /// <remarks>
+    /// This is shutdown/reset cleanup, not a delivery outcome and not a distributed cancellation protocol. No recipient is
+    /// marked Delivered, PermanentFailure or DeadlineExpired merely because the local Mesh service is being reset. The
+    /// resolver is called for every retained recipient before aggregate records and Application traffic reservations are
+    /// discarded. A nullptr means no external lifecycle is retained. An inactive lifecycle is already clean. An active
+    /// lifecycle whose MessageId differs is reported as a mismatch and is never reset through the wrong recipient identity.
+    /// After traversal, local aggregate/payload references and traffic reservations are released deterministically even if
+    /// a composition bug produced a mismatch; the mismatch count lets the composition owner detect its own orphaned state.
+    /// </remarks>
+    template<typename TExternalLifecycleResolver>
+    ApplicationControlledResetResult ResetForControlledShutdown(
+        TExternalLifecycleResolver&& resolveExternalLifecycle
+    ) noexcept {
+        ApplicationControlledResetResult result{};
+        for (std::size_t slot = 0; slot < TransmissionCapacity; ++slot) {
+            for (std::uint16_t generation = 1U; generation != 0U; ++generation) {
+                const ApplicationTransmissionHandle handle{static_cast<std::uint16_t>(slot), generation};
+                if (!_transmissions.Contains(handle)) continue;
+                ++result.ReleasedTransmissions;
+                const std::size_t count = _transmissions._transmissions.RecipientCount(handle);
+                for (std::size_t index = 0; index < count; ++index) {
+                    ApplicationTransmissionRecipient recipient{};
+                    ApplicationRecipientOutcome outcome{};
+                    if (!_transmissions._transmissions.TryGetRecipient(handle, index, recipient, outcome)) continue;
+                    ++result.RecipientRecordsVisited;
+                    auto* external = resolveExternalLifecycle(handle, recipient.MessageId);
+                    if (external == nullptr || !external->IsActive()) continue;
+                    if (external->MessageId() != recipient.MessageId) {
+                        ++result.ExternalLifecycleMismatches;
+                        continue;
+                    }
+                    external->Reset();
+                    ++result.RetiredExternalLifecycles;
+                }
+                break;
+            }
+        }
+        _transmissions.ResetForControlledShutdown();
         return result;
     }
 };
