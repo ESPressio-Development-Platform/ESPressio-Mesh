@@ -47,7 +47,6 @@ int main() {
     assert(aggregate.BeginRecipient(handle, 0, 101, true, first) == ApplicationRecipientBeginResult::Begun);
     assert(first.IsActive() && first.AwaitingDestinationAcknowledgement());
 
-    // An unrelated/inactive lifecycle cannot terminalize another recipient or discard its delivery state.
     RouteAttemptCoordinator unrelatedAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> unrelated(unrelatedAttempts, acknowledgements);
     assert(lifecycle.Terminalize(handle, 101, ApplicationRecipientOutcome::Delivered, unrelated) ==
@@ -72,7 +71,6 @@ int main() {
     assert(aggregate.Payload(handle) != nullptr && aggregate.Payload(handle)->StableData() == bytes);
     assert(aggregate.Release(handle));
 
-    // Unknown aggregate state never resets an otherwise-active delivery lifecycle.
     ApplicationTransmissionRecipient lone[] = {{Device(3), Incarnation(13), 201}};
     ApplicationTransmissionHandle other{};
     assert(aggregate.Begin(lone, 1, payload, 100, 1000, other) == ApplicationTransmissionAdmissionResult::Begun);
@@ -87,8 +85,6 @@ int main() {
     assert(!otherDelivery.IsActive() && transmissions.IsTerminal(other));
     assert(aggregate.Release(other));
 
-    // Deadline sweeping terminalizes aggregate state independently; active external delivery state is then retired
-    // explicitly, preserving the aggregate outcome and never treating retirement as cancellation.
     ApplicationTransmissionRecipient expiring[] = {{Device(4), Incarnation(14), 301}};
     ApplicationTransmissionHandle expiringHandle{};
     assert(aggregate.Begin(expiring, 1, payload, 100, 200, expiringHandle) == ApplicationTransmissionAdmissionResult::Begun);
@@ -110,8 +106,6 @@ int main() {
     assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
     assert(aggregate.Release(expiringHandle));
 
-    // If a deadline sweep wins immediately before a late terminal result is composed, the aggregate's DeadlineExpired
-    // outcome remains authoritative while Terminalize still retires the exact stale delivery and its ACK reservation.
     ApplicationTransmissionRecipient raced[] = {{Device(5), Incarnation(15), 401}};
     ApplicationTransmissionHandle racedHandle{};
     assert(aggregate.Begin(raced, 1, payload, 100, 200, racedHandle) == ApplicationTransmissionAdmissionResult::Begun);
@@ -128,7 +122,7 @@ int main() {
     assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
     assert(aggregate.Release(racedHandle));
 
-    // The composed sweep retires matching external state synchronously, so bounded ACK/forwarding resources are not
+    // Composed sweeping retires matching external state synchronously so bounded ACK/forwarding resources are not
     // retained merely because no later delivery callback happens to touch an expired aggregate recipient.
     ApplicationTransmissionRecipient sweptRecipients[] = {
         {Device(6), Incarnation(16), 501},
@@ -147,7 +141,7 @@ int main() {
     const auto sweep = lifecycle.ExpireDueAndRetire(
         300,
         [&](ApplicationTransmissionHandle candidate, MeshMessageId messageId) noexcept -> OutboundDeliveryLifecycle<4>* {
-            if (candidate != sweptHandle) return nullptr;
+            if (!(candidate == sweptHandle)) return nullptr;
             if (messageId == 501) return &sweptFirst;
             if (messageId == 502) return &sweptSecond;
             return nullptr;
@@ -166,8 +160,7 @@ int main() {
     assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
     assert(aggregate.Release(sweptHandle));
 
-    // A bad resolver can never reset another recipient. The mismatch is surfaced while the exact aggregate outcome
-    // remains authoritative, allowing composition to diagnose the ownership defect instead of silently cancelling state.
+    // A bad resolver can never reset another recipient. The mismatch is surfaced instead of silently cancelling state.
     ApplicationTransmissionRecipient mismatchRecipient[] = {{Device(8), Incarnation(18), 601}};
     ApplicationTransmissionHandle mismatchHandle{};
     assert(aggregate.Begin(mismatchRecipient, 1, payload, 100, 300, mismatchHandle) == ApplicationTransmissionAdmissionResult::Begun);
@@ -180,9 +173,7 @@ int main() {
     assert(foreignDelivery.Begin(Device(9), Incarnation(19), 999, 101, 1000, true) == OutboundDeliveryBeginResult::Begun);
     const auto mismatchSweep = lifecycle.ExpireDueAndRetire(
         300,
-        [&](ApplicationTransmissionHandle, MeshMessageId) noexcept -> OutboundDeliveryLifecycle<4>* {
-            return &foreignDelivery;
-        }
+        [&](ApplicationTransmissionHandle, MeshMessageId) noexcept -> OutboundDeliveryLifecycle<4>* { return &foreignDelivery; }
     );
     assert(mismatchSweep.ExpiredTransmissions == 1U);
     assert(mismatchSweep.ExpiredRecipients == 1U);
