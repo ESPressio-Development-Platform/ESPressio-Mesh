@@ -140,11 +140,11 @@ public:
     static constexpr std::size_t HopFixedBodyBytes = 147U;
     static constexpr std::size_t HopAuthenticatedHeaderBytes = CommonHeaderBytes + HopFixedBodyBytes;
 
-    static std::size_t EndToEndPacketBytes(std::size_t plaintextBytes) noexcept {
+    static constexpr std::size_t EndToEndPacketBytes(std::size_t plaintextBytes) noexcept {
         const auto body = EndToEndFixedBodyBytes + plaintextBytes + MeshV1SecuritySuite::AuthenticationTagBytes;
         return body <= std::numeric_limits<std::uint16_t>::max() ? CommonHeaderBytes + body : 0U;
     }
-    static std::size_t HopPacketBytes(std::size_t innerFrameBytes) noexcept {
+    static constexpr std::size_t HopPacketBytes(std::size_t innerFrameBytes) noexcept {
         const auto body = HopFixedBodyBytes + innerFrameBytes + MeshV1SecuritySuite::AuthenticationTagBytes;
         return innerFrameBytes != 0U && innerFrameBytes <= std::numeric_limits<std::uint16_t>::max() &&
                body <= std::numeric_limits<std::uint16_t>::max() ? CommonHeaderBytes + body : 0U;
