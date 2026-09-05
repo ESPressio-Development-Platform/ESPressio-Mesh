@@ -13,6 +13,7 @@
 #include "ESPressio_MembershipLiveness.hpp"
 #include "ESPressio_MembershipTombstoneTable.hpp"
 #include "ESPressio_MeshTrafficGovernor.hpp"
+#include "ESPressio_MeshSecuritySessionTable.hpp"
 #include "ESPressio_RouteCache.hpp"
 #include "ESPressio_TopologyGraphStore.hpp"
 
@@ -24,9 +25,9 @@ namespace ESPressio::Mesh {
 /// <remarks>
 /// The caller must first stop every RadioTransport so no provider callback can repopulate forwarding correlation, then
 /// reset exact externally owned application-delivery lifecycles through ApplicationRecipientLifecycleCoordinator. This
-/// coordinator subsequently releases all retained non-application execution and remote-Mesh state before finally
-/// resetting the traffic governor. It emits no wire message and creates no delivery, cancellation, reachability,
-/// membership, Radio-terminal or clock evidence.
+/// coordinator subsequently releases all retained non-application execution, pairwise session/provider secrets and
+/// remote-Mesh state before finally resetting the traffic governor. It emits no wire message and creates no delivery,
+/// cancellation, reachability, membership, Radio-terminal or clock evidence.
 ///
 /// Composition configuration deliberately survives: registered primitive receivers, injected policies, registered
 /// local Radio interfaces, the local MembershipIncarnation and its MeshMessageId high-water value are not runtime work.
@@ -47,7 +48,8 @@ template<
     std::size_t BindingCapacity = Limits::MaxTopologyLinks,
     std::size_t TopologyLinkCapacity = Limits::MaxTopologyLinks,
     std::size_t RouteCapacity = Limits::MaxRouteCacheEntries,
-    std::size_t RouteHopCapacity = Limits::MaxRouteHops
+    std::size_t RouteHopCapacity = Limits::MaxRouteHops,
+    std::size_t SecuritySessionCapacity = Limits::MaxMeshNodes
 >
 class MeshRuntimeResetCoordinator final {
     AuthenticatedMembershipTable<MembershipCapacity>& _memberships;
@@ -62,6 +64,8 @@ class MeshRuntimeResetCoordinator final {
     RouteCache<RouteCapacity, RouteHopCapacity>& _routes;
     DeliveryAcknowledgementTracker<AcknowledgementCapacity>& _acknowledgements;
     ForwardingRadioTerminalCorrelation<CorrelationCapacity>& _radioCorrelations;
+    MeshSecuritySessionTable<SecuritySessionCapacity>& _securitySessions;
+    IMeshV1CryptographicProvider& _cryptography;
     ClockCoordinationTable<TClockQuality, MembershipCapacity>& _clock;
     IMeshTrafficGovernor& _traffic;
 
@@ -79,6 +83,8 @@ public:
         RouteCache<RouteCapacity, RouteHopCapacity>& routes,
         DeliveryAcknowledgementTracker<AcknowledgementCapacity>& acknowledgements,
         ForwardingRadioTerminalCorrelation<CorrelationCapacity>& radioCorrelations,
+        MeshSecuritySessionTable<SecuritySessionCapacity>& securitySessions,
+        IMeshV1CryptographicProvider& cryptography,
         ClockCoordinationTable<TClockQuality, MembershipCapacity>& clock,
         IMeshTrafficGovernor& traffic
     ) noexcept :
@@ -94,6 +100,8 @@ public:
         _routes(routes),
         _acknowledgements(acknowledgements),
         _radioCorrelations(radioCorrelations),
+        _securitySessions(securitySessions),
+        _cryptography(cryptography),
         _clock(clock),
         _traffic(traffic) {}
 
@@ -108,6 +116,7 @@ public:
         _routes.Clear();
         _topology.Clear();
         _directPeers.Clear();
+        _securitySessions.ResetForControlledShutdown(_cryptography);
         _clock.Clear();
         _liveness.Clear();
         _tombstones.Clear();

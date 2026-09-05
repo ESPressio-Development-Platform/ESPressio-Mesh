@@ -42,6 +42,16 @@ Control work is also required to have a finite lifetime. `IControlWorkLifetimePo
 
 Radio-owned `RadioPeerHandle` values are deliberately separate from every Mesh identity. They are process-local, generation-safe direct-link handles supplied by `ESPressio-Radio`; Mesh may retain them beside a `RadioIdentifier` as link evidence, but they are never distributed or treated as authenticated node identity.
 
+## Mesh v1 security profile
+
+Mesh v1 authenticates provisioned long-term device identities while deriving fresh ephemeral pairwise sessions. The frozen suite is ECDSA P-256/SHA-256 for identity signatures, ephemeral ECDH P-256, HKDF-SHA-256 for session derivation, and AES-256-GCM with a 96-bit nonce and 128-bit tag for protected traffic. This follows the key-establishment, signature, derivation and authenticated-encryption constructions specified by NIST SP 800-56A Rev. 3, FIPS 186-5, RFC 5869 and NIST SP 800-38D respectively.
+
+`MeshV1SecurityHandshakeCodec` defines canonical network-byte-order frames rather than serializing native C++ layout. Its exact v1 packets are a 219-byte signed InitiatorHello, 267-byte signed and key-confirmed ResponderHello, and 58-byte InitiatorFinish key confirmation. Both signed hellos bind `MeshIdentifier`, device identity, membership incarnation, an uncompressed ephemeral P-256 public key and a 32-byte nonce; the responder also binds the complete initiator-hello digest. Both sides explicitly confirm the digest of the signed hellos under distinct directional confirmation material. Unknown suites, wrong lengths, trailing bytes, zero identities and malformed public-key encodings are rejected.
+
+`IMeshV1CryptographicProvider` is the only private-key/algorithm boundary. It resolves registered device keys, owns ephemeral secrets and derived traffic keys behind generation-safe handles, and supplies hashing, signing, verification, derivation and AEAD operations. Mesh never treats `DeviceIdentifier` as a credential and never receives raw private/session keys. HKDF context binds the Mesh, ordered authenticated identities/incarnations, both nonces, roles and full signed transcript; distinct directional Hop, EndToEnd and KeyConfirmation keys and base IVs prevent cross-purpose key/nonce reuse.
+
+`MeshSecuritySessionTable` retains at most one current pairwise session per Mesh member by default. Hop and end-to-end traffic have independent non-wrapping outbound sequences and 64-position inbound replay windows. Replay state is preflighted before decryption but committed only after successful AEAD authentication. Replacing an incarnation/session and controlled shutdown synchronously release provider-owned secret state; stale handles cannot address the replacement.
+
 ## Frozen default bounds
 
 The baseline 1.0.0 configuration is intentionally bounded. Among the locked defaults are 32 Mesh members, four Radios per member, eight Groups per member, eight primitive receivers, eight active application transmission aggregates, 96 topology links, 16 route hops, a 16-hop initial forwarding limit, 32 cached routes, 32 maximum recipients in one selective-multicast aggregate and 64 membership tombstones.
@@ -62,15 +72,19 @@ The clock-coordination types define no Mesh control-family number and no wire en
 
 ## Memory accounting
 
-`MeshFixedMemoryAccounting<TTopologyCharacteristics>` exposes target-native `sizeof` accounting for the principal stores whose cardinalities are already frozen: authenticated membership/liveness/tombstones, inbound delivery reservations, pending neighbour candidates, inbound authentications, liveness probes, authenticated direct-peer bindings, the global topology graph, route cache, primitive receiver registry and default traffic governor.
+`MeshFixedMemoryAccounting<TTopologyCharacteristics>` exposes target-native `sizeof` accounting for the principal stores whose cardinalities are already frozen: authenticated membership/liveness/tombstones, inbound delivery reservations, pending neighbour candidates, inbound authentications, liveness probes, authenticated direct-peer bindings, pairwise security sessions, the global topology graph, route cache, primitive receiver registry and default traffic governor.
 
 The values are deliberately evaluated by the target compiler. A host x86-64 result is useful for regression but is **not** an ESP32 memory budget because pointer width/alignment and application-selected representations can differ. Delivery-acknowledgement storage is reported only after the composition root supplies an explicit finite acknowledgement capacity, and clock-coordination storage is reported only after the composition supplies its `TClockQuality` representation. No universal capacity or quality structure is invented by the library.
 
-The dedicated ESP32 accounting probe uses PlatformIO `espressif32` 7.1.0, Arduino-ESP32 `3.20017.241212+sha.dcc1105b` and the Xtensa ESP32 GCC 8.4.0 toolchain. With the representative test topology-characteristics type (`int16_t` signal + `uint16_t` cost hint), the principal represented fixed/cardinality stores occupy **37,096 bytes** under the ESP32 ABI. With the representative clock-quality type containing one `uint32_t` uncertainty value, `ClockCoordinationTable<TestClockQuality>` occupies **2,312 bytes**. `DeliveryAcknowledgementTracker<8>` occupies **456 bytes**. The principal figure intentionally excludes the quality-dependent clock table and capacity-dependent acknowledgement tracker so those composition choices remain visible rather than silently folded into a misleading universal number.
+The dedicated ESP32 accounting probe uses PlatformIO `espressif32` 7.1.0, Arduino-ESP32 `3.20017.241212+sha.dcc1105b` and the Xtensa ESP32 GCC 8.4.0 toolchain. It emits a distinct retained symbol for every principal store—including application aggregate metadata and pairwise Mesh security sessions—plus the representative clock-quality table and eight-entry delivery-acknowledgement tracker. The workflow derives the target-native totals from the resulting ELF so newly added retained state cannot remain absent from a hard-coded subtotal.
 
 The corresponding x86-64 values remain ABI-specific regression data rather than ESP32 estimates. These measurements describe retained structure/cardinality storage only, not complete runtime or whole-device RAM usage.
 
 Whole-device planning must add task stacks, RadioTransport/provider storage, payload/reassembly/control buffers, security-authority private state and application objects. The ESP32 probe firmware's aggregate framework/build RAM figure is intentionally not used as a Mesh budget, because it also includes Arduino/framework runtime and the deliberately materialized probe arrays. This keeps the memory model measurable without disguising unresolved application capacity choices as architectural defaults.
+
+`MeshPlatformCapacityProfile` now makes those retained-byte choices build-visible. A platform composition supplies a stable non-zero profile identifier, maximum bytes for each of the eight inbound delivery slots, each protected control slot and each of the eight bounded-owned application payload slots, the Radio reassembly settings expected from that build, and explicit task-stack/other-composition reserves. The resulting `InboundDeliveryPool`, `ControlFramePool` and `ApplicationPayloadPool` are fixed arrays with generation-safe handles, explicit exhaustion and no heap fallback.
+
+`MeshWholeDeviceMemoryAccounting` accepts that profile plus the concrete bounded security authority and actual `RadioTransport` type. It rejects a build when the profile's Radio values differ from the macros compiled into Radio, and reports one target-native total covering principal Mesh stores, clock and ACK state, all three owned pools, the complete Radio transport object, concrete security state, task stacks and other reserved composition storage. `RadioTransport::ReassemblyPayloadCapacityBytes` remains separately visible within that total for diagnostics; it is not double-counted.
 
 ## Selective multicast and Broadcast
 
@@ -96,7 +110,7 @@ This separation prevents Radio submission, physical transmission, one-hop acknow
 
 ## Controlled runtime reset
 
-`MeshRuntimeResetCoordinator` provides deterministic local teardown for the principal non-application Mesh runtime stores: remote membership/liveness/tombstones, admission and probe reservations, inbound delivery reservations, direct-peer bindings, topology, route cache, pending destination acknowledgements, deferred Radio-terminal correlations, clock observations and traffic reservations.
+`MeshRuntimeResetCoordinator` provides deterministic local teardown for the principal non-application Mesh runtime stores: remote membership/liveness/tombstones, admission and probe reservations, inbound delivery reservations, direct-peer bindings, topology, route cache, pending destination acknowledgements, deferred Radio-terminal correlations, pairwise security sessions/provider secrets, clock observations and traffic reservations.
 
 Shutdown ordering is explicit. Radio transports must first be stopped so provider callbacks cannot repopulate correlation state; application composition must then reset every exact per-recipient lifecycle and aggregate through `ApplicationRecipientLifecycleCoordinator`; the runtime reset coordinator can then clear the remaining Mesh state and reset the injected traffic governor last. This cleanup emits no wire cancellation and fabricates no delivery, Radio-terminal, membership, reachability or clock evidence.
 

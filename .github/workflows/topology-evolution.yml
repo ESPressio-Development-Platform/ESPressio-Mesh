@@ -106,5 +106,9 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src ESPressio-Mesh/tests/mesh_security_authority_test.cpp -o mesh_security_authority_test -pthread
       - name: Run Mesh security authority contract regression
         run: ./mesh_security_authority_test
+      - name: Build Mesh v1 security profile and canonical handshake regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src ESPressio-Mesh/tests/mesh_v1_security_test.cpp -o mesh_v1_security_test -pthread
+      - name: Run Mesh v1 security profile and canonical handshake regression
+        run: ./mesh_v1_security_test
       - name: Build current Mesh umbrella
         run: printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp && g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src umbrella.cpp -o umbrella -pthread

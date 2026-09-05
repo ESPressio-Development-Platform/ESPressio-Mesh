@@ -32,6 +32,8 @@ __attribute__((used)) volatile std::uint8_t espressio_mesh_accounting_topology_g
 __attribute__((used)) volatile std::uint8_t espressio_mesh_accounting_route_cache[Accounting::RouteCacheBytes];
 __attribute__((used)) volatile std::uint8_t espressio_mesh_accounting_primitive_receiver_registry[Accounting::PrimitiveReceiverRegistryBytes];
 __attribute__((used)) volatile std::uint8_t espressio_mesh_accounting_traffic_governor[Accounting::TrafficGovernorBytes];
+__attribute__((used)) volatile std::uint8_t espressio_mesh_accounting_application_transmissions[Accounting::ApplicationTransmissionBytes];
+__attribute__((used)) volatile std::uint8_t espressio_mesh_accounting_security_sessions[Accounting::SecuritySessionBytes];
 __attribute__((used)) volatile std::uint8_t espressio_mesh_accounting_clock_coordination_test_quality[Accounting::ClockCoordinationBytes<TestClockQuality>()];
 __attribute__((used)) volatile std::uint8_t espressio_mesh_accounting_ack_tracker_8[Accounting::DeliveryAcknowledgementBytes<8>()];
 }
@@ -50,6 +52,8 @@ void setup() {
     espressio_mesh_probe_sink ^= espressio_mesh_accounting_route_cache[0];
     espressio_mesh_probe_sink ^= espressio_mesh_accounting_primitive_receiver_registry[0];
     espressio_mesh_probe_sink ^= espressio_mesh_accounting_traffic_governor[0];
+    espressio_mesh_probe_sink ^= espressio_mesh_accounting_application_transmissions[0];
+    espressio_mesh_probe_sink ^= espressio_mesh_accounting_security_sessions[0];
     espressio_mesh_probe_sink ^= espressio_mesh_accounting_clock_coordination_test_quality[0];
     espressio_mesh_probe_sink ^= espressio_mesh_accounting_ack_tracker_8[0];
 }

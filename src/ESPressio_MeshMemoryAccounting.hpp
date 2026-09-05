@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+#include <ESPressio_RadioTransport.hpp>
+
 #include "ESPressio_AdmissionResources.hpp"
 #include "ESPressio_ApplicationTransmissionTable.hpp"
 #include "ESPressio_AuthenticatedMembershipTable.hpp"
@@ -13,6 +15,8 @@
 #include "ESPressio_MembershipLiveness.hpp"
 #include "ESPressio_MembershipTombstoneTable.hpp"
 #include "ESPressio_MeshTrafficGovernor.hpp"
+#include "ESPressio_MeshCapacityProfile.hpp"
+#include "ESPressio_MeshSecuritySessionTable.hpp"
 #include "ESPressio_PrimitiveReceiverRegistry.hpp"
 #include "ESPressio_RouteCache.hpp"
 #include "ESPressio_TopologyGraphStore.hpp"
@@ -49,6 +53,7 @@ struct MeshFixedMemoryAccounting final {
     static constexpr std::size_t PrimitiveReceiverRegistryBytes = sizeof(PrimitiveReceiverRegistry<>);
     static constexpr std::size_t TrafficGovernorBytes = sizeof(DefaultMeshTrafficGovernor);
     static constexpr std::size_t ApplicationTransmissionBytes = sizeof(ApplicationTransmissionTable<>);
+    static constexpr std::size_t SecuritySessionBytes = sizeof(MeshSecuritySessionTable<>);
 
     /// <summary>Sum of the principal frozen-capacity stores represented above.</summary>
     static constexpr std::size_t PrincipalFixedCardinalityBytes =
@@ -64,7 +69,8 @@ struct MeshFixedMemoryAccounting final {
         RouteCacheBytes +
         PrimitiveReceiverRegistryBytes +
         TrafficGovernorBytes +
-        ApplicationTransmissionBytes;
+        ApplicationTransmissionBytes +
+        SecuritySessionBytes;
 
     /// <summary>Returns fixed storage for the composition-selected clock-quality representation at MaxMeshNodes.</summary>
     template<typename TClockQuality>
@@ -78,6 +84,46 @@ struct MeshFixedMemoryAccounting final {
         static_assert(AcknowledgementCapacity > 0, "Acknowledgement capacity must be explicitly finite and non-zero.");
         return sizeof(DeliveryAcknowledgementTracker<AcknowledgementCapacity>);
     }
+};
+
+/// <summary>Whole-device static storage accounting for an explicitly selected platform profile.</summary>
+/// <remarks>
+/// TSecurityAuthority must be the concrete bounded authority/session owner used by the build, not its interface type.
+/// RadioTransportBytes includes its fixed reassembly arrays and all other retained Radio transport state. Task stacks
+/// and composition-owned storage not represented by concrete types remain explicit profile terms.
+/// </remarks>
+template<
+    typename TTopologyCharacteristics,
+    typename TClockQuality,
+    std::size_t AcknowledgementCapacity,
+    typename TCapacityProfile,
+    typename TSecurityAuthority,
+    typename TRadioTransport = Radio::RadioTransport
+>
+struct MeshWholeDeviceMemoryAccounting final {
+    static_assert(TRadioTransport::ReassemblyCapacity == TCapacityProfile::RadioReassemblies,
+                  "The selected profile does not match the build-selected Radio reassembly count.");
+    static_assert(TRadioTransport::LogicalTransferCapacityBytes == TCapacityProfile::RadioLogicalTransferBytes,
+                  "The selected profile does not match the build-selected Radio logical-transfer byte capacity.");
+
+    using Fixed = MeshFixedMemoryAccounting<TTopologyCharacteristics>;
+    static constexpr std::size_t MeshPrincipalBytes = Fixed::PrincipalFixedCardinalityBytes;
+    static constexpr std::size_t ClockCoordinationBytes = Fixed::template ClockCoordinationBytes<TClockQuality>();
+    static constexpr std::size_t DeliveryAcknowledgementBytes =
+        Fixed::template DeliveryAcknowledgementBytes<AcknowledgementCapacity>();
+    static constexpr std::size_t InboundOwnedPoolBytes = sizeof(typename TCapacityProfile::InboundDeliveryPool);
+    static constexpr std::size_t ControlOwnedPoolBytes = sizeof(typename TCapacityProfile::ControlFramePool);
+    static constexpr std::size_t ApplicationOwnedPoolBytes = sizeof(typename TCapacityProfile::ApplicationPayloadPool);
+    static constexpr std::size_t RadioTransportBytes = sizeof(TRadioTransport);
+    static constexpr std::size_t RadioReassemblyPayloadBytes = TRadioTransport::ReassemblyPayloadCapacityBytes;
+    static constexpr std::size_t SecurityAuthorityBytes = sizeof(TSecurityAuthority);
+    static constexpr std::size_t TaskStackBytes = TCapacityProfile::ReservedTaskStackBytes;
+    static constexpr std::size_t OtherCompositionBytes = TCapacityProfile::ReservedOtherCompositionBytes;
+
+    static constexpr std::size_t TotalAccountedBytes =
+        MeshPrincipalBytes + ClockCoordinationBytes + DeliveryAcknowledgementBytes +
+        InboundOwnedPoolBytes + ControlOwnedPoolBytes + ApplicationOwnedPoolBytes +
+        RadioTransportBytes + SecurityAuthorityBytes + TaskStackBytes + OtherCompositionBytes;
 };
 
 } // namespace ESPressio::Mesh

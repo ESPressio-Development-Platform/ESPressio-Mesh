@@ -4,6 +4,8 @@
 
 #include <ESPressio_MeshRuntimeResetCoordinator.hpp>
 
+#include "mesh_test_cryptographic_provider.hpp"
+
 using namespace ESPressio;
 
 namespace {
@@ -83,6 +85,14 @@ int main() {
     const auto correlation = radioCorrelations.Reserve();
     assert(correlation && radioCorrelations.Bind(correlation, Radio::DeferredLogicalTransferHandle{0U, 1U}));
 
+    TestCryptographicProvider cryptography;
+    Mesh::MeshSecuritySessionTable<Capacity> securitySessions;
+    Mesh::MeshSecuritySessionIdentifier securityIdentifier{};
+    securityIdentifier.Value[15] = 1U;
+    Mesh::MeshSecuritySessionRecordHandle securitySession{};
+    assert(securitySessions.Install(remote, incarnation, securityIdentifier,
+                                    Mesh::MeshSecuritySessionHandle{0U, 1U}, cryptography, securitySession));
+
     Mesh::ClockCoordinationTable<ClockQuality, Capacity> clock;
     assert(clock.Observe({remote, incarnation, remote, Mesh::ClockRootStratum, {100U}, 100U}));
 
@@ -93,9 +103,11 @@ int main() {
 
     Mesh::MeshRuntimeResetCoordinator<Characteristics, ClockQuality, Capacity, Capacity,
                                       Capacity, Capacity, Capacity, Capacity, Capacity,
-                                      Capacity, Capacity, Capacity, Capacity, Capacity> reset{
+                                      Capacity, Capacity, Capacity, Capacity, Capacity,
+                                      Capacity> reset{
         memberships, liveness, tombstones, inboundDeliveries, candidates, authentications, probes,
-        directPeers, topology, routes, acknowledgements, radioCorrelations, clock, traffic
+        directPeers, topology, routes, acknowledgements, radioCorrelations,
+        securitySessions, cryptography, clock, traffic
     };
     reset.ResetForControlledShutdown();
 
@@ -111,6 +123,8 @@ int main() {
     assert(routes.Empty());
     assert(acknowledgements.Empty());
     assert(radioCorrelations.Size() == 0U);
+    assert(!securitySessions.ProviderSession(securitySession));
+    assert(cryptography.Releases == 1U && cryptography.Resets == 1U);
     assert(clock.Size() == 0U);
     assert(traffic.Active(Mesh::MeshTrafficClass::GeneralControl) == 0U);
 

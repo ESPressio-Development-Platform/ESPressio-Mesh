@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ESPressio_MeshLimits.hpp"
+#include "ESPressio_BoundedOwnedBytePool.hpp"
+#include "ESPressio_MeshCapacityProfile.hpp"
 #include "ESPressio_MeshTypes.hpp"
 #include "ESPressio_MembershipTombstoneTable.hpp"
 #include "ESPressio_DeduplicationWindow.hpp"
@@ -13,6 +15,9 @@
 #include "ESPressio_MembershipLifecycleCoordinator.hpp"
 #include "ESPressio_AdmissionResources.hpp"
 #include "ESPressio_MeshSecurityAuthority.hpp"
+#include "ESPressio_MeshV1Security.hpp"
+#include "ESPressio_MeshSecuritySessionTable.hpp"
+#include "ESPressio_MeshV1ProtectedFrame.hpp"
 #include "ESPressio_AdmissionLifecycleCoordinator.hpp"
 #include "ESPressio_AdmissionPromotionCoordinator.hpp"
 #include "ESPressio_MeshTrafficGovernor.hpp"
