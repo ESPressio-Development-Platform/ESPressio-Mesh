@@ -39,17 +39,63 @@ template<
 class ApplicationRecipientLifecycleCoordinator final {
     ApplicationTransmissionCoordinator<TransmissionCapacity, RecipientCapacity>& _transmissions;
 
+    template<typename TExternalLifecycle>
+    ApplicationRecipientTerminalizationResult TerminalizeExternal(
+        ApplicationTransmissionHandle transmission,
+        MeshMessageId messageId,
+        ApplicationRecipientOutcome outcome,
+        TExternalLifecycle& external
+    ) noexcept {
+        if (outcome == ApplicationRecipientOutcome::Pending || messageId == 0U ||
+            !external.IsActive() || external.MessageId() != messageId) {
+            return ApplicationRecipientTerminalizationResult::Invalid;
+        }
+
+        const auto update = _transmissions.SetRecipientOutcome(transmission, messageId, outcome);
+        switch (update) {
+            case ApplicationTransmissionUpdateResult::Updated:
+                external.Reset();
+                return ApplicationRecipientTerminalizationResult::Terminalized;
+            case ApplicationTransmissionUpdateResult::AlreadyTerminal:
+                external.Reset();
+                return ApplicationRecipientTerminalizationResult::AlreadyTerminal;
+            case ApplicationTransmissionUpdateResult::UnknownRecipient:
+                return ApplicationRecipientTerminalizationResult::UnknownRecipient;
+            case ApplicationTransmissionUpdateResult::UnknownTransmission:
+                return ApplicationRecipientTerminalizationResult::UnknownTransmission;
+            case ApplicationTransmissionUpdateResult::Invalid:
+                return ApplicationRecipientTerminalizationResult::Invalid;
+        }
+        return ApplicationRecipientTerminalizationResult::Invalid;
+    }
+
+    template<typename TExternalLifecycle>
+    ApplicationRecipientRetirementResult RetireTerminalExternal(
+        ApplicationTransmissionHandle transmission,
+        MeshMessageId messageId,
+        TExternalLifecycle& external
+    ) noexcept {
+        if (!transmission || messageId == 0U || !external.IsActive() || external.MessageId() != messageId) {
+            return ApplicationRecipientRetirementResult::Invalid;
+        }
+        if (!_transmissions.Contains(transmission)) return ApplicationRecipientRetirementResult::UnknownTransmission;
+
+        ApplicationRecipientOutcome outcome{};
+        if (!_transmissions.TryGetRecipientOutcome(transmission, messageId, outcome)) {
+            return ApplicationRecipientRetirementResult::UnknownRecipient;
+        }
+        if (outcome == ApplicationRecipientOutcome::Pending) return ApplicationRecipientRetirementResult::NotTerminal;
+
+        external.Reset();
+        return ApplicationRecipientRetirementResult::Retired;
+    }
+
 public:
     explicit ApplicationRecipientLifecycleCoordinator(
         ApplicationTransmissionCoordinator<TransmissionCapacity, RecipientCapacity>& transmissions
     ) noexcept : _transmissions(transmissions) {}
 
     /// <summary>Inspects aggregate recipient authority without mutating aggregate or external delivery state.</summary>
-    /// <remarks>
-    /// Composition layers use this before consuming independently-owned terminal evidence such as destination ACK state.
-    /// It prevents an external lifecycle from being mutated when the aggregate/message pair is unknown and lets an
-    /// already-terminal aggregate retire stale external state without first consuming a late ACK.
-    /// </remarks>
     ApplicationRecipientInspectionResult Inspect(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
@@ -68,69 +114,51 @@ public:
             : ApplicationRecipientInspectionResult::Terminal;
     }
 
-    /// <summary>Commits a terminal recipient outcome and retires the exact matching external delivery lifecycle.</summary>
-    /// <remarks>
-    /// Aggregate state is authoritative for recipient terminality. If another owner (for example deadline sweeping)
-    /// already terminalized the recipient, an exact matching active delivery is still retired here while the previously
-    /// committed aggregate outcome is preserved. This closes the race between independently owned terminalization paths
-    /// without allowing a late result to overwrite DeadlineExpired or another terminal outcome.
-    /// </remarks>
+    /// <summary>Commits a terminal recipient outcome and retires the exact matching outbound delivery lifecycle.</summary>
     ApplicationRecipientTerminalizationResult Terminalize(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
         ApplicationRecipientOutcome outcome,
         OutboundDeliveryLifecycle<AcknowledgementCapacity>& delivery
     ) noexcept {
-        if (outcome == ApplicationRecipientOutcome::Pending || messageId == 0U) {
-            return ApplicationRecipientTerminalizationResult::Invalid;
-        }
-        if (!delivery.IsActive() || delivery.MessageId() != messageId) {
-            return ApplicationRecipientTerminalizationResult::Invalid;
-        }
+        return TerminalizeExternal(transmission, messageId, outcome, delivery);
+    }
 
-        const auto update = _transmissions.SetRecipientOutcome(transmission, messageId, outcome);
-        switch (update) {
-            case ApplicationTransmissionUpdateResult::Updated:
-                delivery.Reset();
-                return ApplicationRecipientTerminalizationResult::Terminalized;
-            case ApplicationTransmissionUpdateResult::AlreadyTerminal:
-                // The aggregate outcome won the race and must not be overwritten, but the exact external lifecycle is
-                // now stale and must release any pending destination-ACK reservation/forwarding transition.
-                delivery.Reset();
-                return ApplicationRecipientTerminalizationResult::AlreadyTerminal;
-            case ApplicationTransmissionUpdateResult::UnknownRecipient:
-                return ApplicationRecipientTerminalizationResult::UnknownRecipient;
-            case ApplicationTransmissionUpdateResult::UnknownTransmission:
-                return ApplicationRecipientTerminalizationResult::UnknownTransmission;
-            case ApplicationTransmissionUpdateResult::Invalid:
-                return ApplicationRecipientTerminalizationResult::Invalid;
-        }
-        return ApplicationRecipientTerminalizationResult::Invalid;
+    /// <summary>
+    /// Commits a terminal recipient outcome and retires a composed external lifecycle exposing IsActive/MessageId/Reset.
+    /// </summary>
+    /// <remarks>
+    /// This overload allows higher composition layers to retire wrappers which own additional bounded state (for example
+    /// a retained Radio-terminal correlation) without duplicating aggregate-authority sequencing. Aggregate state is
+    /// committed first; only Updated/AlreadyTerminal may retire the exact external lifecycle.
+    /// </remarks>
+    template<typename TExternalLifecycle>
+    ApplicationRecipientTerminalizationResult TerminalizeComposed(
+        ApplicationTransmissionHandle transmission,
+        MeshMessageId messageId,
+        ApplicationRecipientOutcome outcome,
+        TExternalLifecycle& external
+    ) noexcept {
+        return TerminalizeExternal(transmission, messageId, outcome, external);
     }
 
     /// <summary>Retires external delivery state after the aggregate recipient became terminal elsewhere.</summary>
-    /// <remarks>
-    /// This is intended for deadline sweeping and other independently owned terminalization paths. It never mutates the
-    /// aggregate outcome and therefore cannot act as cancellation. A Pending recipient retains its active delivery state.
-    /// </remarks>
     ApplicationRecipientRetirementResult RetireTerminal(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
         OutboundDeliveryLifecycle<AcknowledgementCapacity>& delivery
     ) noexcept {
-        if (!transmission || messageId == 0U || !delivery.IsActive() || delivery.MessageId() != messageId) {
-            return ApplicationRecipientRetirementResult::Invalid;
-        }
-        if (!_transmissions.Contains(transmission)) return ApplicationRecipientRetirementResult::UnknownTransmission;
+        return RetireTerminalExternal(transmission, messageId, delivery);
+    }
 
-        ApplicationRecipientOutcome outcome{};
-        if (!_transmissions.TryGetRecipientOutcome(transmission, messageId, outcome)) {
-            return ApplicationRecipientRetirementResult::UnknownRecipient;
-        }
-        if (outcome == ApplicationRecipientOutcome::Pending) return ApplicationRecipientRetirementResult::NotTerminal;
-
-        delivery.Reset();
-        return ApplicationRecipientRetirementResult::Retired;
+    /// <summary>Retires a composed exact external lifecycle after aggregate terminality was established elsewhere.</summary>
+    template<typename TExternalLifecycle>
+    ApplicationRecipientRetirementResult RetireTerminalComposed(
+        ApplicationTransmissionHandle transmission,
+        MeshMessageId messageId,
+        TExternalLifecycle& external
+    ) noexcept {
+        return RetireTerminalExternal(transmission, messageId, external);
     }
 };
 
