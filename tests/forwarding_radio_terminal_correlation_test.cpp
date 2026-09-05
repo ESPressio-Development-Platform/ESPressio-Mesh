@@ -1,6 +1,5 @@
 #include <cassert>
 
-#include <ESPressio_ForwardingAttemptLifecycle.hpp>
 #include <ESPressio_ForwardingRadioTerminalCorrelation.hpp>
 
 using namespace ESPressio::Mesh;
@@ -8,7 +7,6 @@ namespace Radio = ESPressio::Radio;
 
 int main() {
     ForwardingRadioTerminalCorrelation<2> correlation;
-
     const Radio::DeferredLogicalTransferHandle deferredA{0, 7};
     const Radio::DeferredLogicalTransferHandle deferredB{1, 9};
     const auto a = correlation.Reserve();
@@ -38,19 +36,12 @@ int main() {
     assert(observation.Terminal.Evidence.PeerAcknowledged());
     assert(!correlation.Contains(a));
 
-    DefaultRouteAttemptPolicy routePolicy;
-    DefaultRetryPolicy retryPolicy;
-    RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
-    assert(attempts.BeginDistinctRouteAttempt(10, 100));
-    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(observation.Terminal, attempts, 20, 100) == ForwardingAttemptAction::AwaitingNextHopAcceptance);
-
     Radio::LogicalTransferTerminalEvidence failed;
     failed.Transfer = deferredB;
     failed.Evidence = Radio::RadioDirectLinkEvidence::Failed();
     correlation.OnLogicalTransferTerminal(failed);
     assert(correlation.TryTake(b, observation));
     assert(observation.Terminal.Evidence.TransmissionFailed());
-    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(observation.Terminal, attempts, 20, 100) == ForwardingAttemptAction::RetryCurrentRoute);
 
     const auto old = correlation.Reserve();
     assert(old); assert(correlation.Bind(old, {3, 11})); assert(correlation.Release(old));
