@@ -29,8 +29,8 @@ struct PrimitiveSupportDescriptor final {
 /// The snapshot copies only semantic profile data from `PrimitiveReceiverRegistry`; receiver pointers, registration
 /// handles and Hidden registrations never escape into authenticated profile representation. Entries are sorted by
 /// PrimitiveFamilyId so equivalent active receiver sets produce deterministic profile input independent of local
-/// registration order. The Mesh control family remains separate and is not injected here while its central family ID
-/// is deliberately unallocated.
+/// registration order. The centrally allocated Mesh Control family remains internal protocol machinery and is not
+/// injected into the application-facing support snapshot.
 /// </remarks>
 template<std::size_t Capacity = Limits::MaxPrimitiveReceivers>
 class AdvertisedPrimitiveSupportSnapshot final {

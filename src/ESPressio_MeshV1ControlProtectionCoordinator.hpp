@@ -9,6 +9,7 @@
 #include "ESPressio_DeliveryAcknowledgementCoordinator.hpp"
 #include "ESPressio_ForwardingSubmissionCoordinator.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
+#include "ESPressio_MeshTrafficGovernor.hpp"
 #include "ESPressio_MeshV1Control.hpp"
 #include "ESPressio_MeshV1FrameWorkspace.hpp"
 #include "ESPressio_MeshV1ProtectedFrame.hpp"
@@ -17,8 +18,22 @@ namespace ESPressio::Mesh {
 
 enum class MeshV1ControlSubmissionDisposition : std::uint8_t {
     Submitted, DeadlineExpired, RouteMismatch, DestinationSessionUnavailable,
-    NextHopSessionUnavailable, WorkspaceCapacityExceeded, SequenceExhausted,
+    NextHopSessionUnavailable, TrafficCapacityUnavailable, WorkspaceCapacityExceeded, SequenceExhausted,
     ProtectionFailed, ForwardingFailed, Invalid
+};
+
+class MeshV1ControlTrafficReservationGuard final {
+    IMeshTrafficGovernor& _traffic;
+    MeshTrafficReservation _reservation{};
+public:
+    explicit MeshV1ControlTrafficReservationGuard(IMeshTrafficGovernor& traffic) noexcept : _traffic(traffic) {}
+    bool Acquire() noexcept {
+        return _traffic.TryAcquire(MeshTrafficClass::InfrastructureResponse, _reservation) ==
+               MeshTrafficAdmissionResult::Admitted;
+    }
+    ~MeshV1ControlTrafficReservationGuard() {
+        if (_reservation) (void)_traffic.Release(_reservation);
+    }
 };
 
 struct MeshV1ControlSubmissionResult final {
@@ -38,6 +53,7 @@ struct MeshV1AuthenticatedControlResult final {
     MembershipIncarnation AuthenticatedSourceIncarnation{};
     MeshV1AcknowledgedDelivery Acknowledged{};
     MeshMessageId ControlMessageId{0U};
+    MeshV1NextHopAcceptanceIntent NextHopAcceptance{};
 };
 
 /// <summary>Emits one direct-hop responsibility acceptance under the exact neighbour session.</summary>
@@ -51,6 +67,7 @@ class MeshV1NextHopAcceptanceSubmissionCoordinator final {
     const AuthenticatedMembershipTable<MembershipCapacity>& _memberships;
     MeshSecuritySessionTable<SessionCapacity>& _sessions;
     IMeshV1CryptographicProvider& _provider;
+    IMeshTrafficGovernor& _traffic;
     ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& _forwarding;
     MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>& _workspace;
     MeshIdentifier _mesh;
@@ -62,13 +79,14 @@ public:
         const AuthenticatedMembershipTable<MembershipCapacity>& memberships,
         MeshSecuritySessionTable<SessionCapacity>& sessions,
         IMeshV1CryptographicProvider& provider,
+        IMeshTrafficGovernor& traffic,
         ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& forwarding,
         MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>& workspace,
         const MeshIdentifier& mesh,
         const System::DeviceIdentifier& localDevice,
         const MembershipIncarnation& localIncarnation
     ) noexcept :
-        _memberships(memberships), _sessions(sessions), _provider(provider), _forwarding(forwarding),
+        _memberships(memberships), _sessions(sessions), _provider(provider), _traffic(traffic), _forwarding(forwarding),
         _workspace(workspace), _mesh(mesh), _localDevice(localDevice), _localIncarnation(localIncarnation) {}
 
     MeshV1ControlSubmissionResult Submit(
@@ -85,6 +103,8 @@ public:
         }
         if (directRoute.Source() != _localDevice || directRoute.Destination() != intent.Recipient ||
             directRoute.HopCount() != 1U) return {MeshV1ControlSubmissionDisposition::RouteMismatch, {}};
+        MeshV1ControlTrafficReservationGuard traffic(_traffic);
+        if (!traffic.Acquire()) return {MeshV1ControlSubmissionDisposition::TrafficCapacityUnavailable, {}};
         const auto* hop = directRoute.NextHop();
         const auto* membership = hop == nullptr ? nullptr :
             _memberships.FindExact(intent.Recipient, intent.RecipientIncarnation);
@@ -143,6 +163,7 @@ class MeshV1DestinationAcknowledgementSubmissionCoordinator final {
     const AuthenticatedMembershipTable<MembershipCapacity>& _memberships;
     MeshSecuritySessionTable<SessionCapacity>& _sessions;
     IMeshV1CryptographicProvider& _provider;
+    IMeshTrafficGovernor& _traffic;
     ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& _forwarding;
     MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>& _workspace;
     MeshIdentifier _mesh;
@@ -154,13 +175,14 @@ public:
         const AuthenticatedMembershipTable<MembershipCapacity>& memberships,
         MeshSecuritySessionTable<SessionCapacity>& sessions,
         IMeshV1CryptographicProvider& provider,
+        IMeshTrafficGovernor& traffic,
         ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& forwarding,
         MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>& workspace,
         const MeshIdentifier& mesh,
         const System::DeviceIdentifier& localDevice,
         const MembershipIncarnation& localIncarnation
     ) noexcept :
-        _memberships(memberships), _sessions(sessions), _provider(provider), _forwarding(forwarding),
+        _memberships(memberships), _sessions(sessions), _provider(provider), _traffic(traffic), _forwarding(forwarding),
         _workspace(workspace), _mesh(mesh), _localDevice(localDevice), _localIncarnation(localIncarnation) {}
 
     MeshV1ControlSubmissionResult Submit(
@@ -178,6 +200,8 @@ public:
         if (route.Source() != _localDevice || route.Destination() != intent.Recipient) {
             return {MeshV1ControlSubmissionDisposition::RouteMismatch, {}};
         }
+        MeshV1ControlTrafficReservationGuard traffic(_traffic);
+        if (!traffic.Acquire()) return {MeshV1ControlSubmissionDisposition::TrafficCapacityUnavailable, {}};
         const auto* nextHop = route.NextHop();
         const auto* nextMembership = nextHop == nullptr ? nullptr : _memberships.FindDevice(nextHop->Neighbour);
         if (nextHop == nullptr || nextHop->Advertiser != _localDevice || nextMembership == nullptr ||
@@ -386,7 +410,10 @@ public:
             return {MeshV1AuthenticatedControlDisposition::DeadlineExpired};
         }
         return {MeshV1AuthenticatedControlDisposition::DestinationDeliveryAcknowledgement,
-                endToEnd.Source, endToEnd.SourceIncarnation, acknowledged, endToEnd.MessageId};
+                endToEnd.Source, endToEnd.SourceIncarnation, acknowledged, endToEnd.MessageId,
+                {hop.Sender, hop.SenderIncarnation,
+                 {endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
+                  endToEnd.AbsoluteDeadlineMilliseconds}}};
     }
 };
 

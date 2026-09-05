@@ -482,9 +482,10 @@ int main() {
         Mesh::DirectPeerBindingResult::Bound);
     Mesh::ForwardingSubmissionCoordinator<2, 2, 2> relayForwarding(
         destinationMemberships, relayBindings, relayTransport);
+    Mesh::DefaultMeshTrafficGovernor relayTraffic;
     Mesh::MeshV1FrameWorkspace<256, 512> relayWorkspace;
     Mesh::MeshV1RelayCoordinator<2, 256, 256, 512, 2, 2, 2, 2> relay(
-        destinationMemberships, destinationSessions, destinationProvider, relayForwarding,
+        destinationMemberships, destinationSessions, destinationProvider, relayTraffic, relayForwarding,
         relayWorkspace, mesh, destination, destinationIncarnation);
 
     const Mesh::ApplicationTransmissionRecipient relayRecipient{
@@ -505,18 +506,32 @@ int main() {
     submission = protector.SubmitRecipient(
         relayTransmission, 0U, radioDelivery, sourceToFinalRoute, 3U, 170U);
     assert(submission);
+    std::array<Mesh::MeshTrafficReservation, Mesh::Limits::ApplicationTransmissionCapacity>
+        saturatedRelayApplication{};
+    for (auto& reservation : saturatedRelayApplication) {
+        assert(relayTraffic.TryAcquire(Mesh::MeshTrafficClass::Application, reservation) ==
+            Mesh::MeshTrafficAdmissionResult::Admitted);
+    }
+    assert(relay.Receive(
+        radio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        radio.LastPhysicalPacketBytes - RadioHeaderBytes, 170U).Disposition ==
+        Mesh::MeshV1RelayReceiveDisposition::TrafficCapacityUnavailable);
+    assert(relay.Size() == 0U);
+    for (auto reservation : saturatedRelayApplication) assert(relayTraffic.Release(reservation));
     const auto relayReceive = relay.Receive(
         radio.LastPhysicalPacket.data() + RadioHeaderBytes,
         radio.LastPhysicalPacketBytes - RadioHeaderBytes, 170U);
     assert(relayReceive.Disposition == Mesh::MeshV1RelayReceiveDisposition::AcceptedResponsibility);
     assert(relayReceive.Relay && relayReceive.PreviousHop == source && relayReceive.MessageId == 105U);
     assert(relay.Size() == 1U);
+    assert(relayTraffic.Active(Mesh::MeshTrafficClass::Application) == 1U);
+    assert(relayTraffic.Active(Mesh::MeshTrafficClass::InfrastructureResponse) == 0U);
 
     // B acknowledges retained responsibility to A over the concrete Hop-authenticated control wire. Only that
     // authenticated evidence commits A's pending forwarding transition; the aggregate remains pending for final ACK.
     Mesh::MeshV1FrameWorkspace<256, 512> relayAcceptanceWorkspace;
     Mesh::MeshV1NextHopAcceptanceSubmissionCoordinator<256, 512, 2, 2, 2, 2> relayAcceptance(
-        destinationMemberships, destinationSessions, destinationProvider, relayForwarding,
+        destinationMemberships, destinationSessions, destinationProvider, relayTraffic, relayForwarding,
         relayAcceptanceWorkspace, mesh, destination, destinationIncarnation);
     const Mesh::TopologyLinkIdentity relayToSourceAcceptanceLink{destination, 2U, source, 1U};
     Mesh::ResolvedRoute<2> relayToSourceAcceptanceRoute;
@@ -604,17 +619,31 @@ int main() {
         Mesh::DirectPeerBindingResult::Bound);
     Mesh::ForwardingSubmissionCoordinator<2, 2, 2> finalForwarding(
         finalMemberships, finalBindings, controlTransport);
+    Mesh::DefaultMeshTrafficGovernor finalTraffic;
     Mesh::MeshV1FrameWorkspace<256, 512> controlSendWorkspace;
     Mesh::MeshV1NextHopAcceptanceSubmissionCoordinator<256, 512, 2, 2, 2, 2> nextHopAcceptance(
-        finalMemberships, finalSessions, finalProvider, finalForwarding,
+        finalMemberships, finalSessions, finalProvider, finalTraffic, finalForwarding,
         controlSendWorkspace, mesh, finalDestination, finalIncarnation);
     const Mesh::TopologyLinkIdentity finalToRelayLink{
         finalDestination, 1U, destination, 1U};
     Mesh::ResolvedRoute<2> finalToRelayRoute;
     assert(finalToRelayRoute.Assign(finalDestination, destination, &finalToRelayLink, 1U));
+    std::array<Mesh::MeshTrafficReservation, Mesh::Limits::InfrastructureResponseCapacity>
+        saturatedInfrastructure{};
+    for (auto& reservation : saturatedInfrastructure) {
+        assert(finalTraffic.TryAcquire(Mesh::MeshTrafficClass::InfrastructureResponse, reservation) ==
+            Mesh::MeshTrafficAdmissionResult::Admitted);
+    }
+    const auto sendsBeforeSaturation = controlRadio.Sends;
+    assert(nextHopAcceptance.Submit(
+        finalReceived.NextHopAcceptance, finalToRelayRoute, 174U).Disposition ==
+        Mesh::MeshV1ControlSubmissionDisposition::TrafficCapacityUnavailable);
+    assert(controlRadio.Sends == sendsBeforeSaturation);
+    for (auto reservation : saturatedInfrastructure) assert(finalTraffic.Release(reservation));
     auto controlSubmission = nextHopAcceptance.Submit(
         finalReceived.NextHopAcceptance, finalToRelayRoute, 174U);
     assert(controlSubmission.Disposition == Mesh::MeshV1ControlSubmissionDisposition::Submitted);
+    assert(finalTraffic.Active(Mesh::MeshTrafficClass::InfrastructureResponse) == 0U);
     Mesh::MeshV1FrameWorkspace<256, 512> relayControlReceiveWorkspace;
     Mesh::MeshV1ControlReceiveCoordinator<256, 512, 2, 2> relayControlReceiver(
         destinationMemberships, destinationSessions, destinationProvider,
@@ -637,10 +666,11 @@ int main() {
         authenticatedAcceptance.Acknowledged.MessageId, 175U) ==
         Mesh::MeshV1RelayAcceptanceDisposition::ResponsibilityTransferred);
     assert(relay.Size() == 0U);
+    assert(relayTraffic.Active(Mesh::MeshTrafficClass::Application) == 0U);
 
     // C's distinct final-destination ACK is EndToEnd protected for A and can itself traverse B opaquely.
     Mesh::MeshV1DestinationAcknowledgementSubmissionCoordinator<256, 512, 2, 2, 2, 2> destinationAck(
-        finalMemberships, finalSessions, finalProvider, finalForwarding,
+        finalMemberships, finalSessions, finalProvider, finalTraffic, finalForwarding,
         controlSendWorkspace, mesh, finalDestination, finalIncarnation);
     const std::array<Mesh::TopologyLinkIdentity, 2> finalToSourceLinks{{
         {finalDestination, 1U, destination, 1U},
@@ -656,6 +686,7 @@ int main() {
         controlRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
         controlRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 177U);
     assert(ackRelayReceive.Disposition == Mesh::MeshV1RelayReceiveDisposition::AcceptedResponsibility);
+    assert(relayTraffic.Active(Mesh::MeshTrafficClass::InfrastructureResponse) == 1U);
     const Mesh::TopologyLinkIdentity relayToSourceLink{destination, 2U, source, 1U};
     Mesh::ResolvedRoute<2> relayToSourceRoute;
     assert(relayToSourceRoute.Assign(destination, source, &relayToSourceLink, 1U));
@@ -668,6 +699,10 @@ int main() {
         Mesh::MeshV1AuthenticatedControlDisposition::DestinationDeliveryAcknowledgement);
     assert(authenticatedDestinationAck.AuthenticatedSource == finalDestination);
     assert(authenticatedDestinationAck.Acknowledged.MessageId == 105U);
+    assert(authenticatedDestinationAck.NextHopAcceptance &&
+           authenticatedDestinationAck.NextHopAcceptance.Recipient == destination &&
+           authenticatedDestinationAck.NextHopAcceptance.Acknowledged.Source == finalDestination &&
+           authenticatedDestinationAck.NextHopAcceptance.Acknowledged.MessageId == 500U);
     assert(sourceControlReceiver.Receive(
         relayBackRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
         relayBackRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 179U).Disposition ==
@@ -683,12 +718,47 @@ int main() {
     Mesh::ApplicationRecipientOutcome relayOutcome{};
     assert(aggregate.TryGetRecipientOutcome(relayTransmission, 105U, relayOutcome));
     assert(relayOutcome == Mesh::ApplicationRecipientOutcome::Delivered);
+
+    // A separately acknowledges responsibility for C's EndToEnd ACK to B; B releases its retained opaque control frame
+    // only after authenticating this exact A-to-B Hop control packet.
+    Mesh::MeshV1FrameWorkspace<256, 512> sourceAckAcceptanceWorkspace;
+    Mesh::MeshV1NextHopAcceptanceSubmissionCoordinator<256, 512, 2, 2, 2, 2> sourceAckAcceptance(
+        sourceMemberships, sourceSessions, sourceProvider, traffic, forwarding,
+        sourceAckAcceptanceWorkspace, mesh, source, sourceIncarnation);
+    const auto sourceAckAcceptanceSubmission = sourceAckAcceptance.Submit(
+        authenticatedDestinationAck.NextHopAcceptance, route, 180U);
+    assert(sourceAckAcceptanceSubmission.Disposition ==
+        Mesh::MeshV1ControlSubmissionDisposition::Submitted);
+    const auto authenticatedAckAcceptance = relayControlReceiver.Receive(
+        radio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        radio.LastPhysicalPacketBytes - RadioHeaderBytes, 180U);
+    assert(authenticatedAckAcceptance.Disposition ==
+        Mesh::MeshV1AuthenticatedControlDisposition::NextHopAcceptance);
     assert(relay.AcceptNextHop(
-        ackRelayReceive.Relay, source, sourceIncarnation,
-        finalDestination, finalIncarnation, 500U, 179U) ==
+        ackRelayReceive.Relay,
+        authenticatedAckAcceptance.AuthenticatedSource,
+        authenticatedAckAcceptance.AuthenticatedSourceIncarnation,
+        authenticatedAckAcceptance.Acknowledged.Source,
+        authenticatedAckAcceptance.Acknowledged.SourceIncarnation,
+        authenticatedAckAcceptance.Acknowledged.MessageId, 180U) ==
         Mesh::MeshV1RelayAcceptanceDisposition::ResponsibilityTransferred);
     assert(relay.Size() == 0U);
+    assert(relayTraffic.Active(Mesh::MeshTrafficClass::InfrastructureResponse) == 0U);
     assert(aggregate.Release(relayTransmission));
+
+    // Controlled relay teardown releases the exact protected traffic reservation without fabricating acceptance.
+    assert(destinationAck.Submit(
+        finalReceived.Acknowledgement, 501U, finalToSourceRoute, 181U).Disposition ==
+        Mesh::MeshV1ControlSubmissionDisposition::Submitted);
+    assert(relay.Receive(
+        controlRadio.LastPhysicalPacket.data() + RadioHeaderBytes,
+        controlRadio.LastPhysicalPacketBytes - RadioHeaderBytes, 182U).Disposition ==
+        Mesh::MeshV1RelayReceiveDisposition::AcceptedResponsibility);
+    assert(relay.Size() == 1U);
+    assert(relayTraffic.Active(Mesh::MeshTrafficClass::InfrastructureResponse) == 1U);
+    relay.ResetForControlledShutdown();
+    assert(relay.Size() == 0U);
+    assert(relayTraffic.Active(Mesh::MeshTrafficClass::InfrastructureResponse) == 0U);
 
     controlTransport.Stop();
     relayTransport.Stop();

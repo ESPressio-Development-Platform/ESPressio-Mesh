@@ -9,6 +9,7 @@
 #include "ESPressio_ForwardingSubmissionCoordinator.hpp"
 #include "ESPressio_ForwardingTransitionCoordinator.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
+#include "ESPressio_MeshTrafficGovernor.hpp"
 #include "ESPressio_MeshV1FrameWorkspace.hpp"
 #include "ESPressio_MeshV1ProtectedFrame.hpp"
 
@@ -25,7 +26,7 @@ struct MeshV1RelayHandle final {
 
 enum class MeshV1RelayReceiveDisposition : std::uint8_t {
     AcceptedResponsibility, AlreadyAccepted, DeadlineExpired, HopLimitExhausted,
-    ResourceUnavailable, UnknownAuthenticatedSender, HopSessionUnavailable,
+    ResourceUnavailable, TrafficCapacityUnavailable, UnknownAuthenticatedSender, HopSessionUnavailable,
     ReplayRejected, AuthenticationFailed, NotForRelay, Invalid
 };
 
@@ -91,11 +92,13 @@ class MeshV1RelayCoordinator final {
         std::size_t InnerBytes{0U};
         std::array<std::uint8_t, RetainedInnerBytes> Inner{};
         ForwardingTransitionCoordinator Transition{};
+        MeshTrafficReservation Traffic{};
     };
 
     const AuthenticatedMembershipTable<MembershipCapacity>& _memberships;
     MeshSecuritySessionTable<SessionCapacity>& _sessions;
     IMeshV1CryptographicProvider& _provider;
+    IMeshTrafficGovernor& _traffic;
     ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& _forwarding;
     MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>& _workspace;
     MeshIdentifier _mesh;
@@ -107,8 +110,9 @@ class MeshV1RelayCoordinator final {
         const auto next = static_cast<std::uint16_t>(current + 1U);
         return next == 0U ? 1U : next;
     }
-    static void Clear(State& state) noexcept {
+    void Clear(State& state) noexcept {
         const auto generation = state.Generation;
+        if (state.Traffic) (void)_traffic.Release(state.Traffic);
         volatile std::uint8_t* bytes = state.Inner.data();
         for (std::size_t index = 0; index < state.Inner.size(); ++index) bytes[index] = 0U;
         state = {};
@@ -125,13 +129,14 @@ public:
         const AuthenticatedMembershipTable<MembershipCapacity>& memberships,
         MeshSecuritySessionTable<SessionCapacity>& sessions,
         IMeshV1CryptographicProvider& provider,
+        IMeshTrafficGovernor& traffic,
         ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& forwarding,
         MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>& workspace,
         const MeshIdentifier& mesh,
         const System::DeviceIdentifier& localDevice,
         const MembershipIncarnation& localIncarnation
     ) noexcept :
-        _memberships(memberships), _sessions(sessions), _provider(provider), _forwarding(forwarding),
+        _memberships(memberships), _sessions(sessions), _provider(provider), _traffic(traffic), _forwarding(forwarding),
         _workspace(workspace), _mesh(mesh), _localDevice(localDevice), _localIncarnation(localIncarnation) {}
 
     std::size_t Size() const noexcept {
@@ -208,6 +213,13 @@ public:
         State* available = nullptr;
         for (auto& state : _states) if (!state.Used) { available = &state; break; }
         if (available == nullptr) return {MeshV1RelayReceiveDisposition::ResourceUnavailable};
+        MeshTrafficReservation traffic{};
+        const auto trafficClass = endToEnd.PrimitiveFamily == Primitive::FamilyIds::MeshControl
+            ? MeshTrafficClass::InfrastructureResponse
+            : MeshTrafficClass::Application;
+        if (_traffic.TryAcquire(trafficClass, traffic) != MeshTrafficAdmissionResult::Admitted) {
+            return {MeshV1RelayReceiveDisposition::TrafficCapacityUnavailable};
+        }
         available->Generation = NextGeneration(available->Generation);
         available->Used = true;
         available->Source = endToEnd.Source;
@@ -218,6 +230,7 @@ public:
         available->AbsoluteDeadlineMilliseconds = endToEnd.AbsoluteDeadlineMilliseconds;
         available->Remaining = static_cast<RemainingHopLimit>(hop.HopLimit - 1U);
         available->InnerBytes = hopFrame.CiphertextBytes;
+        available->Traffic = traffic;
         std::memcpy(available->Inner.data(), inner, available->InnerBytes);
         const auto slot = static_cast<std::size_t>(available - _states.data());
         const MeshV1RelayHandle handle{static_cast<std::uint16_t>(slot), available->Generation};
