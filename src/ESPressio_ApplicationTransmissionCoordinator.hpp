@@ -22,19 +22,30 @@ enum class ApplicationRecipientBeginResult : std::uint8_t { Begun, AlreadyTermin
 template<std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission>
 class ApplicationTransmissionCoordinator final {
-    struct ReservationBinding final { bool Used{false}; std::uint16_t TransmissionGeneration{0}; MeshTrafficReservation Reservation{}; };
+    struct ReservationBinding final {
+        bool Used{false};
+        std::uint16_t TransmissionGeneration{0};
+        MeshTrafficReservation Reservation{};
+    };
+
     ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>& _transmissions;
     IMeshTrafficGovernor& _traffic;
     std::array<ReservationBinding, TransmissionCapacity> _reservations{};
 
     ReservationBinding* ResolveBinding(ApplicationTransmissionHandle handle) noexcept {
         if (!handle || handle.Slot >= TransmissionCapacity) return nullptr;
-        auto& binding = _reservations[handle.Slot]; return binding.Used && binding.TransmissionGeneration == handle.Generation ? &binding : nullptr;
+        auto& binding = _reservations[handle.Slot];
+        return binding.Used && binding.TransmissionGeneration == handle.Generation ? &binding : nullptr;
     }
+
     void ReleaseTrafficIfTerminal(ApplicationTransmissionHandle handle) noexcept {
-        if (!_transmissions.IsTerminal(handle)) return; auto* binding = ResolveBinding(handle); if (binding == nullptr) return;
-        (void)_traffic.Release(binding->Reservation); *binding = {};
+        if (!_transmissions.IsTerminal(handle)) return;
+        auto* binding = ResolveBinding(handle);
+        if (binding == nullptr) return;
+        (void)_traffic.Release(binding->Reservation);
+        *binding = {};
     }
+
     static ApplicationTransmissionAdmissionResult Map(ApplicationTransmissionBeginResult result) noexcept {
         switch (result) {
             case ApplicationTransmissionBeginResult::Begun: return ApplicationTransmissionAdmissionResult::Begun;
@@ -48,38 +59,77 @@ class ApplicationTransmissionCoordinator final {
     }
 
 public:
-    ApplicationTransmissionCoordinator(ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>& transmissions,
-        IMeshTrafficGovernor& traffic) noexcept : _transmissions(transmissions), _traffic(traffic) {}
+    ApplicationTransmissionCoordinator(
+        ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>& transmissions,
+        IMeshTrafficGovernor& traffic
+    ) noexcept : _transmissions(transmissions), _traffic(traffic) {}
 
-    ApplicationTransmissionAdmissionResult Begin(const ApplicationTransmissionRecipient* recipients, std::size_t recipientCount,
-        const ApplicationPayload& payload, std::uint64_t nowMilliseconds, std::uint64_t absoluteDeadlineMilliseconds,
-        ApplicationTransmissionHandle& handle) noexcept {
+    ApplicationTransmissionAdmissionResult Begin(
+        const ApplicationTransmissionRecipient* recipients,
+        std::size_t recipientCount,
+        const ApplicationPayload& payload,
+        std::uint64_t nowMilliseconds,
+        std::uint64_t absoluteDeadlineMilliseconds,
+        ApplicationTransmissionHandle& handle
+    ) noexcept {
         handle = {};
         if (!payload) return ApplicationTransmissionAdmissionResult::Invalid;
+
         MeshTrafficReservation reservation{};
         const auto admission = _traffic.TryAcquire(MeshTrafficClass::Application, reservation);
-        if (admission == MeshTrafficAdmissionResult::ResourceUnavailable) return ApplicationTransmissionAdmissionResult::ResourceUnavailable;
-        if (admission != MeshTrafficAdmissionResult::Admitted || !reservation) return ApplicationTransmissionAdmissionResult::Invalid;
-        const auto begun = _transmissions.Begin(recipients, recipientCount, payload, nowMilliseconds, absoluteDeadlineMilliseconds, handle);
-        if (begun != ApplicationTransmissionBeginResult::Begun) { (void)_traffic.Release(reservation); handle = {}; return Map(begun); }
-        if (handle.Slot >= TransmissionCapacity) {
-            (void)_transmissions.Release(handle); (void)_traffic.Release(reservation); handle = {}; return ApplicationTransmissionAdmissionResult::Invalid;
+        if (admission == MeshTrafficAdmissionResult::ResourceUnavailable) {
+            return ApplicationTransmissionAdmissionResult::ResourceUnavailable;
         }
-        _reservations[handle.Slot] = {true, handle.Generation, reservation}; return ApplicationTransmissionAdmissionResult::Begun;
+        if (admission != MeshTrafficAdmissionResult::Admitted || !reservation) {
+            return ApplicationTransmissionAdmissionResult::Invalid;
+        }
+
+        const auto begun = _transmissions.Begin(
+            recipients, recipientCount, payload, nowMilliseconds, absoluteDeadlineMilliseconds, handle
+        );
+        if (begun != ApplicationTransmissionBeginResult::Begun) {
+            (void)_traffic.Release(reservation);
+            handle = {};
+            return Map(begun);
+        }
+        if (handle.Slot >= TransmissionCapacity) {
+            (void)_transmissions.Release(handle);
+            (void)_traffic.Release(reservation);
+            handle = {};
+            return ApplicationTransmissionAdmissionResult::Invalid;
+        }
+        _reservations[handle.Slot] = {true, handle.Generation, reservation};
+        return ApplicationTransmissionAdmissionResult::Begun;
     }
 
-    const ApplicationPayload* Payload(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.Payload(handle); }
+    const ApplicationPayload* Payload(ApplicationTransmissionHandle handle) const noexcept {
+        return _transmissions.Payload(handle);
+    }
 
     template<std::size_t AcknowledgementCapacity>
-    ApplicationRecipientBeginResult BeginRecipient(ApplicationTransmissionHandle handle, std::size_t recipientIndex,
-        std::uint64_t nowMilliseconds, bool requireDestinationAcknowledgement,
-        OutboundDeliveryLifecycle<AcknowledgementCapacity>& delivery) noexcept {
+    ApplicationRecipientBeginResult BeginRecipient(
+        ApplicationTransmissionHandle handle,
+        std::size_t recipientIndex,
+        std::uint64_t nowMilliseconds,
+        bool requireDestinationAcknowledgement,
+        OutboundDeliveryLifecycle<AcknowledgementCapacity>& delivery
+    ) noexcept {
         if (!_transmissions.Contains(handle)) return ApplicationRecipientBeginResult::UnknownTransmission;
-        ApplicationTransmissionRecipient recipient{}; ApplicationRecipientOutcome outcome{};
-        if (!_transmissions.TryGetRecipient(handle, recipientIndex, recipient, outcome)) return ApplicationRecipientBeginResult::UnknownRecipient;
+        ApplicationTransmissionRecipient recipient{};
+        ApplicationRecipientOutcome outcome{};
+        if (!_transmissions.TryGetRecipient(handle, recipientIndex, recipient, outcome)) {
+            return ApplicationRecipientBeginResult::UnknownRecipient;
+        }
         if (outcome != ApplicationRecipientOutcome::Pending) return ApplicationRecipientBeginResult::AlreadyTerminal;
-        const auto result = delivery.Begin(recipient.Device, recipient.Incarnation, recipient.MessageId, nowMilliseconds,
-            _transmissions.AbsoluteDeadlineMilliseconds(handle), requireDestinationAcknowledgement);
+
+        const auto result = delivery.Begin(
+            recipient.Device,
+            recipient.Incarnation,
+            recipient.MessageId,
+            nowMilliseconds,
+            _transmissions.AbsoluteDeadlineMilliseconds(handle),
+            requireDestinationAcknowledgement
+        );
         switch (result) {
             case OutboundDeliveryBeginResult::Begun: return ApplicationRecipientBeginResult::Begun;
             case OutboundDeliveryBeginResult::AlreadyActive: return ApplicationRecipientBeginResult::Invalid;
@@ -90,17 +140,30 @@ public:
         return ApplicationRecipientBeginResult::Invalid;
     }
 
-    ApplicationTransmissionUpdateResult SetRecipientOutcome(ApplicationTransmissionHandle handle, MeshMessageId messageId,
-        ApplicationRecipientOutcome outcome) noexcept {
+    ApplicationTransmissionUpdateResult SetRecipientOutcome(
+        ApplicationTransmissionHandle handle,
+        MeshMessageId messageId,
+        ApplicationRecipientOutcome outcome
+    ) noexcept {
         const auto result = _transmissions.SetOutcome(handle, messageId, outcome);
-        if (result == ApplicationTransmissionUpdateResult::Updated) ReleaseTrafficIfTerminal(handle); return result;
+        if (result == ApplicationTransmissionUpdateResult::Updated) {
+            ReleaseTrafficIfTerminal(handle);
+        }
+        return result;
     }
+
     bool Expire(ApplicationTransmissionHandle handle, std::uint64_t nowMilliseconds) noexcept {
-        const bool expired = _transmissions.Expire(handle, nowMilliseconds); if (expired) ReleaseTrafficIfTerminal(handle); return expired;
+        const bool expired = _transmissions.Expire(handle, nowMilliseconds);
+        if (expired) ReleaseTrafficIfTerminal(handle);
+        return expired;
     }
+
     bool Release(ApplicationTransmissionHandle handle) noexcept {
         if (!_transmissions.Contains(handle)) return false;
-        if (auto* binding = ResolveBinding(handle); binding != nullptr) { (void)_traffic.Release(binding->Reservation); *binding = {}; }
+        if (auto* binding = ResolveBinding(handle); binding != nullptr) {
+            (void)_traffic.Release(binding->Reservation);
+            *binding = {};
+        }
         return _transmissions.Release(handle);
     }
 };
