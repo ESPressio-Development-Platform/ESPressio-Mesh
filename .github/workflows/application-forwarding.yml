@@ -43,7 +43,7 @@ jobs:
       - name: Run outbound delivery lifecycle regression
         run: ./outbound_delivery_lifecycle_test
       - name: Build application forwarding regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_forwarding_coordinator_test.cpp -o application_forwarding_coordinator_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_forwarding_coordinator_test.cpp -o application_forwarding_coordinator_test -pthread
       - name: Run application forwarding regression
         run: ./application_forwarding_coordinator_test
       - name: Build application recipient lifecycle regression
