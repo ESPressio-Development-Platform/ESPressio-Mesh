@@ -19,9 +19,7 @@ enum class ForwardingAttemptEvidenceDisposition : std::uint8_t {
     Invalid
 };
 
-/// <summary>
-/// Classifies the immediate Radio submission result without promoting Radio admission/completion into Mesh acceptance.
-/// </summary>
+/// <summary>Classifies immediate Radio submission without promoting Radio admission/completion into Mesh acceptance.</summary>
 inline ForwardingAttemptEvidenceDisposition ClassifyForwardingSubmission(
     const ForwardingSubmissionResult& submission
 ) noexcept {
@@ -48,13 +46,11 @@ inline ForwardingAttemptEvidenceDisposition ClassifyForwardingSubmission(
     return ForwardingAttemptEvidenceDisposition::Invalid;
 }
 
-/// <summary>
-/// Classifies terminal Radio logical-transfer evidence for route-attempt policy.
-/// </summary>
+/// <summary>Classifies terminal Radio logical-transfer evidence for the Mesh forwarding attempt.</summary>
 /// <remarks>
-/// Completed transmission, including peer/link acknowledgement, only proves a direct-link fact. It leaves the Mesh
-/// attempt waiting for authenticated next-hop acceptance. A terminal Radio failure may drive retry/replanning policy,
-/// but never consumes RemainingHopLimit. The immutable Mesh delivery deadline remains the outer bound.
+/// Completed transmission, including peer/link acknowledgement, proves only a direct-link fact and leaves the attempt
+/// waiting for authenticated next-hop acceptance. A terminal Radio failure may drive retry/replanning policy but never
+/// consumes RemainingHopLimit. The immutable Mesh delivery deadline remains the outer bound.
 /// </remarks>
 inline ForwardingAttemptEvidenceDisposition ClassifyLogicalTransferTerminalEvidence(
     const Radio::LogicalTransferTerminalEvidence& terminal,
@@ -73,24 +69,32 @@ inline ForwardingAttemptEvidenceDisposition ClassifyLogicalTransferTerminalEvide
     return ForwardingAttemptEvidenceDisposition::AwaitingNextHopAcceptance;
 }
 
-/// <summary>Maps only terminal failure classes into the existing bounded route-attempt policy vocabulary.</summary>
-inline RouteAttemptOutcome ToRouteAttemptOutcome(ForwardingAttemptEvidenceDisposition disposition) noexcept {
+/// <summary>
+/// Attempts to map a terminal forwarding failure into the bounded route-attempt policy vocabulary.
+/// </summary>
+/// <returns>False while authenticated next-hop acceptance is still pending; no route outcome is written then.</returns>
+inline bool TryMapRouteAttemptOutcome(
+    ForwardingAttemptEvidenceDisposition disposition,
+    RouteAttemptOutcome& outcome
+) noexcept {
     switch (disposition) {
         case ForwardingAttemptEvidenceDisposition::RetryableRouteFailure:
-            return RouteAttemptOutcome::RetryableFailure;
+            outcome = RouteAttemptOutcome::RetryableFailure;
+            return true;
         case ForwardingAttemptEvidenceDisposition::ResourceUnavailable:
-            return RouteAttemptOutcome::ResourceUnavailable;
+            outcome = RouteAttemptOutcome::ResourceUnavailable;
+            return true;
         case ForwardingAttemptEvidenceDisposition::DeadlineExpired:
-            return RouteAttemptOutcome::DeadlineExpired;
+            outcome = RouteAttemptOutcome::DeadlineExpired;
+            return true;
         case ForwardingAttemptEvidenceDisposition::PermanentFailure:
         case ForwardingAttemptEvidenceDisposition::Invalid:
-            return RouteAttemptOutcome::PermanentFailure;
+            outcome = RouteAttemptOutcome::PermanentFailure;
+            return true;
         case ForwardingAttemptEvidenceDisposition::AwaitingNextHopAcceptance:
-            // This state is deliberately not a completed route-attempt outcome. Callers must not feed this mapping into
-            // RouteAttemptCoordinator until authenticated next-hop acceptance or another terminal attempt fact exists.
-            return RouteAttemptOutcome::RouteUnavailable;
+            return false;
     }
-    return RouteAttemptOutcome::PermanentFailure;
+    return false;
 }
 
 } // namespace ESPressio::Mesh
