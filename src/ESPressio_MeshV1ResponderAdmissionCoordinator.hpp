@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "ESPressio_AdmissionPromotionCoordinator.hpp"
+#include "ESPressio_MeshV1AdmissionTransaction.hpp"
 #include "ESPressio_MeshSecurityAuthority.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
 
@@ -20,13 +20,7 @@ enum class MeshV1ResponderHelloResult : std::uint8_t {
 };
 
 enum class MeshV1ResponderFinishResult : std::uint8_t {
-    Authenticated, AlreadyAuthenticated, Rejected, CandidateNotFound, Invalid
-};
-
-enum class MeshV1ResponderAdmissionResult : std::uint8_t {
-    PromotedToValidating, AdmissionDeferred, Rejected, ConflictingIncarnation,
-    MembershipResourceUnavailable, SessionResourceUnavailable, CleanupFailed,
-    HandshakeNotAuthenticated, CandidateNotFound, Invalid
+    Authenticated, AlreadyAuthenticated, ResourceUnavailable, Rejected, CandidateNotFound, Invalid
 };
 
 /// <summary>Bounded transactional Mesh-v1 responder handshake and authenticated admission.</summary>
@@ -42,7 +36,9 @@ template<std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t SessionCapacity = Limits::MaxMeshNodes>
 class MeshV1ResponderAdmissionCoordinator final : public IMeshPendingAuthenticationReset {
-    enum class Stage : std::uint8_t { Empty, AwaitingInitiatorHello, ResponderReady, Authenticated };
+    enum class Stage : std::uint8_t {
+        Empty, AwaitingInitiatorHello, ResponderReady, Authenticated, CleanupRequired
+    };
 
     struct State final {
         MeshSecurityCandidateContext Candidate{};
@@ -117,8 +113,21 @@ class MeshV1ResponderAdmissionCoordinator final : public IMeshPendingAuthenticat
         return true;
     }
 
+    bool ReleaseHelloWorkForRetry(State& state) noexcept {
+        const auto candidate = state.Candidate;
+        const auto startedAt = state.StartedAtMilliseconds;
+        state.Current = Stage::CleanupRequired;
+        if (!ReleaseCryptography(state)) return false;
+        Clear(state);
+        state.Candidate = candidate;
+        state.StartedAtMilliseconds = startedAt;
+        state.Current = Stage::AwaitingInitiatorHello;
+        return true;
+    }
+
     MeshV1ResponderHelloResult RejectHello(State& state) noexcept {
         const auto candidate = state.Candidate.Candidate;
+        state.Current = Stage::CleanupRequired;
         if (!ReleaseCryptography(state)) return MeshV1ResponderHelloResult::ResourceUnavailable;
         Clear(state);
         _promotion.CompleteRejected(candidate);
@@ -127,7 +136,8 @@ class MeshV1ResponderAdmissionCoordinator final : public IMeshPendingAuthenticat
 
     MeshV1ResponderFinishResult RejectFinish(State& state) noexcept {
         const auto candidate = state.Candidate.Candidate;
-        if (!ReleaseCryptography(state)) return MeshV1ResponderFinishResult::Invalid;
+        state.Current = Stage::CleanupRequired;
+        if (!ReleaseCryptography(state)) return MeshV1ResponderFinishResult::ResourceUnavailable;
         Clear(state);
         _promotion.CompleteRejected(candidate);
         return MeshV1ResponderFinishResult::Rejected;
@@ -202,6 +212,9 @@ public:
                 ? MeshV1ResponderHelloResult::AlreadyReady
                 : MeshV1ResponderHelloResult::Invalid;
         }
+        if (state->Current == Stage::CleanupRequired) {
+            return MeshV1ResponderHelloResult::ResourceUnavailable;
+        }
         if (state->Current != Stage::AwaitingInitiatorHello) return MeshV1ResponderHelloResult::Invalid;
 
         MeshV1InitiatorHello initiator{};
@@ -238,7 +251,7 @@ public:
         responder.InitiatorHelloDigest = initiatorPacketDigest;
         if (!_provider.GenerateEphemeralKey(state->Ephemeral, responder.EphemeralPublicKey) ||
             !_provider.GenerateHandshakeNonce(responder.Nonce)) {
-            ReleaseCryptography(*state);
+            ReleaseHelloWorkForRetry(*state);
             return MeshV1ResponderHelloResult::ResourceUnavailable;
         }
         std::array<std::uint8_t, MeshV1SecurityHandshakeCodec::HeaderBytes +
@@ -248,7 +261,7 @@ public:
                 responder, responderUnsigned.data(), responderUnsigned.size()) ||
             !_provider.Hash(responderUnsigned.data(), responderUnsigned.size(), responderSignatureDigest) ||
             !_provider.SignIdentityDigest(_localDevice, responderSignatureDigest, responder.Signature)) {
-            ReleaseCryptography(*state);
+            ReleaseHelloWorkForRetry(*state);
             return MeshV1ResponderHelloResult::ResourceUnavailable;
         }
 
@@ -268,7 +281,7 @@ public:
                 initiator.Device, initiator.Incarnation, initiator.Nonce,
                 _localDevice, _localIncarnation, responder.Nonce, state->TranscriptDigest,
                 MeshSecuritySessionRole::Responder, state->ProviderSession, state->SessionIdentifier)) {
-            ReleaseCryptography(*state);
+            ReleaseHelloWorkForRetry(*state);
             return MeshV1ResponderHelloResult::ResourceUnavailable;
         }
         if (!_provider.ReleaseEphemeralKey(state->Ephemeral)) return RejectHello(*state);
@@ -304,6 +317,9 @@ public:
         auto* state = Find(context.Candidate);
         if (state == nullptr) return MeshV1ResponderFinishResult::CandidateNotFound;
         if (!SameContext(state->Candidate, context)) return MeshV1ResponderFinishResult::Invalid;
+        if (state->Current == Stage::CleanupRequired) {
+            return MeshV1ResponderFinishResult::ResourceUnavailable;
+        }
         if (state->Current != Stage::ResponderReady && state->Current != Stage::Authenticated) {
             return MeshV1ResponderFinishResult::Invalid;
         }
@@ -323,75 +339,21 @@ public:
         return MeshV1ResponderFinishResult::Authenticated;
     }
 
-    MeshV1ResponderAdmissionResult CompleteAdmission(
+    MeshV1AdmissionResult CompleteAdmission(
         NeighbourCandidateHandle candidateHandle,
         AuthenticatedDirectPeerBinding* establishedBinding = nullptr
     ) noexcept {
         if (establishedBinding != nullptr) *establishedBinding = {};
         auto* state = Find(candidateHandle);
-        if (state == nullptr) return MeshV1ResponderAdmissionResult::CandidateNotFound;
+        if (state == nullptr) return MeshV1AdmissionResult::CandidateNotFound;
         if (state->Current != Stage::Authenticated || !state->Identity || !state->ProviderSession ||
-            !state->SessionIdentifier) return MeshV1ResponderAdmissionResult::HandshakeNotAuthenticated;
-        const MeshAdmissionContext admissionContext{
-            state->Candidate, state->Identity, _memberships.Size(), _memberships.MaximumSize()
-        };
-        const auto admission = _admission.EvaluateAdmission(admissionContext);
-        if (admission == MeshAdmissionDisposition::Invalid) {
-            if (!ReleaseCryptography(*state)) return MeshV1ResponderAdmissionResult::CleanupFailed;
-            Clear(*state); _promotion.CompleteRejected(candidateHandle);
-            return MeshV1ResponderAdmissionResult::Invalid;
-        }
-        if (admission == MeshAdmissionDisposition::Reject || admission == MeshAdmissionDisposition::Defer) {
-            if (!ReleaseCryptography(*state)) return MeshV1ResponderAdmissionResult::CleanupFailed;
-            Clear(*state);
-            if (admission == MeshAdmissionDisposition::Reject) {
-                _promotion.CompleteRejected(candidateHandle);
-                return MeshV1ResponderAdmissionResult::Rejected;
-            }
-            return _promotion.ReleaseRetryable(candidateHandle)
-                ? MeshV1ResponderAdmissionResult::AdmissionDeferred
-                : MeshV1ResponderAdmissionResult::Invalid;
-        }
-
-        const auto membershipPreflight = _memberships.PreflightAuthenticatedUpsert(
-            state->Identity.Device, state->Identity.Incarnation
-        );
-        if (membershipPreflight == AuthenticatedMembershipInsertResult::ConflictingIncarnation ||
-            membershipPreflight == AuthenticatedMembershipInsertResult::ResourceUnavailable) {
-            if (!ReleaseCryptography(*state)) return MeshV1ResponderAdmissionResult::CleanupFailed;
-            Clear(*state);
-            const auto promotion = _promotion.CompleteAuthenticated(
-                candidateHandle, admissionContext.Identity.Device, admissionContext.Identity.Incarnation
-            );
-            return promotion == AdmissionPromotionResult::ConflictingIncarnation
-                ? MeshV1ResponderAdmissionResult::ConflictingIncarnation
-                : MeshV1ResponderAdmissionResult::MembershipResourceUnavailable;
-        }
-        if ((membershipPreflight != AuthenticatedMembershipInsertResult::Inserted &&
-             membershipPreflight != AuthenticatedMembershipInsertResult::Updated) ||
-            !_sessions.CanInstall(state->Identity.Device)) {
-            return MeshV1ResponderAdmissionResult::SessionResourceUnavailable;
-        }
-
-        MeshSecuritySessionRecordHandle installed{};
-        if (!_sessions.Install(
-                state->Identity.Device, state->Identity.Incarnation, state->SessionIdentifier,
-                state->ProviderSession, _provider, installed)) {
-            return MeshV1ResponderAdmissionResult::SessionResourceUnavailable;
-        }
-        state->ProviderSession = {};
-        const auto identity = state->Identity;
-        const auto promotion = _promotion.CompleteAuthenticated(
-            candidateHandle, identity.Device, identity.Incarnation, establishedBinding
-        );
-        if (promotion != AdmissionPromotionResult::PromotedToValidating) {
-            const bool rolledBack = _sessions.Release(installed, _provider);
-            Clear(*state);
-            return rolledBack ? MeshV1ResponderAdmissionResult::Invalid
-                              : MeshV1ResponderAdmissionResult::CleanupFailed;
-        }
-        Clear(*state);
-        return MeshV1ResponderAdmissionResult::PromotedToValidating;
+            !state->SessionIdentifier) return MeshV1AdmissionResult::HandshakeNotAuthenticated;
+        const auto outcome = CompleteMeshV1AdmissionTransaction(
+            candidateHandle, state->Candidate, state->Identity, state->SessionIdentifier,
+            state->ProviderSession, _memberships, _promotion, _sessions, _provider, _admission,
+            establishedBinding);
+        if (!outcome.RetainHandshakeState) Clear(*state);
+        return outcome.Result;
     }
 
     std::size_t Expire(std::uint64_t nowMilliseconds) noexcept {

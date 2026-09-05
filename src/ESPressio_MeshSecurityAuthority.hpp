@@ -89,6 +89,12 @@ public:
     virtual void ClearPendingAuthenticationAfterProviderReset() noexcept = 0;
 };
 
+enum class MeshV1AdmissionResult : std::uint8_t {
+    PromotedToValidating, AdmissionDeferred, Rejected, ConflictingIncarnation,
+    MembershipResourceUnavailable, SessionResourceUnavailable, CleanupFailed,
+    HandshakeNotAuthenticated, CandidateNotFound, Invalid
+};
+
 /// <summary>Input supplied to admission policy only after security established exact authenticated identity.</summary>
 struct MeshAdmissionContext final {
     MeshSecurityCandidateContext Candidate{};

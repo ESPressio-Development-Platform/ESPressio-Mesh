@@ -255,7 +255,7 @@ int main() {
     assert(memberships.Empty() && sessions.Size() == 0U);
     Mesh::AuthenticatedDirectPeerBinding established{};
     assert(coordinator.CompleteAdmission(candidate, &established) ==
-        Mesh::MeshV1ResponderAdmissionResult::PromotedToValidating);
+        Mesh::MeshV1AdmissionResult::PromotedToValidating);
     assert(memberships.FindExact(Device(2U), Incarnation(2U)) != nullptr);
     assert(sessions.Find(Device(2U), Incarnation(2U)));
     assert(established.IsValid() && established.Neighbour == Device(2U));
@@ -276,7 +276,7 @@ int main() {
         Mesh::MeshV1ResponderFinishResult::Authenticated);
     const auto releasesBeforeDeferral = provider.ReleasedSessions;
     admission.Next = Mesh::MeshAdmissionDisposition::Defer;
-    assert(coordinator.CompleteAdmission(deferred) == Mesh::MeshV1ResponderAdmissionResult::AdmissionDeferred);
+    assert(coordinator.CompleteAdmission(deferred) == Mesh::MeshV1AdmissionResult::AdmissionDeferred);
     assert(provider.ReleasedSessions == releasesBeforeDeferral + 1U);
     assert(candidates.Resolve(deferred)->State == Mesh::MembershipState::Discovered);
     assert(!authentications.Contains(deferred));
@@ -314,13 +314,13 @@ int main() {
     assert(coordinator.AcceptInitiatorFinish(saturatedContext, saturatedFinish.data(), saturatedFinish.size()) ==
         Mesh::MeshV1ResponderFinishResult::Authenticated);
     assert(coordinator.CompleteAdmission(saturated) ==
-        Mesh::MeshV1ResponderAdmissionResult::SessionResourceUnavailable);
+        Mesh::MeshV1AdmissionResult::SessionResourceUnavailable);
     assert(authentications.Contains(saturated));
     assert(candidates.Resolve(saturated)->State == Mesh::MembershipState::Authenticating);
     assert(memberships.FindDevice(Device(5U)) == nullptr);
     assert(sessions.Release(occupied, provider));
     assert(coordinator.CompleteAdmission(saturated) ==
-        Mesh::MeshV1ResponderAdmissionResult::PromotedToValidating);
+        Mesh::MeshV1AdmissionResult::PromotedToValidating);
     assert(memberships.FindExact(Device(5U), Incarnation(5U)) != nullptr);
 
     // Timeout releases the exact reservation and returns only that candidate to Discovered.

@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <ESPressio_MeshRuntimeResetCoordinator.hpp>
+#include <ESPressio_MeshPendingAuthenticationResetGroup.hpp>
 
 #include "mesh_test_cryptographic_provider.hpp"
 
@@ -33,14 +34,18 @@ class PendingAuthenticationReset final : public Mesh::IMeshPendingAuthentication
 public:
     bool ReleasedBeforeProviderReset{false};
     bool ClearedAfterProviderReset{false};
+    std::size_t ReleaseCalls{0U};
+    std::size_t ClearCalls{0U};
     explicit PendingAuthenticationReset(TestCryptographicProvider& cryptography) : _cryptography(cryptography) {}
     bool ReleasePendingAuthenticationBeforeProviderReset() noexcept override {
         assert(_cryptography.Resets == 0U);
+        ++ReleaseCalls;
         ReleasedBeforeProviderReset = true;
         return true;
     }
     void ClearPendingAuthenticationAfterProviderReset() noexcept override {
         assert(_cryptography.Resets == 1U);
+        ++ClearCalls;
         ClearedAfterProviderReset = true;
     }
 };
@@ -103,7 +108,15 @@ int main() {
     assert(correlation && radioCorrelations.Bind(correlation, Radio::DeferredLogicalTransferHandle{0U, 1U}));
 
     TestCryptographicProvider cryptography;
-    PendingAuthenticationReset pendingAuthentication{cryptography};
+    PendingAuthenticationReset inboundAuthentication{cryptography};
+    PendingAuthenticationReset outboundAuthentication{cryptography};
+    Mesh::MeshPendingAuthenticationResetGroup<2> pendingAuthentication;
+    assert(pendingAuthentication.Register(inboundAuthentication) ==
+           Mesh::PendingAuthenticationResetRegistrationResult::Registered);
+    assert(pendingAuthentication.Register(outboundAuthentication) ==
+           Mesh::PendingAuthenticationResetRegistrationResult::Registered);
+    assert(pendingAuthentication.Register(inboundAuthentication) ==
+           Mesh::PendingAuthenticationResetRegistrationResult::AlreadyRegistered);
     Mesh::MeshSecuritySessionTable<Capacity> securitySessions;
     Mesh::MeshSecuritySessionIdentifier securityIdentifier{};
     securityIdentifier.Value[15] = 1U;
@@ -143,8 +156,10 @@ int main() {
     assert(radioCorrelations.Size() == 0U);
     assert(!securitySessions.ProviderSession(securitySession));
     assert(cryptography.Releases == 1U && cryptography.Resets == 1U);
-    assert(pendingAuthentication.ReleasedBeforeProviderReset);
-    assert(pendingAuthentication.ClearedAfterProviderReset);
+    assert(inboundAuthentication.ReleasedBeforeProviderReset && outboundAuthentication.ReleasedBeforeProviderReset);
+    assert(inboundAuthentication.ClearedAfterProviderReset && outboundAuthentication.ClearedAfterProviderReset);
+    assert(inboundAuthentication.ReleaseCalls == 1U && outboundAuthentication.ReleaseCalls == 1U);
+    assert(inboundAuthentication.ClearCalls == 1U && outboundAuthentication.ClearCalls == 1U);
     assert(clock.Size() == 0U);
     assert(traffic.Active(Mesh::MeshTrafficClass::GeneralControl) == 0U);
 
