@@ -68,6 +68,21 @@ public:
         return nullptr;
     }
 
+    /// <summary>
+    /// Resolves one current generation-safe Radio peer handle to the authenticated neighbour/incarnation which owns it.
+    /// </summary>
+    /// <remarks>
+    /// This is intended for validating deferred Radio evidence. A stale/reused handle resolves to nothing after peer
+    /// invalidation or rebinding, preventing late provider callbacks from becoming evidence for another participation.
+    /// </remarks>
+    const AuthenticatedDirectPeerBinding* ResolvePeer(Radio::RadioPeerHandle peer) const noexcept {
+        if (!peer) return nullptr;
+        for (const auto& slot : _slots) {
+            if (slot.Occupied && slot.Binding.Peer == peer && slot.Binding.IsValid()) return &slot.Binding;
+        }
+        return nullptr;
+    }
+
     /// <summary>Returns true when at least one executable Radio binding exists for the exact authenticated neighbour incarnation.</summary>
     bool HasNeighbour(
         const System::DeviceIdentifier& neighbour,
