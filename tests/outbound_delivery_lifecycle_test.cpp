@@ -22,21 +22,55 @@ int main() {
     DefaultRouteAttemptPolicy routePolicy;
     DefaultRetryPolicy retryPolicy;
     RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
+    RouteAttemptCoordinator otherAttempts(routePolicy, retryPolicy);
     DeliveryAcknowledgementTracker<2> tracker;
     DeliveryAcknowledgementCoordinator<2> acknowledgements(tracker);
     OutboundDeliveryLifecycle<2> lifecycle(attempts, acknowledgements);
+    OutboundDeliveryLifecycle<2> otherLifecycle(otherAttempts, acknowledgements);
 
     const auto destination = Device(9);
     const auto destinationIncarnation = Incarnation(9);
+    const auto otherDestination = Device(8);
+    const auto otherDestinationIncarnation = Incarnation(8);
     const auto nextHop = Device(2);
     const auto nextHopIncarnation = Incarnation(2);
     constexpr MeshMessageId messageId = 44;
+    constexpr MeshMessageId otherMessageId = 144;
 
     assert(lifecycle.Begin(destination, destinationIncarnation, messageId, 100, 500, true) ==
            OutboundDeliveryBeginResult::Begun);
     assert(lifecycle.IsActive());
     assert(lifecycle.AwaitingDestinationAcknowledgement());
     assert(tracker.Size() == 1U);
+
+    // Two active lifecycles may share one bounded ACK tracker. An ACK for the other lifecycle must not be
+    // consumed through this lifecycle merely because it is otherwise valid in the shared tracker.
+    assert(otherLifecycle.Begin(
+               otherDestination,
+               otherDestinationIncarnation,
+               otherMessageId,
+               100,
+               500,
+               true) == OutboundDeliveryBeginResult::Begun);
+    assert(tracker.Size() == 2U);
+    assert(lifecycle.ApplyDestinationAcknowledgementAuthenticated(
+               otherDestination,
+               otherDestinationIncarnation,
+               otherMessageId,
+               105) == OutboundDeliveryAcknowledgementAction::IgnoreUnrelatedAcknowledgement);
+    assert(lifecycle.AwaitingDestinationAcknowledgement());
+    assert(otherLifecycle.AwaitingDestinationAcknowledgement());
+    assert(tracker.Size() == 2U);
+    assert(otherLifecycle.ApplyDestinationAcknowledgementAuthenticated(
+               otherDestination,
+               otherDestinationIncarnation,
+               otherMessageId,
+               106) == OutboundDeliveryAcknowledgementAction::DeliveryConfirmed);
+    assert(!otherLifecycle.AwaitingDestinationAcknowledgement());
+    assert(lifecycle.AwaitingDestinationAcknowledgement());
+    assert(tracker.Size() == 1U);
+    otherLifecycle.Reset();
+
     assert(lifecycle.BeginDistinctRouteAttempt(110));
 
     ForwardingSubmissionResult accepted{};
