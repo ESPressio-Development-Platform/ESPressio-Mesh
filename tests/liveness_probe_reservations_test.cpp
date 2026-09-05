@@ -61,8 +61,23 @@ int main() {
     assert(probes.TryReserve(Device(4), Mesh::MembershipIncarnation{}, invalid) ==
            Mesh::LivenessProbeReservationResult::Invalid);
 
-    assert(probes.Release(second));
-    assert(probes.Release(replacement));
-    assert(probes.Size() == 0);
+    // Controlled reset releases active work without changing reachability/membership and preserves generations so
+    // pre-reset reservation handles remain stale when their slots are reused.
+    assert(probes.Size() == 2U);
+    probes.Clear();
+    assert(probes.Size() == 0U);
+    assert(!probes.Contains(Device(2), Incarnation(2)));
+    assert(!probes.Contains(Device(3), Incarnation(3)));
+    assert(!probes.Release(second));
+    assert(!probes.Release(replacement));
+
+    Mesh::LivenessProbeReservation afterReset{};
+    assert(probes.TryReserve(Device(5), Incarnation(5), afterReset) ==
+           Mesh::LivenessProbeReservationResult::Reserved);
+    assert(afterReset.Slot == replacement.Slot);
+    assert(afterReset.Generation != replacement.Generation);
+    assert(!probes.Release(replacement));
+    assert(probes.Release(afterReset));
+    assert(probes.Size() == 0U);
     return 0;
 }
