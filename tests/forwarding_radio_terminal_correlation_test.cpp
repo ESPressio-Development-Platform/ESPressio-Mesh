@@ -4,6 +4,7 @@
 #include <ESPressio_ForwardingRadioTerminalCorrelation.hpp>
 
 using namespace ESPressio::Mesh;
+namespace Radio = ESPressio::Radio;
 
 int main() {
     ForwardingRadioTerminalCorrelation<2> correlation;
@@ -41,9 +42,7 @@ int main() {
     DefaultRetryPolicy retryPolicy;
     RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
     assert(attempts.BeginDistinctRouteAttempt(10, 100));
-    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(
-        observation.Terminal, attempts, 20, 100
-    ) == ForwardingAttemptAction::AwaitingNextHopAcceptance);
+    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(observation.Terminal, attempts, 20, 100) == ForwardingAttemptAction::AwaitingNextHopAcceptance);
 
     Radio::LogicalTransferTerminalEvidence failed;
     failed.Transfer = deferredB;
@@ -51,23 +50,16 @@ int main() {
     correlation.OnLogicalTransferTerminal(failed);
     assert(correlation.TryTake(b, observation));
     assert(observation.Terminal.Evidence.TransmissionFailed());
-    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(
-        observation.Terminal, attempts, 20, 100
-    ) == ForwardingAttemptAction::RetryCurrentRoute);
+    assert(ForwardingAttemptLifecycle::AfterRadioTerminalEvidence(observation.Terminal, attempts, 20, 100) == ForwardingAttemptAction::RetryCurrentRoute);
 
     const auto old = correlation.Reserve();
-    assert(old);
-    assert(correlation.Bind(old, {3, 11}));
-    assert(correlation.Release(old));
+    assert(old); assert(correlation.Bind(old, {3, 11})); assert(correlation.Release(old));
     const auto replacement = correlation.Reserve();
-    assert(replacement);
-    assert(replacement.Slot == old.Slot);
-    assert(replacement.Generation != old.Generation);
+    assert(replacement && replacement.Slot == old.Slot && replacement.Generation != old.Generation);
     assert(correlation.Bind(replacement, {4, 12}));
 
     Radio::LogicalTransferTerminalEvidence stale;
-    stale.Transfer = {3, 11};
-    stale.Evidence = Radio::RadioDirectLinkEvidence::Failed();
+    stale.Transfer = {3, 11}; stale.Evidence = Radio::RadioDirectLinkEvidence::Failed();
     correlation.OnLogicalTransferTerminal(stale);
     assert(!correlation.TryTake(replacement, observation));
 
@@ -85,6 +77,5 @@ int main() {
     assert(!correlation.Bind(duplicateB, {8, 8}));
     assert(correlation.Release(duplicateA));
     assert(correlation.Release(duplicateB));
-
     return 0;
 }
