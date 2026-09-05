@@ -11,7 +11,6 @@
 
 namespace ESPressio::Mesh {
 
-/// <summary>Immediate result of submitting one validated next-hop transfer to Radio.</summary>
 enum class ForwardingSubmissionDisposition : std::uint8_t {
     Accepted,
     DeadlineExpired,
@@ -24,7 +23,6 @@ enum class ForwardingSubmissionDisposition : std::uint8_t {
     Invalid
 };
 
-/// <summary>Strongest direct-link fact synchronously established while submitting this logical transfer.</summary>
 enum class ForwardingDirectLinkEvidence : std::uint8_t {
     None,
     SubmissionAccepted,
@@ -40,10 +38,6 @@ struct ForwardingSubmissionResult final {
         return Disposition == ForwardingSubmissionDisposition::Accepted;
     }
 
-    /// <summary>
-    /// Returns the strongest technology-independent direct-link evidence available synchronously for the complete
-    /// logical transfer. This is link evidence only and is never equivalent to a Mesh delivery ACK.
-    /// </summary>
     constexpr ForwardingDirectLinkEvidence DirectLinkEvidence() const noexcept {
         if (Disposition != ForwardingSubmissionDisposition::Accepted) return ForwardingDirectLinkEvidence::None;
         if (RadioResult.LinkResult.Evidence.PeerAcknowledged()) return ForwardingDirectLinkEvidence::PeerAcknowledged;
@@ -57,10 +51,10 @@ struct ForwardingSubmissionResult final {
 /// RadioPeerHandle, then submits immutable bytes through RadioTransport.
 /// </summary>
 /// <remarks>
-/// `Accepted` means Radio accepted every fragment of the direct-link logical transfer. `DirectLinkEvidence()` may report
-/// stronger provider evidence (transmission completion or peer acknowledgement), but neither proves that the next Mesh
-/// node validated/accepted the Mesh message. Consequently none of these synchronous outcomes consumes RemainingHopLimit.
-/// The successful Mesh forwarding transition remains a separately committed operation driven by Mesh delivery evidence.
+/// Accepted means Radio accepted every fragment of the direct-link logical transfer. Stronger synchronous Radio evidence
+/// remains link evidence only and never consumes RemainingHopLimit. Explicit RadioTransport deferred-correlation pressure
+/// maps to ResourceUnavailable so route-attempt policy can apply bounded backpressure/retry rather than treating local
+/// bookkeeping exhaustion as a permanent route failure.
 /// </remarks>
 template<std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t BindingCapacity = Limits::MaxTopologyLinks,
@@ -76,6 +70,7 @@ class ForwardingSubmissionCoordinator final {
         switch (result.Status) {
             case TS::Accepted: return ForwardingSubmissionDisposition::Accepted;
             case TS::InvalidPeer: return ForwardingSubmissionDisposition::PeerUnavailable;
+            case TS::ResourceUnavailable: return ForwardingSubmissionDisposition::ResourceUnavailable;
             case TS::NotStarted:
             case TS::InterfaceNotRegistered:
             case TS::RadioRejected:
