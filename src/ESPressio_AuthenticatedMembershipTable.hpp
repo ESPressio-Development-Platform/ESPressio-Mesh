@@ -27,6 +27,7 @@ struct AuthenticatedMembershipRecord final {
     ReachabilityState Reachability{ReachabilityState::Unknown};
     DeduplicationWindow<Limits::DeduplicationWindowBits> DeliveryDeduplication{};
     DeduplicationWindow<Limits::DeduplicationWindowBits> AcceptedDeliveryDeduplication{};
+    DeduplicationWindow<Limits::DeduplicationWindowBits> BroadcastDeduplication{};
     MeshNodeProfile Profile{};
 
     /// <summary>Returns whether this record identifies an authenticated participation state.</summary>
@@ -196,6 +197,7 @@ public:
             slot.Record.Reachability = reachability;
             slot.Record.DeliveryDeduplication.Reset();
             slot.Record.AcceptedDeliveryDeduplication.Reset();
+            slot.Record.BroadcastDeduplication.Reset();
             slot.Record.Profile = {};
             slot.Occupied = true;
             ++_size;

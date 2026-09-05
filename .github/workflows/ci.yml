@@ -93,6 +93,13 @@ jobs:
           ESPressio-Mesh/tests/mesh_destination_resolver_test.cpp -o mesh_destination_resolver_test -pthread
       - name: Run Mesh destination resolver regression
         run: ./mesh_destination_resolver_test
+      - name: Build Mesh v1 Broadcast coordinator regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_v1_broadcast_coordinator_test.cpp -o mesh_v1_broadcast_coordinator_test -pthread
+      - name: Run Mesh v1 Broadcast coordinator regression
+        run: ./mesh_v1_broadcast_coordinator_test
       - name: Build membership retention coordinator regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror

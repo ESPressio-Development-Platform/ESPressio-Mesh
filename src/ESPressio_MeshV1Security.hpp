@@ -65,7 +65,9 @@ enum class MeshV1SecurityMessageType : std::uint8_t {
     ResponderHello = 2U,
     InitiatorFinish = 3U,
     HopProtectedFrame = 4U,
-    EndToEndProtectedFrame = 5U
+    EndToEndProtectedFrame = 5U,
+    BroadcastOriginFrame = 6U,
+    BroadcastHopFrame = 7U
 };
 
 struct MeshV1InitiatorHello final {
