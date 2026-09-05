@@ -80,5 +80,28 @@ int main() {
     assert(candidates.Observe(0, Peer(3, 1), claim1, 160, invalid) == Mesh::PendingCandidateInsertResult::Invalid);
     assert(candidates.Observe(0xFF, Peer(3, 1), claim1, 160, invalid) == Mesh::PendingCandidateInsertResult::Invalid);
     assert(candidates.Observe(1, Radio::RadioPeerHandle{}, claim1, 160, invalid) == Mesh::PendingCandidateInsertResult::Invalid);
+
+    // Controlled reset releases all pre-authentication work while preserving slot generations so stale handles remain stale.
+    assert(authentications.Contains(second));
+    authentications.Clear();
+    candidates.Clear();
+    assert(authentications.Size() == 0U);
+    assert(!authentications.Contains(second));
+    assert(candidates.Size() == 0U);
+    assert(candidates.Resolve(second) == nullptr);
+    assert(candidates.Resolve(replacement) == nullptr);
+
+    Mesh::NeighbourCandidateHandle afterReset{};
+    assert(candidates.Observe(
+               1,
+               Peer(4, 1),
+               Mesh::UntrustedMembershipClaim{Device(4), Incarnation(4)},
+               170,
+               afterReset) == Mesh::PendingCandidateInsertResult::Inserted);
+    assert(afterReset.Slot == replacement.Slot);
+    assert(afterReset.Generation != replacement.Generation);
+    assert(candidates.Resolve(replacement) == nullptr);
+    assert(candidates.Resolve(afterReset) != nullptr);
+
     return 0;
 }
