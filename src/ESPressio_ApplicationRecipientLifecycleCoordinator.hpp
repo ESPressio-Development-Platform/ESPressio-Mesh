@@ -202,35 +202,38 @@ public:
     /// lifecycle whose MessageId differs is reported as a mismatch and is never reset through the wrong recipient identity.
     /// After traversal, local aggregate/payload references and traffic reservations are released deterministically even if
     /// a composition bug produced a mismatch; the mismatch count lets the composition owner detect its own orphaned state.
+    /// Work is bounded by the fixed transmission × recipient capacities; no generation search or secondary registry exists.
     /// </remarks>
     template<typename TExternalLifecycleResolver>
     ApplicationControlledResetResult ResetForControlledShutdown(
         TExternalLifecycleResolver&& resolveExternalLifecycle
     ) noexcept {
         ApplicationControlledResetResult result{};
-        for (std::size_t slot = 0; slot < TransmissionCapacity; ++slot) {
-            for (std::uint16_t generation = 1U; generation != 0U; ++generation) {
-                const ApplicationTransmissionHandle handle{static_cast<std::uint16_t>(slot), generation};
-                if (!_transmissions.Contains(handle)) continue;
+        ApplicationTransmissionHandle previous{};
+        bool havePrevious = false;
+
+        _transmissions.ForEachRecipientForControlledShutdown([&](
+            ApplicationTransmissionHandle transmission,
+            const ApplicationTransmissionRecipient& recipient,
+            ApplicationRecipientOutcome
+        ) noexcept {
+            if (!havePrevious || !(previous == transmission)) {
+                previous = transmission;
+                havePrevious = true;
                 ++result.ReleasedTransmissions;
-                const std::size_t count = _transmissions._transmissions.RecipientCount(handle);
-                for (std::size_t index = 0; index < count; ++index) {
-                    ApplicationTransmissionRecipient recipient{};
-                    ApplicationRecipientOutcome outcome{};
-                    if (!_transmissions._transmissions.TryGetRecipient(handle, index, recipient, outcome)) continue;
-                    ++result.RecipientRecordsVisited;
-                    auto* external = resolveExternalLifecycle(handle, recipient.MessageId);
-                    if (external == nullptr || !external->IsActive()) continue;
-                    if (external->MessageId() != recipient.MessageId) {
-                        ++result.ExternalLifecycleMismatches;
-                        continue;
-                    }
-                    external->Reset();
-                    ++result.RetiredExternalLifecycles;
-                }
-                break;
             }
-        }
+            ++result.RecipientRecordsVisited;
+
+            auto* external = resolveExternalLifecycle(transmission, recipient.MessageId);
+            if (external == nullptr || !external->IsActive()) return;
+            if (external->MessageId() != recipient.MessageId) {
+                ++result.ExternalLifecycleMismatches;
+                return;
+            }
+            external->Reset();
+            ++result.RetiredExternalLifecycles;
+        });
+
         _transmissions.ResetForControlledShutdown();
         return result;
     }
