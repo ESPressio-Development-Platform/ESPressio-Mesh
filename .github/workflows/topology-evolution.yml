@@ -95,7 +95,7 @@ jobs:
       - name: Run outbound Radio delivery correlation regression
         run: ./outbound_radio_delivery_coordinator_test
       - name: Build bounded application transmission aggregate regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src ESPressio-Mesh/tests/application_transmission_table_test.cpp -o application_transmission_table_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src ESPressio-Mesh/tests/application_transmission_table_test.cpp -o application_transmission_table_test -pthread
       - name: Run bounded application transmission aggregate regression
         run: ./application_transmission_table_test
       - name: Build application transmission lifecycle composition regression
