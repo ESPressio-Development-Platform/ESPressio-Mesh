@@ -44,6 +44,7 @@
 #include "ESPressio_DeliveryAcknowledgementTracker.hpp"
 #include "ESPressio_DeliveryAcknowledgementCoordinator.hpp"
 #include "ESPressio_OutboundDeliveryLifecycle.hpp"
+#include "ESPressio_OutboundRadioDeliveryCoordinator.hpp"
 #include "ESPressio_LivenessProbeReservations.hpp"
 #include "ESPressio_LivenessProbeCoordinator.hpp"
 #include "ESPressio_ClockCoordination.hpp"
