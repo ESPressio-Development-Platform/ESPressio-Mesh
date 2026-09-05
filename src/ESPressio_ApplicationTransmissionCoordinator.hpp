@@ -52,16 +52,6 @@ class ApplicationTransmissionCoordinator final {
         return ApplicationTransmissionAdmissionResult::Invalid;
     }
 
-    /// <summary>
-    /// Commits one terminal recipient outcome through the aggregate authority and releases the aggregate's traffic
-    /// reservation only when that commit makes the complete frozen recipient set terminal.
-    /// </summary>
-    /// <remarks>
-    /// This is intentionally private. External delivery/link/acknowledgement owners must reconcile through
-    /// ApplicationRecipientLifecycleCoordinator so aggregate authority is established before their local state is
-    /// retired. Internal aggregate-owned deadline handling may use this path directly because it creates no independent
-    /// external evidence that must first be reconciled.
-    /// </remarks>
     ApplicationTransmissionUpdateResult SetRecipientOutcomeAuthoritative(
         ApplicationTransmissionHandle handle,
         MeshMessageId messageId,
@@ -157,11 +147,7 @@ public:
             case OutboundDeliveryBeginResult::AlreadyActive: return ApplicationRecipientBeginResult::Invalid;
             case OutboundDeliveryBeginResult::ResourceUnavailable: return ApplicationRecipientBeginResult::ResourceUnavailable;
             case OutboundDeliveryBeginResult::DeadlineExpired:
-                (void)SetRecipientOutcomeAuthoritative(
-                    handle,
-                    recipient.MessageId,
-                    ApplicationRecipientOutcome::DeadlineExpired
-                );
+                (void)SetRecipientOutcomeAuthoritative(handle, recipient.MessageId, ApplicationRecipientOutcome::DeadlineExpired);
                 return ApplicationRecipientBeginResult::DeadlineExpired;
             case OutboundDeliveryBeginResult::Invalid: return ApplicationRecipientBeginResult::Invalid;
         }
@@ -174,21 +160,36 @@ public:
         return expired;
     }
 
+    /// <summary>
+    /// Expires one exact aggregate and reports each newly expired MessageId after aggregate DeadlineExpired authority exists.
+    /// </summary>
+    /// <remarks>
+    /// Composition can synchronously retire exact externally owned ACK/Radio/forwarding lifecycle state without hidden
+    /// ownership in this coordinator. The traffic reservation remains held until all callbacks for this aggregate finish.
+    /// </remarks>
+    template<typename TExpiredRecipientCallback>
+    bool ExpireWithRecipients(
+        ApplicationTransmissionHandle handle,
+        std::uint64_t nowMilliseconds,
+        TExpiredRecipientCallback&& onExpiredRecipient
+    ) noexcept {
+        const bool expired = _transmissions.ExpireWithRecipients(
+            handle,
+            nowMilliseconds,
+            [&](MeshMessageId messageId) noexcept {
+                onExpiredRecipient(handle, messageId);
+            }
+        );
+        if (expired) ReleaseTrafficIfTerminal(handle);
+        return expired;
+    }
+
     std::size_t ExpireDue(std::uint64_t nowMilliseconds) noexcept {
         return _transmissions.ExpireDue(nowMilliseconds, [&](ApplicationTransmissionHandle handle) {
             ReleaseTrafficIfTerminal(handle);
         });
     }
 
-    /// <summary>
-    /// Expires all due recipients and reports each newly terminal MessageId after aggregate DeadlineExpired authority exists.
-    /// </summary>
-    /// <remarks>
-    /// The callback lets a composition root synchronously retire exact externally owned ACK/Radio/forwarding lifecycle
-    /// state without this coordinator owning another 8×32 registry. The callback is invoked only for recipients that were
-    /// Pending at the instant of this sweep and must be non-throwing. Aggregate traffic reservations are released after all
-    /// newly expired recipient callbacks for that aggregate have run.
-    /// </remarks>
     template<typename TExpiredRecipientCallback>
     std::size_t ExpireDueWithRecipients(
         std::uint64_t nowMilliseconds,
