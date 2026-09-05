@@ -7,7 +7,6 @@
 
 namespace ESPressio::Mesh {
 
-/// <summary>Result of terminalizing one frozen application recipient and retiring its external delivery lifecycle.</summary>
 enum class ApplicationRecipientTerminalizationResult : std::uint8_t {
     Terminalized,
     AlreadyTerminal,
@@ -16,16 +15,18 @@ enum class ApplicationRecipientTerminalizationResult : std::uint8_t {
     Invalid
 };
 
+enum class ApplicationRecipientRetirementResult : std::uint8_t {
+    Retired,
+    NotTerminal,
+    UnknownRecipient,
+    UnknownTransmission,
+    Invalid
+};
+
 /// <summary>
-/// Narrow composition that keeps aggregate recipient outcome, external OutboundDeliveryLifecycle retirement and payload
-/// retention ordered without introducing cancellation semantics.
+/// Keeps aggregate recipient outcome and external OutboundDeliveryLifecycle retirement ordered without inventing
+/// cancellation semantics.
 /// </summary>
-/// <remarks>
-/// The aggregate remains retained after terminalization. This coordinator never releases the aggregate or its immutable
-/// payload reference; callers may release the aggregate only after every recipient is terminal. Resetting the external
-/// delivery lifecycle occurs only after the aggregate accepted the terminal outcome, so retryable/forwardable recipients
-/// cannot silently lose route-attempt or destination-acknowledgement state.
-/// </remarks>
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
@@ -39,9 +40,7 @@ public:
         ApplicationTransmissionCoordinator<TransmissionCapacity, RecipientCapacity>& transmissions
     ) noexcept : _transmissions(transmissions) {}
 
-    /// <summary>
-    /// Commits a terminal recipient outcome, then retires the exact external per-recipient delivery lifecycle.
-    /// </summary>
+    /// <summary>Commits a terminal recipient outcome, then retires the exact external delivery lifecycle.</summary>
     ApplicationRecipientTerminalizationResult Terminalize(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
@@ -70,6 +69,38 @@ public:
                 return ApplicationRecipientTerminalizationResult::Invalid;
         }
         return ApplicationRecipientTerminalizationResult::Invalid;
+    }
+
+    /// <summary>
+    /// Retires an exact external delivery lifecycle after the aggregate recipient has already become terminal elsewhere.
+    /// </summary>
+    /// <remarks>
+    /// This covers bounded deadline sweeping and other independently owned terminalization paths. It never changes the
+    /// aggregate outcome: the recipient must already be terminal for the same MessageId. Thus retirement cannot be used
+    /// as implicit cancellation or to erase still-retryable delivery state.
+    /// </remarks>
+    ApplicationRecipientRetirementResult RetireTerminal(
+        ApplicationTransmissionHandle transmission,
+        MeshMessageId messageId,
+        OutboundDeliveryLifecycle<AcknowledgementCapacity>& delivery
+    ) noexcept {
+        if (!transmission || messageId == 0U || !delivery.IsActive() || delivery.MessageId() != messageId) {
+            return ApplicationRecipientRetirementResult::Invalid;
+        }
+
+        ApplicationRecipientOutcome outcome{};
+        if (!_transmissions.TryGetRecipientOutcome(transmission, messageId, outcome)) {
+            // Distinguish a stale/unknown aggregate handle from an unknown recipient on a retained aggregate.
+            ApplicationRecipientOutcome ignored{};
+            if (!_transmissions.TryGetRecipientOutcome(transmission, delivery.MessageId(), ignored)) {
+                return ApplicationRecipientRetirementResult::UnknownTransmission;
+            }
+            return ApplicationRecipientRetirementResult::UnknownRecipient;
+        }
+        if (outcome == ApplicationRecipientOutcome::Pending) return ApplicationRecipientRetirementResult::NotTerminal;
+
+        delivery.Reset();
+        return ApplicationRecipientRetirementResult::Retired;
     }
 };
 
