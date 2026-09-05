@@ -61,6 +61,12 @@ public:
         ForwardingRadioAttemptCoordinator<CorrelationCapacity, MembershipCapacity, BindingCapacity, HopCapacity>& radioAttempts
     ) noexcept : _delivery(delivery), _radioAttempts(radioAttempts) {}
 
+    /// <summary>Returns whether the composed outbound delivery lifecycle is currently active.</summary>
+    bool IsActive() const noexcept { return _delivery.IsActive(); }
+
+    /// <summary>Returns the active Mesh MessageId, or zero when no outbound delivery is active.</summary>
+    MeshMessageId MessageId() const noexcept { return _delivery.MessageId(); }
+
     constexpr bool HasPendingRadioTerminalCorrelation() const noexcept { return static_cast<bool>(_correlation); }
     constexpr ForwardingRadioCorrelationHandle PendingRadioTerminalCorrelation() const noexcept { return _correlation; }
 
