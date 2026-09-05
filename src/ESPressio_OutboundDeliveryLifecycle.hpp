@@ -24,6 +24,10 @@ enum class OutboundDeliveryAcknowledgementAction : std::uint8_t { DeliveryConfir
 /// separate stages. The `ArmAcceptedSubmission` entry point exists for a higher composition which has already evaluated
 /// the submission through `ForwardingRadioAttemptCoordinator`; it arms acceptance without evaluating the route attempt a
 /// second time.
+///
+/// Destination acknowledgement application is lifecycle-scoped before the shared acknowledgement tracker is touched.
+/// An ACK for another active delivery therefore cannot consume that delivery's tracker entry or alter this lifecycle's
+/// local reservation state, even when multiple lifecycles share one bounded DeliveryAcknowledgementTracker.
 /// </remarks>
 template<std::size_t AcknowledgementCapacity>
 class OutboundDeliveryLifecycle final {
@@ -140,6 +144,14 @@ public:
         return ForwardingAttemptLifecycle::AfterAuthenticatedAcceptance(acceptance, _attempts, nowMilliseconds, _absoluteDeadlineMilliseconds);
     }
 
+    /// <summary>
+    /// Applies one already-authenticated destination ACK only when it identifies this exact active delivery.
+    /// </summary>
+    /// <remarks>
+    /// The exact lifecycle identity check occurs before the shared acknowledgement tracker is touched. This is required
+    /// because several outbound lifecycles may share that bounded tracker; forwarding an unrelated but otherwise-valid ACK
+    /// into it could consume another delivery's record and corrupt this lifecycle's reservation state.
+    /// </remarks>
     OutboundDeliveryAcknowledgementAction ApplyDestinationAcknowledgementAuthenticated(
         const System::DeviceIdentifier& authenticatedSource,
         const MembershipIncarnation& authenticatedSourceIncarnation,
@@ -147,6 +159,11 @@ public:
         std::uint64_t nowMilliseconds
     ) noexcept {
         if (!_active || !_acknowledgementReserved) return OutboundDeliveryAcknowledgementAction::IgnoreUnrelatedAcknowledgement;
+        if (authenticatedSource != _destination ||
+            authenticatedSourceIncarnation != _destinationIncarnation ||
+            acknowledgedMessageId != _messageId) {
+            return OutboundDeliveryAcknowledgementAction::IgnoreUnrelatedAcknowledgement;
+        }
         const auto result = _acknowledgements.ApplyAuthenticated(authenticatedSource, authenticatedSourceIncarnation, acknowledgedMessageId, nowMilliseconds);
         switch (result) {
             case DeliveryAcknowledgementApplyResult::Acknowledged: _acknowledgementReserved = false; return OutboundDeliveryAcknowledgementAction::DeliveryConfirmed;
