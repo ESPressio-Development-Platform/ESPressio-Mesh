@@ -55,10 +55,22 @@ int main() {
            Mesh::ForwardingAcceptanceResult::NotPending);
     assert(remaining == 3U);
 
-    // Deadline expiry releases the pending transition and never consumes hop budget.
+    // Unrelated authenticated evidence cannot consume pending transition state merely because its deadline elapsed.
     assert(coordinator.Arm(nextHop, incarnation, 42, 120, 130) ==
            Mesh::ForwardingTransitionArmResult::Armed);
-    assert(coordinator.AcceptAuthenticated(nextHop, incarnation, 42, 130, remaining) ==
+    assert(coordinator.AcceptAuthenticated(otherNode, incarnation, 42, 130, remaining) ==
+           Mesh::ForwardingAcceptanceResult::WrongNextHop);
+    assert(coordinator.HasPending());
+    assert(remaining == 3U);
+    assert(coordinator.AcceptAuthenticated(nextHop, laterIncarnation, 42, 131, remaining) ==
+           Mesh::ForwardingAcceptanceResult::WrongIncarnation);
+    assert(coordinator.HasPending());
+    assert(coordinator.AcceptAuthenticated(nextHop, incarnation, 43, 132, remaining) ==
+           Mesh::ForwardingAcceptanceResult::WrongMessage);
+    assert(coordinator.HasPending());
+
+    // Matching evidence after the immutable deadline does retire the exact pending transition without consuming HopLimit.
+    assert(coordinator.AcceptAuthenticated(nextHop, incarnation, 42, 133, remaining) ==
            Mesh::ForwardingAcceptanceResult::DeadlineExpired);
     assert(!coordinator.HasPending());
     assert(remaining == 3U);
