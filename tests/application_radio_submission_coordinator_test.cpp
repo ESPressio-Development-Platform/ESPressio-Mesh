@@ -109,9 +109,13 @@ int main() {
         assert(aggregate.TryGetRecipientOutcome(handle, 101, outcome));
         assert(outcome == Mesh::ApplicationRecipientOutcome::Pending);
 
-        assert(aggregate.SetRecipientOutcome(handle, 101, Mesh::ApplicationRecipientOutcome::PermanentFailure) ==
-            Mesh::ApplicationTransmissionUpdateResult::Updated);
-        radioDelivery.Reset();
+        // Test cleanup must use the same aggregate-first retirement ordering as production code.
+        assert(recipients.TerminalizeComposed(
+                   handle,
+                   101,
+                   Mesh::ApplicationRecipientOutcome::PermanentFailure,
+                   radioDelivery) == Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+        assert(!radioDelivery.IsActive());
         assert(aggregate.Release(handle));
     }
 
@@ -177,9 +181,13 @@ int main() {
         Mesh::ApplicationRecipientOutcome outcome{};
         assert(aggregate.TryGetRecipientOutcome(handle, 404, outcome));
         assert(outcome == Mesh::ApplicationRecipientOutcome::Pending);
-        assert(aggregate.SetRecipientOutcome(handle, 404, Mesh::ApplicationRecipientOutcome::PermanentFailure) ==
-            Mesh::ApplicationTransmissionUpdateResult::Updated);
-        radioDelivery.Reset();
+
+        assert(recipients.TerminalizeComposed(
+                   handle,
+                   404,
+                   Mesh::ApplicationRecipientOutcome::PermanentFailure,
+                   radioDelivery) == Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+        assert(!radioDelivery.IsActive());
         assert(aggregate.Release(handle));
     }
 
