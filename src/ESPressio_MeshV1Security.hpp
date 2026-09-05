@@ -28,6 +28,7 @@ struct MeshV1SecuritySuite final {
     static constexpr std::size_t TrafficNonceBytes = 12U;
     static constexpr std::size_t AuthenticationTagBytes = 16U;
     static constexpr std::size_t SessionIdentifierBytes = 16U;
+    static constexpr std::size_t ChannelBindingBytes = 32U;
     static constexpr std::size_t ReplayWindowBits = 64U;
     static constexpr std::size_t DerivedDirectionalKeyCount = 4U;
     static constexpr std::size_t DerivedIvCount = 6U;
@@ -52,10 +53,12 @@ struct MeshSecurityBytes final {
 
 using MeshSecurityDigest = MeshSecurityBytes<MeshV1SecuritySuite::DigestBytes>;
 using MeshEphemeralPublicKey = MeshSecurityBytes<MeshV1SecuritySuite::EphemeralPublicKeyBytes>;
+using MeshIdentityPublicKey = MeshSecurityBytes<MeshV1SecuritySuite::EphemeralPublicKeyBytes>;
 using MeshHandshakeNonce = MeshSecurityBytes<MeshV1SecuritySuite::HandshakeNonceBytes>;
 using MeshIdentitySignature = MeshSecurityBytes<MeshV1SecuritySuite::IdentitySignatureBytes>;
 using MeshAuthenticationTag = MeshSecurityBytes<MeshV1SecuritySuite::AuthenticationTagBytes>;
 using MeshSecuritySessionIdentifier = MeshSecurityBytes<MeshV1SecuritySuite::SessionIdentifierBytes>;
+using MeshSecurityChannelBinding = MeshSecurityBytes<MeshV1SecuritySuite::ChannelBindingBytes>;
 
 enum class MeshV1SecurityMessageType : std::uint8_t {
     InitiatorHello = 1U,
@@ -354,7 +357,7 @@ enum class MeshSecurityTrafficPurpose : std::uint8_t { Hop, EndToEnd, KeyConfirm
 /// values never become credentials. DeriveSession performs ECDH then HKDF-Extract/Expand with both authenticated nonces,
 /// MeshIdentifier, ordered device/incarnation identities, role and complete signed-hello transcript digest as context.
 /// The exact KDF is HKDF-Extract(SHA-256(SaltLabel || initiatorNonce || responderNonce), ECDH-x-coordinate), followed by
-/// HKDF-Expand with SessionLabel || MeshIdentifier || initiator DeviceIdentifier || initiator MembershipIncarnation ||
+/// HKDF-Expand with SessionLabel || MeshIdentifier || MeshSecurityChannelBinding || initiator DeviceIdentifier || initiator MembershipIncarnation ||
 /// responder DeviceIdentifier || responder MembershipIncarnation || signedHelloTranscriptDigest. Its 280 output bytes
 /// are consumed in this order: initiator-to-responder Hop key, responder-to-initiator Hop key,
 /// initiator-to-responder EndToEnd key, responder-to-initiator EndToEnd key, initiator confirmation key, responder
@@ -375,6 +378,7 @@ public:
         MeshEphemeralKeyHandle& handle,
         MeshEphemeralPublicKey& publicKey
     ) noexcept = 0;
+    virtual bool GenerateHandshakeNonce(MeshHandshakeNonce& nonce) noexcept = 0;
     virtual bool Hash(const std::uint8_t* bytes, std::size_t size, MeshSecurityDigest& digest) noexcept = 0;
     virtual bool SignIdentityDigest(
         const System::DeviceIdentifier& localDevice,
@@ -390,6 +394,7 @@ public:
         MeshEphemeralKeyHandle localEphemeral,
         const MeshEphemeralPublicKey& peerEphemeral,
         const MeshIdentifier& mesh,
+        const MeshSecurityChannelBinding& channelBinding,
         const System::DeviceIdentifier& initiatorDevice,
         const MembershipIncarnation& initiatorIncarnation,
         const MeshHandshakeNonce& initiatorNonce,
