@@ -22,6 +22,13 @@ int main() {
     assert(aggregate && traffic.Active(MeshTrafficClass::Application) == 1U);
     assert(coordinator.Payload(aggregate) != nullptr && coordinator.Payload(aggregate)->StableData() == bytes);
 
+    // Release is not cancellation: a non-terminal aggregate must retain its payload and traffic ownership while any
+    // recipient can still legitimately be forwarded/retried.
+    assert(!coordinator.Release(aggregate));
+    assert(transmissions.Contains(aggregate));
+    assert(coordinator.Payload(aggregate) != nullptr && coordinator.Payload(aggregate)->StableData() == bytes);
+    assert(traffic.Active(MeshTrafficClass::Application) == 1U);
+
     DefaultRouteAttemptPolicy routePolicy; DefaultRetryPolicy retryPolicy; RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
     DeliveryAcknowledgementTracker<4> tracker; DeliveryAcknowledgementCoordinator<4> acknowledgements(tracker);
     OutboundDeliveryLifecycle<4> firstDelivery(attempts, acknowledgements);
@@ -35,7 +42,8 @@ int main() {
     assert(coordinator.Payload(aggregate)->StableData() == bytes); // same backing for every recipient
     assert(coordinator.SetRecipientOutcome(aggregate, 102, ApplicationRecipientOutcome::PermanentFailure) == ApplicationTransmissionUpdateResult::Updated);
     assert(transmissions.IsTerminal(aggregate) && traffic.Active(MeshTrafficClass::Application) == 0U && transmissions.Contains(aggregate));
-    assert(coordinator.Release(aggregate)); secondDelivery.Reset();
+    secondDelivery.Reset();
+    assert(coordinator.Release(aggregate));
 
     ApplicationTransmissionHandle invalid{};
     assert(coordinator.Begin(nullptr, 0, payload, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
