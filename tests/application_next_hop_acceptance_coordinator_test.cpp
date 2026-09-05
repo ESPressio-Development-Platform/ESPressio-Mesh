@@ -38,6 +38,21 @@ public:
     void DrainInbound() override {}
     Radio::RadioObserverSubscriptions& Observers() noexcept override { return _observers; }
 };
+
+/// <summary>
+/// Minimal independently owned external lifecycle used to establish aggregate terminal authority "elsewhere" while
+/// intentionally leaving the real Radio-delivery lifecycle active for late-evidence retirement coverage.
+/// </summary>
+class IndependentExternalLifecycle final {
+    Mesh::MeshMessageId _messageId{0};
+    bool _active{false};
+public:
+    explicit IndependentExternalLifecycle(Mesh::MeshMessageId messageId) noexcept
+        : _messageId(messageId), _active(messageId != 0U) {}
+    bool IsActive() const noexcept { return _active; }
+    Mesh::MeshMessageId MessageId() const noexcept { return _messageId; }
+    void Reset() noexcept { _active = false; }
+};
 }
 
 int main() {
@@ -132,9 +147,12 @@ int main() {
         assert(aggregate.TryGetRecipientOutcome(handle, 101, outcome));
         assert(outcome == Mesh::ApplicationRecipientOutcome::Pending);
 
-        assert(aggregate.SetRecipientOutcome(handle, 101, Mesh::ApplicationRecipientOutcome::PermanentFailure) ==
-            Mesh::ApplicationTransmissionUpdateResult::Updated);
-        radioDelivery.Reset();
+        assert(recipients.TerminalizeComposed(
+                   handle,
+                   101,
+                   Mesh::ApplicationRecipientOutcome::PermanentFailure,
+                   radioDelivery) == Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+        assert(!radioDelivery.IsActive());
         assert(aggregate.Release(handle));
     }
 
@@ -164,7 +182,8 @@ int main() {
         assert(aggregate.Release(handle));
     }
 
-    // If aggregate terminalization wins first, a late otherwise-valid acceptance is not applied and cannot consume HopLimit.
+    // If aggregate terminalization wins through another owner first, late acceptance is not applied and the exact
+    // still-active Radio delivery is retired by the aggregate-aware acceptance coordinator without consuming HopLimit.
     {
         Mesh::ApplicationTransmissionRecipient recipient[] = {{remote, incarnation, 303}};
         Mesh::ApplicationTransmissionHandle handle{};
@@ -178,8 +197,15 @@ int main() {
         radio.NextTransmission = {83};
         assert(radioDelivery.Submit(local, route, 3, bytes, sizeof(bytes), 302).Action ==
             Mesh::OutboundForwardingAction::AwaitingNextHopAcceptance);
-        assert(aggregate.SetRecipientOutcome(handle, 303, Mesh::ApplicationRecipientOutcome::DeadlineExpired) ==
-            Mesh::ApplicationTransmissionUpdateResult::Updated);
+
+        IndependentExternalLifecycle independent{303};
+        assert(recipients.TerminalizeComposed(
+                   handle,
+                   303,
+                   Mesh::ApplicationRecipientOutcome::DeadlineExpired,
+                   independent) == Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+        assert(!independent.IsActive());
+        assert(radioDelivery.IsActive());
 
         Mesh::RemainingHopLimit remaining{3};
         assert(acceptance.ApplyAuthenticated(handle, radioDelivery, remote, incarnation, 303, 303, remaining) ==
