@@ -53,6 +53,7 @@
 #include "ESPressio_ApplicationDeliveryAcknowledgementCoordinator.hpp"
 #include "ESPressio_ApplicationRadioSubmissionCoordinator.hpp"
 #include "ESPressio_ApplicationRadioTerminalCoordinator.hpp"
+#include "ESPressio_ApplicationNextHopAcceptanceCoordinator.hpp"
 #include "ESPressio_ApplicationForwardingCoordinator.hpp"
 #include "ESPressio_LivenessProbeReservations.hpp"
 #include "ESPressio_LivenessProbeCoordinator.hpp"
