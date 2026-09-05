@@ -31,13 +31,11 @@ enum class LivenessProbeReservationResult : std::uint8_t {
     Invalid
 };
 
-/// <summary>
-/// Fixed-capacity execution reservations for active liveness probes.
-/// </summary>
+/// <summary>Fixed-capacity execution reservations for active liveness probes.</summary>
 /// <remarks>
-/// Probe scheduling/eligibility remains policy-owned. This table only prevents duplicate concurrent probes to the
-/// same authenticated DeviceIdentifier + MembershipIncarnation and enforces the locked finite active-probe bound.
-/// It stores no reachability result and cannot change MembershipState or authenticated authority.
+/// Probe scheduling/eligibility remains policy-owned. This table only prevents duplicate concurrent probes to the same
+/// authenticated DeviceIdentifier + MembershipIncarnation and enforces the locked finite active-probe bound. It stores
+/// no reachability result and cannot change MembershipState or authenticated authority.
 /// </remarks>
 template<std::size_t Capacity = Limits::MaxActiveLivenessProbes>
 class LivenessProbeReservationTable final {
@@ -118,6 +116,20 @@ public:
             if (slot.Occupied && slot.Device == device && slot.Incarnation == incarnation) return true;
         }
         return false;
+    }
+
+    /// <summary>Releases every active liveness-probe reservation during controlled local Mesh reset.</summary>
+    /// <remarks>
+    /// Slot generations are retained so pre-reset reservation handles cannot become valid again when slots are reused.
+    /// Resetting execution reservations does not change reachability, membership authority or create liveness evidence.
+    /// </remarks>
+    void Clear() noexcept {
+        for (auto& slot : _slots) {
+            slot.Device = {};
+            slot.Incarnation = {};
+            slot.Occupied = false;
+        }
+        _size = 0U;
     }
 };
 
