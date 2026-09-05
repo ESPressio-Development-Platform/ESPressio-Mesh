@@ -34,6 +34,10 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: structural_realignment
           path: ESPressio-Observable
+      - name: Build outbound delivery lifecycle regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/outbound_delivery_lifecycle_test.cpp -o outbound_delivery_lifecycle_test -pthread
+      - name: Run outbound delivery lifecycle regression
+        run: ./outbound_delivery_lifecycle_test
       - name: Build application forwarding regression
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_forwarding_coordinator_test.cpp -o application_forwarding_coordinator_test -pthread
       - name: Run application forwarding regression
