@@ -46,6 +46,7 @@
 #include "ESPressio_OutboundDeliveryLifecycle.hpp"
 #include "ESPressio_OutboundRadioDeliveryCoordinator.hpp"
 #include "ESPressio_ApplicationPayload.hpp"
+#include "ESPressio_ApplicationPayloadStaging.hpp"
 #include "ESPressio_ApplicationTransmissionTable.hpp"
 #include "ESPressio_ApplicationTransmissionCoordinator.hpp"
 #include "ESPressio_ApplicationForwardingCoordinator.hpp"
