@@ -110,5 +110,23 @@ int main() {
     assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
     assert(aggregate.Release(expiringHandle));
 
+    // If a deadline sweep wins immediately before a late terminal result is composed, the aggregate's DeadlineExpired
+    // outcome remains authoritative while Terminalize still retires the exact stale delivery and its ACK reservation.
+    ApplicationTransmissionRecipient raced[] = {{Device(5), Incarnation(15), 401}};
+    ApplicationTransmissionHandle racedHandle{};
+    assert(aggregate.Begin(raced, 1, payload, 100, 200, racedHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    RouteAttemptCoordinator racedAttempts(routePolicy, retryPolicy);
+    OutboundDeliveryLifecycle<4> racedDelivery(racedAttempts, acknowledgements);
+    assert(aggregate.BeginRecipient(racedHandle, 0, 101, true, racedDelivery) == ApplicationRecipientBeginResult::Begun);
+    assert(racedDelivery.IsActive() && racedDelivery.AwaitingDestinationAcknowledgement());
+    assert(aggregate.ExpireDue(200) == 1U);
+    assert(racedDelivery.IsActive());
+    assert(lifecycle.Terminalize(racedHandle, 401, ApplicationRecipientOutcome::Delivered, racedDelivery) ==
+        ApplicationRecipientTerminalizationResult::AlreadyTerminal);
+    assert(!racedDelivery.IsActive());
+    assert(aggregate.TryGetRecipientOutcome(racedHandle, 401, expiredOutcome));
+    assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
+    assert(aggregate.Release(racedHandle));
+
     return 0;
 }
