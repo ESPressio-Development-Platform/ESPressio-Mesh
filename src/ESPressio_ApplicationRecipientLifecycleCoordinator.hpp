@@ -23,10 +23,6 @@ enum class ApplicationRecipientRetirementResult : std::uint8_t {
     Invalid
 };
 
-/// <summary>
-/// Keeps aggregate recipient outcome and external OutboundDeliveryLifecycle retirement ordered without inventing
-/// cancellation semantics.
-/// </summary>
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
@@ -40,7 +36,6 @@ public:
         ApplicationTransmissionCoordinator<TransmissionCapacity, RecipientCapacity>& transmissions
     ) noexcept : _transmissions(transmissions) {}
 
-    /// <summary>Commits a terminal recipient outcome, then retires the exact external delivery lifecycle.</summary>
     ApplicationRecipientTerminalizationResult Terminalize(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
@@ -71,13 +66,10 @@ public:
         return ApplicationRecipientTerminalizationResult::Invalid;
     }
 
-    /// <summary>
-    /// Retires an exact external delivery lifecycle after the aggregate recipient has already become terminal elsewhere.
-    /// </summary>
+    /// <summary>Retires external delivery state after the aggregate recipient became terminal elsewhere.</summary>
     /// <remarks>
-    /// This covers bounded deadline sweeping and other independently owned terminalization paths. It never changes the
-    /// aggregate outcome: the recipient must already be terminal for the same MessageId. Thus retirement cannot be used
-    /// as implicit cancellation or to erase still-retryable delivery state.
+    /// This is intended for deadline sweeping and other independently owned terminalization paths. It never mutates the
+    /// aggregate outcome and therefore cannot act as cancellation. A Pending recipient retains its active delivery state.
     /// </remarks>
     ApplicationRecipientRetirementResult RetireTerminal(
         ApplicationTransmissionHandle transmission,
@@ -87,14 +79,10 @@ public:
         if (!transmission || messageId == 0U || !delivery.IsActive() || delivery.MessageId() != messageId) {
             return ApplicationRecipientRetirementResult::Invalid;
         }
+        if (!_transmissions.Contains(transmission)) return ApplicationRecipientRetirementResult::UnknownTransmission;
 
         ApplicationRecipientOutcome outcome{};
         if (!_transmissions.TryGetRecipientOutcome(transmission, messageId, outcome)) {
-            // Distinguish a stale/unknown aggregate handle from an unknown recipient on a retained aggregate.
-            ApplicationRecipientOutcome ignored{};
-            if (!_transmissions.TryGetRecipientOutcome(transmission, delivery.MessageId(), ignored)) {
-                return ApplicationRecipientRetirementResult::UnknownTransmission;
-            }
             return ApplicationRecipientRetirementResult::UnknownRecipient;
         }
         if (outcome == ApplicationRecipientOutcome::Pending) return ApplicationRecipientRetirementResult::NotTerminal;
