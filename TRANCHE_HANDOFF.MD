@@ -46,7 +46,7 @@ System: canonical exact-16-byte DeviceIdentifier implemented; platform derivatio
 Primitive: family/version/message/correlation/fingerprint/range contracts implemented; no concrete family ID allocated.
 Radio/ESP32/NRF24: direct-peer complete logical transfer, bounded peer registry, fragmentation/reassembly, peer lifecycle, deferred terminal correlation, explicit admission-vs-terminal evidence, ESP32 shared-PHY coordination implemented.
 State: canonical StateAddress, local authority binding, remote replicas, availability/reachability, epoch/revision, serialized observers and v2 transport primitives implemented.
-Command: intrinsic RPC machinery removed; CommandMessage is conceptual/correlation/version + bounded payload. Local CommandResult terminology cleanup remains.
+Command: intrinsic RPC machinery removed; CommandMessage is conceptual/correlation/version + bounded payload. README/wiki already define `CommandResult` as local invocation disposition only. A dedicated regression now proves `CommandResult::Ok()` may be returned while the initiated application operation remains incomplete, and `Error()` likewise describes only local handler rejection/failure. One stale source doc-comment phrase (`completed successfully`) remains terminology-only cleanup in the large core header; it must not be interpreted as operation completion.
 Event: transport provenance removed from Event object state; Local/Remote dispatch context and EVTT v2 implemented. Distributed EventTypeId and conceptual MessageId strategy remain unresolved.
 
 Mesh:
@@ -75,6 +75,7 @@ Immutable-payload continuation:
 - Follow-up Application Forwarding run `33964786992` passed build, corrected application-forwarding regression and current Mesh umbrella.
 - Live-tip reconciliation on 2026-09-05 detected that `RoutePlanner` and `RouteAttemptCoordinator` were already present and validated beyond the older handoff snapshot. A redundant tentative `RoutingCoordinator` created while resuming was immediately removed in commit `faa75a383dc1bcdc924bcdb27a32f26caea2e63f`; no production routing semantics changed.
 - Repeatable staging head `e969ada33c4c799169f2a03a7d79c2b6cc9c1c92`: dedicated Application Forwarding run `33965509782` passed; full CI `33965509790` passed; Topology Freshness `33965509791`, Control Work Lifetime `33965509787`, Clock Coordination `33965509804`, Topology Evolution `33965509786` and Memory Accounting `33965509784` also passed. No Actions-budget symptom occurred.
+- Command local-disposition regression commit `b098e92aae1a5bf7c35f84ba082835a27501d5ee`: host-tests in run `33966069249` passed. ESP32 JSON/Event integration jobs were still running when this handoff entry was written; no task-budget symptom was observed.
 
 ## Unresolved public/wire decisions — do not cross silently
 
@@ -87,7 +88,7 @@ Immutable-payload continuation:
 
 ## Immediate next work
 
-1. Perform Command local-dispatch terminology cleanup; local `CommandResult.success` means local parsing/validation/dispatch/handler disposition only, never requested-operation completion.
+1. Complete the remaining terminology-only Command core doc-comment cleanup when editing the core header safely; do not change `CommandResult` into an operation-completion contract.
 2. Continue only Mesh work that does not require unresolved family/Event/Group/security-wire/bounded-owned-capacity decisions. Repeatable Serialized Source forwarding is no longer blocked when composition supplies finite staging.
 3. Keep bounded-owned payload storage capacity unresolved until explicitly approved; do not infer staging capacity as the platform-wide owned-payload capacity.
 4. Do not begin Event/MeshAdapters wire integration until unresolved ID decisions are approved.
@@ -97,7 +98,8 @@ Immutable-payload continuation:
 - 2026-09-05T08:42Z-08:50Z: Integrated explicit-capacity deferred logical-transfer correlation into RadioTransport; run `33956249777` green native + ESP32 worker.
 - 2026-09-05T09:17Z-10:33Z: Added Mesh forwarding terminal correlation/attempt/outbound delivery composition; runs `33959946510` and `33960956661` green.
 - 2026-09-05T11:16Z-11:39Z: Added bounded ApplicationTransmissionTable and ApplicationTransmissionCoordinator; corrected one test namespace typo; runs `33963104967` and `33963873242` green.
-- 2026-09-05T11:46Z-11:51Z: Added `ApplicationPayload`, Borrowed Stable and Repeatable Serialized Source contracts; bound exactly one immutable payload reference to each aggregate; updated table/coordinator regressions and umbrella export. No byte-capacity constant introduced. Initial run `33964359407` exposed only warning-clean formatting in the coordinator after all preceding tests passed; corrected in `5ec5fea8c8c8a6483e9b39b68e83d4946109e9b5`. Follow-up Topology Evolution `33964394229` completed successfully.
+- 2026-09-05T11:46Z-11:51Z: Added `ApplicationPayload`, Borrowed Stable and Repeatable Serialized Source contracts; bound exactly one immutable payload reference to each aggregate; updated table/coordinator regressions and umbrella export. No byte-capacity constant introduced. Initial run `33964359407` exposed only warning-clean formatting in the coordinator after all preceding tests passed; corrected in `5ec5fea8c8a6483e9b39b68e83d4946109e9b5`. Follow-up Topology Evolution `33964394229` completed successfully.
 - 2026-09-05T11:55Z-12:00Z: Added `ApplicationForwardingCoordinator` for Borrowed Stable recipient submission through authenticated forwarding; route/destination and terminal-recipient guards prevent accidental submission; Repeatable Serialized Source initially returned explicit `StagingRequired`. Initial dedicated run `33964689414` found only a regression-fixture boundary mistake (application logical pointer was incorrectly expected to equal Radio provider physical-fragment pointer). Corrected the test without changing production semantics in `d3a541e9b9345dcf2b13dc9d2eaee40c19ac927e`; follow-up run `33964786992` passed build, regression and umbrella.
 - 2026-09-05T12:08Z-12:10Z: Reconciled against the live branch tip and discovered routing planner/attempt orchestration had already advanced beyond the stale handoff snapshot. Removed the just-created redundant `RoutingCoordinator` in `faa75a383dc1bcdc924bcdb27a32f26caea2e63f` rather than duplicating validated responsibility.
 - 2026-09-05T12:11Z-12:16Z: Added composition-supplied `IApplicationPayloadStagingBuffer` and Repeatable Serialized Source forwarding through finite injected staging. No default staging/owned-payload capacity was introduced. Explicit outcomes cover staging required, insufficient capacity, unavailable storage and serialization failure. Dedicated Application Forwarding `33965509782`, full CI `33965509790` and all other triggered Mesh workflows passed on head `e969ada33c4c799169f2a03a7d79c2b6cc9c1c92`.
+- 2026-09-05T12:27Z: Added a Command regression proving local `CommandResult::Ok()` is compatible with an application operation that is still incomplete, while `Error()` remains local rejection/failure only. Commit `b098e92aae1a5bf7c35f84ba082835a27501d5ee`; host portion of run `33966069249` passed.
