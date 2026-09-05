@@ -23,6 +23,14 @@ enum class ApplicationRecipientRetirementResult : std::uint8_t {
     Invalid
 };
 
+enum class ApplicationRecipientInspectionResult : std::uint8_t {
+    Pending,
+    Terminal,
+    UnknownRecipient,
+    UnknownTransmission,
+    Invalid
+};
+
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
@@ -35,6 +43,30 @@ public:
     explicit ApplicationRecipientLifecycleCoordinator(
         ApplicationTransmissionCoordinator<TransmissionCapacity, RecipientCapacity>& transmissions
     ) noexcept : _transmissions(transmissions) {}
+
+    /// <summary>Inspects aggregate recipient authority without mutating aggregate or external delivery state.</summary>
+    /// <remarks>
+    /// Composition layers use this before consuming independently-owned terminal evidence such as destination ACK state.
+    /// It prevents an external lifecycle from being mutated when the aggregate/message pair is unknown and lets an
+    /// already-terminal aggregate retire stale external state without first consuming a late ACK.
+    /// </remarks>
+    ApplicationRecipientInspectionResult Inspect(
+        ApplicationTransmissionHandle transmission,
+        MeshMessageId messageId,
+        ApplicationRecipientOutcome* outcome = nullptr
+    ) const noexcept {
+        if (!transmission || messageId == 0U) return ApplicationRecipientInspectionResult::Invalid;
+        if (!_transmissions.Contains(transmission)) return ApplicationRecipientInspectionResult::UnknownTransmission;
+
+        ApplicationRecipientOutcome current{};
+        if (!_transmissions.TryGetRecipientOutcome(transmission, messageId, current)) {
+            return ApplicationRecipientInspectionResult::UnknownRecipient;
+        }
+        if (outcome != nullptr) *outcome = current;
+        return current == ApplicationRecipientOutcome::Pending
+            ? ApplicationRecipientInspectionResult::Pending
+            : ApplicationRecipientInspectionResult::Terminal;
+    }
 
     /// <summary>Commits a terminal recipient outcome and retires the exact matching external delivery lifecycle.</summary>
     /// <remarks>
