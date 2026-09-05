@@ -1,7 +1,7 @@
 #include <cassert>
 #include <cstdint>
 
-#include <ESPressio_ApplicationTransmissionCoordinator.hpp>
+#include <ESPressio_ApplicationRecipientLifecycleCoordinator.hpp>
 #include <ESPressio_DeliveryAcknowledgementTracker.hpp>
 #include <ESPressio_RouteAttemptPolicy.hpp>
 
@@ -14,6 +14,7 @@ MembershipIncarnation Incarnation(std::uint8_t value) { MembershipIncarnation::S
 
 int main() {
     ApplicationTransmissionTable<> transmissions; DefaultMeshTrafficGovernor traffic; ApplicationTransmissionCoordinator<> coordinator(transmissions, traffic);
+    ApplicationRecipientLifecycleCoordinator<4> recipientLifecycle(coordinator);
     ApplicationTransmissionRecipient recipients[] = {{Device(1), Incarnation(11), 101},{Device(2), Incarnation(12), 102}};
     const std::uint8_t bytes[] = {9,8,7}; const auto payload = ApplicationPayload::Borrowed(bytes, sizeof(bytes));
 
@@ -22,8 +23,6 @@ int main() {
     assert(aggregate && traffic.Active(MeshTrafficClass::Application) == 1U);
     assert(coordinator.Payload(aggregate) != nullptr && coordinator.Payload(aggregate)->StableData() == bytes);
 
-    // Release is not cancellation: a non-terminal aggregate must retain its payload and traffic ownership while any
-    // recipient can still legitimately be forwarded/retried.
     assert(!coordinator.Release(aggregate));
     assert(transmissions.Contains(aggregate));
     assert(coordinator.Payload(aggregate) != nullptr && coordinator.Payload(aggregate)->StableData() == bytes);
@@ -34,15 +33,16 @@ int main() {
     OutboundDeliveryLifecycle<4> firstDelivery(attempts, acknowledgements);
     assert(coordinator.BeginRecipient(aggregate, 0, 101, true, firstDelivery) == ApplicationRecipientBeginResult::Begun);
     assert(firstDelivery.IsActive() && firstDelivery.MessageId() == 101U && firstDelivery.AbsoluteDeadlineMilliseconds() == 1000U);
-    assert(coordinator.SetRecipientOutcome(aggregate, 101, ApplicationRecipientOutcome::Delivered) == ApplicationTransmissionUpdateResult::Updated);
-    assert(traffic.Active(MeshTrafficClass::Application) == 1U); firstDelivery.Reset();
+    assert(recipientLifecycle.Terminalize(aggregate, 101, ApplicationRecipientOutcome::Delivered, firstDelivery) == ApplicationRecipientTerminalizationResult::Terminalized);
+    assert(!firstDelivery.IsActive());
+    assert(traffic.Active(MeshTrafficClass::Application) == 1U);
 
     RouteAttemptCoordinator secondAttempts(routePolicy, retryPolicy); OutboundDeliveryLifecycle<4> secondDelivery(secondAttempts, acknowledgements);
     assert(coordinator.BeginRecipient(aggregate, 1, 102, false, secondDelivery) == ApplicationRecipientBeginResult::Begun);
-    assert(coordinator.Payload(aggregate)->StableData() == bytes); // same backing for every recipient
-    assert(coordinator.SetRecipientOutcome(aggregate, 102, ApplicationRecipientOutcome::PermanentFailure) == ApplicationTransmissionUpdateResult::Updated);
+    assert(coordinator.Payload(aggregate)->StableData() == bytes);
+    assert(recipientLifecycle.Terminalize(aggregate, 102, ApplicationRecipientOutcome::PermanentFailure, secondDelivery) == ApplicationRecipientTerminalizationResult::Terminalized);
+    assert(!secondDelivery.IsActive());
     assert(transmissions.IsTerminal(aggregate) && traffic.Active(MeshTrafficClass::Application) == 0U && transmissions.Contains(aggregate));
-    secondDelivery.Reset();
     assert(coordinator.Release(aggregate));
 
     ApplicationTransmissionHandle invalid{};
@@ -55,8 +55,6 @@ int main() {
     assert(!coordinator.Expire(expiring, 199)); assert(coordinator.Expire(expiring, 200));
     assert(transmissions.IsTerminal(expiring) && traffic.Active(MeshTrafficClass::Application) == 0U); assert(coordinator.Release(expiring));
 
-    // Beginning a recipient at/after the immutable aggregate deadline terminalizes that recipient immediately. This avoids
-    // retaining an impossible Pending recipient until a later maintenance sweep and releases traffic when it was the last.
     ApplicationTransmissionRecipient immediateRecipient[] = {{Device(5), Incarnation(15), 301}};
     ApplicationTransmissionHandle immediate{};
     assert(coordinator.Begin(immediateRecipient, 1, payload, 100, 250, immediate) == ApplicationTransmissionAdmissionResult::Begun);
@@ -70,7 +68,6 @@ int main() {
     assert(traffic.Active(MeshTrafficClass::Application) == 0U);
     assert(coordinator.Release(immediate));
 
-    // A bounded sweep enforces immutable deadlines across all accepted aggregates without silently releasing records.
     ApplicationTransmissionRecipient sweepA[] = {{Device(3), Incarnation(13), 201}};
     ApplicationTransmissionRecipient sweepB[] = {{Device(4), Incarnation(14), 202}};
     ApplicationTransmissionHandle early{}; ApplicationTransmissionHandle later{};
@@ -85,7 +82,7 @@ int main() {
     assert(inspectedOutcome == ApplicationRecipientOutcome::DeadlineExpired);
     assert(coordinator.ExpireDue(450) == 1U && transmissions.IsTerminal(later));
     assert(traffic.Active(MeshTrafficClass::Application) == 0U);
-    assert(coordinator.ExpireDue(500) == 0U); // terminal aggregates are not reported repeatedly
+    assert(coordinator.ExpireDue(500) == 0U);
     assert(coordinator.Release(early)); assert(coordinator.Release(later));
 
     MeshTrafficReservation held[Limits::ApplicationTransmissionCapacity]{};
