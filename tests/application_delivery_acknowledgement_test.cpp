@@ -44,10 +44,20 @@ int main() {
     assert(aggregate.BeginRecipient(firstHandle, 0, 100, true, firstDelivery) == ApplicationRecipientBeginResult::Begun);
     assert(firstDelivery.IsActive() && firstDelivery.AwaitingDestinationAcknowledgement());
 
+    // Aggregate authority is preflighted before ACK consumption. A stale/unknown aggregate handle cannot consume the
+    // exact pending ACK; the same valid ACK remains usable when subsequently presented with the authoritative handle.
+    ApplicationTransmissionHandle staleHandle{firstHandle.Slot, static_cast<std::uint16_t>(firstHandle.Generation + 1U)};
+    if (staleHandle.Generation == 0U) staleHandle.Generation = 1U;
+    assert(applicationAcks.ApplyAuthenticated(staleHandle, firstDelivery, Device(1), Incarnation(11), 101, 140) ==
+        ApplicationDeliveryAcknowledgementResult::UnknownTransmission);
+    assert(firstDelivery.IsActive() && firstDelivery.AwaitingDestinationAcknowledgement());
+    ApplicationRecipientOutcome outcome{};
+    assert(aggregate.TryGetRecipientOutcome(firstHandle, 101, outcome));
+    assert(outcome == ApplicationRecipientOutcome::Pending);
+
     assert(applicationAcks.ApplyAuthenticated(firstHandle, firstDelivery, Device(1), Incarnation(11), 101, 150) ==
         ApplicationDeliveryAcknowledgementResult::Delivered);
     assert(!firstDelivery.IsActive());
-    ApplicationRecipientOutcome outcome{};
     assert(aggregate.TryGetRecipientOutcome(firstHandle, 101, outcome));
     assert(outcome == ApplicationRecipientOutcome::Delivered);
     assert(transmissions.IsTerminal(firstHandle));
@@ -86,7 +96,7 @@ int main() {
     assert(aggregate.Release(expiringHandle));
 
     // If aggregate deadline sweeping wins immediately before a late valid ACK, the aggregate outcome remains authoritative
-    // while the exact stale per-delivery lifecycle is still retired.
+    // while the exact stale per-delivery lifecycle is retired without first consuming the late ACK as delivery evidence.
     ApplicationTransmissionRecipient racedRecipient[] = {{Device(4), Incarnation(14), 404}};
     ApplicationTransmissionHandle racedHandle{};
     assert(aggregate.Begin(racedRecipient, 1, payload, 100, 200, racedHandle) == ApplicationTransmissionAdmissionResult::Begun);
