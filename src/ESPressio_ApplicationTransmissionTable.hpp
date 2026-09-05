@@ -92,7 +92,6 @@ class ApplicationTransmissionTable final {
             newlyExpired[newlyExpiredCount++] = recipient.Recipient.MessageId;
         }
 
-        // All aggregate recipient outcomes are authoritative before any external owner is invited to retire local state.
         for (std::size_t index = 0; index < newlyExpiredCount; ++index) {
             onExpiredRecipient(newlyExpired[index]);
         }
@@ -145,9 +144,6 @@ public:
         return record != nullptr && ExpireRecord(*record, nowMilliseconds);
     }
 
-    /// <summary>
-    /// Expires one exact aggregate and reports each newly expired recipient after all of that aggregate's outcomes are committed.
-    /// </summary>
     template<typename TExpiredRecipientCallback>
     bool ExpireWithRecipients(
         ApplicationTransmissionHandle handle,
@@ -161,11 +157,6 @@ public:
         });
     }
 
-    /// <summary>Expires every non-terminal aggregate whose immutable absolute deadline has elapsed.</summary>
-    /// <remarks>
-    /// The callback is invoked once for each aggregate newly made terminal by this sweep. Records remain retained for
-    /// outcome inspection until explicitly released; no payload backing or handle is silently discarded here.
-    /// </remarks>
     template<typename TExpiredCallback>
     std::size_t ExpireDue(std::uint64_t nowMilliseconds, TExpiredCallback&& onExpired) noexcept {
         std::size_t expired = 0U;
@@ -178,15 +169,6 @@ public:
         return expired;
     }
 
-    /// <summary>
-    /// Expires due aggregate recipients and reports every newly expired MessageId after its aggregate outcomes are committed.
-    /// </summary>
-    /// <remarks>
-    /// This avoids hidden ownership of per-recipient delivery objects. A composition root can use the recipient callback to
-    /// retire its exact ACK/Radio/forwarding lifecycle synchronously after aggregate DeadlineExpired authority exists. The
-    /// aggregate callback is invoked once after all newly expired recipient callbacks for that aggregate. Both callbacks
-    /// execute synchronously and should be non-throwing.
-    /// </remarks>
     template<typename TExpiredRecipientCallback, typename TExpiredAggregateCallback>
     std::size_t ExpireDueWithRecipients(
         std::uint64_t nowMilliseconds,
@@ -204,6 +186,27 @@ public:
             onExpiredAggregate(handle);
         }
         return expired;
+    }
+
+    /// <summary>
+    /// Enumerates every retained recipient synchronously using only the table's fixed aggregate/recipient capacities.
+    /// </summary>
+    /// <remarks>
+    /// This read-only local introspection exists for composition-owned cleanup/inspection and performs at most
+    /// TransmissionCapacity × RecipientCapacity visits. The visitor must not structurally mutate this table while the
+    /// enumeration is in progress. No additional identity/capacity registry is created.
+    /// </remarks>
+    template<typename TVisitor>
+    void ForEachRecipient(TVisitor&& visitor) const noexcept {
+        for (std::size_t slot = 0; slot < TransmissionCapacity; ++slot) {
+            const auto& record = _records[slot];
+            if (!record.Used) continue;
+            const ApplicationTransmissionHandle handle{static_cast<std::uint16_t>(slot), record.Generation};
+            for (std::size_t index = 0; index < record.RecipientCount; ++index) {
+                const auto& recipient = record.Recipients[index];
+                visitor(handle, recipient.Recipient, recipient.Outcome);
+            }
+        }
     }
 
     constexpr std::size_t Capacity() const noexcept { return TransmissionCapacity; }
