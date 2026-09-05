@@ -17,6 +17,8 @@ ESPressio Mesh sits above `ESPressio-Radio`. Radio moves one opaque logical tran
 
 Mesh itself remains unaware of Command/Event/State payload semantics. Non-Mesh primitive-family payloads are opaque to the Mesh core and are dispatched only to the receiver registered for their `PrimitiveFamilyId` at the final destination.
 
+Every accepted application transmission retains a wire-neutral `ApplicationPrimitiveDescriptor` alongside its immutable payload reference. The descriptor carries the non-Mesh `PrimitiveFamilyId` and family protocol version needed by later framing and destination dispatch; it deliberately defines no packet layout. Mesh Control cannot enter through this application path.
+
 ## Current implementation tranche
 
 The `structural_realignment_propagation` branch is the coordinated implementation branch for the finalized 1.0.0 Mesh architecture. Its `TRANCHE_HANDOFF.MD` is the authoritative, self-contained frozen specification and chronological implementation record while the tranche remains in progress.

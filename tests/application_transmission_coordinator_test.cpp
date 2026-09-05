@@ -13,6 +13,9 @@ MembershipIncarnation Incarnation(std::uint8_t value) { MembershipIncarnation::S
 }
 
 int main() {
+    constexpr ESPressio::Mesh::ApplicationPrimitiveDescriptor primitive{
+        ESPressio::Primitive::FamilyIds::Event, 1
+    };
     ApplicationTransmissionTable<> transmissions; DefaultMeshTrafficGovernor traffic; ApplicationTransmissionCoordinator<> coordinator(transmissions, traffic);
     ApplicationRecipientLifecycleCoordinator<4> recipientLifecycle(coordinator);
     ApplicationTransmissionRecipient recipients[] = {{Device(1), Incarnation(11), 101},{Device(2), Incarnation(12), 102}};
@@ -22,8 +25,10 @@ int main() {
     DeliveryAcknowledgementTracker<4> tracker; DeliveryAcknowledgementCoordinator<4> acknowledgements(tracker);
 
     ApplicationTransmissionHandle aggregate{};
-    assert(coordinator.Begin(recipients, 2, payload, 100, 1000, aggregate) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(coordinator.Begin(recipients, 2, primitive, payload, 100, 1000, aggregate) == ApplicationTransmissionAdmissionResult::Begun);
     assert(aggregate && traffic.Active(MeshTrafficClass::Application) == 1U);
+    assert(coordinator.PrimitiveDescriptor(aggregate) != nullptr);
+    assert(coordinator.PrimitiveDescriptor(aggregate)->Family == ESPressio::Primitive::FamilyIds::Event);
     assert(coordinator.Payload(aggregate) != nullptr && coordinator.Payload(aggregate)->StableData() == bytes);
 
     assert(!coordinator.Release(aggregate));
@@ -48,14 +53,14 @@ int main() {
     assert(coordinator.Release(aggregate));
 
     ApplicationTransmissionHandle invalid{};
-    assert(coordinator.Begin(nullptr, 0, payload, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
-    assert(coordinator.Begin(recipients, 2, {}, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
+    assert(coordinator.Begin(nullptr, 0, primitive, payload, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
+    assert(coordinator.Begin(recipients, 2, primitive, {}, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
     assert(traffic.Active(MeshTrafficClass::Application) == 0U);
 
     // Explicit single-aggregate expiry offers the same aggregate-first external-cleanup ordering as the bulk sweep.
     ApplicationTransmissionRecipient explicitRecipient[] = {{Device(6), Incarnation(16), 401}};
     ApplicationTransmissionHandle expiring{};
-    assert(coordinator.Begin(explicitRecipient, 1, payload, 100, 200, expiring) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(coordinator.Begin(explicitRecipient, 1, primitive, payload, 100, 200, expiring) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator explicitAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> explicitDelivery(explicitAttempts, acknowledgements);
     assert(coordinator.BeginRecipient(expiring, 0, 110, true, explicitDelivery) == ApplicationRecipientBeginResult::Begun);
@@ -87,7 +92,7 @@ int main() {
 
     ApplicationTransmissionRecipient immediateRecipient[] = {{Device(5), Incarnation(15), 301}};
     ApplicationTransmissionHandle immediate{};
-    assert(coordinator.Begin(immediateRecipient, 1, payload, 100, 250, immediate) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(coordinator.Begin(immediateRecipient, 1, primitive, payload, 100, 250, immediate) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator immediateAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> immediateDelivery(immediateAttempts, acknowledgements);
     assert(coordinator.BeginRecipient(immediate, 0, 250, false, immediateDelivery) == ApplicationRecipientBeginResult::DeadlineExpired);
@@ -101,8 +106,8 @@ int main() {
     ApplicationTransmissionRecipient sweepA[] = {{Device(3), Incarnation(13), 201}};
     ApplicationTransmissionRecipient sweepB[] = {{Device(4), Incarnation(14), 202}};
     ApplicationTransmissionHandle early{}; ApplicationTransmissionHandle later{};
-    assert(coordinator.Begin(sweepA, 1, payload, 100, 300, early) == ApplicationTransmissionAdmissionResult::Begun);
-    assert(coordinator.Begin(sweepB, 1, payload, 100, 400, later) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(coordinator.Begin(sweepA, 1, primitive, payload, 100, 300, early) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(coordinator.Begin(sweepB, 1, primitive, payload, 100, 400, later) == ApplicationTransmissionAdmissionResult::Begun);
     assert(traffic.Active(MeshTrafficClass::Application) == 2U);
 
     RouteAttemptCoordinator sweepAttempts(routePolicy, retryPolicy);
@@ -156,7 +161,7 @@ int main() {
     MeshTrafficReservation held[Limits::ApplicationTransmissionCapacity]{};
     for (std::size_t i = 0; i < Limits::ApplicationTransmissionCapacity; ++i) assert(traffic.TryAcquire(MeshTrafficClass::Application, held[i]) == MeshTrafficAdmissionResult::Admitted);
     ApplicationTransmissionHandle blocked{};
-    assert(coordinator.Begin(recipients, 2, payload, 100, 1000, blocked) == ApplicationTransmissionAdmissionResult::ResourceUnavailable);
+    assert(coordinator.Begin(recipients, 2, primitive, payload, 100, 1000, blocked) == ApplicationTransmissionAdmissionResult::ResourceUnavailable);
     assert(!blocked && transmissions.Size() == 0U); for (auto reservation : held) assert(traffic.Release(reservation));
     return 0;
 }

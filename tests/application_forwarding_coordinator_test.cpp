@@ -57,6 +57,9 @@ public:
 }
 
 int main() {
+    constexpr ESPressio::Mesh::ApplicationPrimitiveDescriptor primitive{
+        ESPressio::Primitive::FamilyIds::Event, 1
+    };
     const auto local = Device(1), remote = Device(2); const auto incarnation = Incarnation(9);
     Mesh::AuthenticatedMembershipTable<2> memberships;
     assert(memberships.UpsertAuthenticated(remote, incarnation, Mesh::MembershipState::Active, Mesh::ReachabilityState::Reachable) == Mesh::AuthenticatedMembershipInsertResult::Inserted);
@@ -72,7 +75,7 @@ int main() {
     const std::uint8_t bytes[]{1,2,3,4}; Mesh::ApplicationTransmissionRecipient recipient{remote, incarnation, 101};
 
     Mesh::ApplicationTransmissionTable<2,2> transmissions; Mesh::ApplicationTransmissionHandle aggregate{};
-    assert(transmissions.Begin(&recipient, 1, Mesh::ApplicationPayload::Borrowed(bytes, sizeof(bytes)), 100, 200, aggregate) == Mesh::ApplicationTransmissionBeginResult::Begun);
+    assert(transmissions.Begin(&recipient, 1, primitive, Mesh::ApplicationPayload::Borrowed(bytes, sizeof(bytes)), 100, 200, aggregate) == Mesh::ApplicationTransmissionBeginResult::Begun);
     assert(transmissions.Payload(aggregate)->StableData() == bytes);
     Mesh::ApplicationForwardingCoordinator<2,2,2,2,2> coordinator{transmissions, forwarding};
     auto result = coordinator.SubmitRecipient(aggregate, 0, local, route, 1, 110);
@@ -91,7 +94,7 @@ int main() {
     assert(transmissions.Release(aggregate));
 
     Repeatable repeatable(bytes, sizeof(bytes)); Mesh::ApplicationTransmissionHandle repeatableAggregate{};
-    assert(transmissions.Begin(&recipient, 1, Mesh::ApplicationPayload::Repeatable(repeatable), 100, 200, repeatableAggregate) == Mesh::ApplicationTransmissionBeginResult::Begun);
+    assert(transmissions.Begin(&recipient, 1, primitive, Mesh::ApplicationPayload::Repeatable(repeatable), 100, 200, repeatableAggregate) == Mesh::ApplicationTransmissionBeginResult::Begun);
 
     result = coordinator.SubmitRecipient(repeatableAggregate, 0, local, route, 1, 113);
     assert(result.Disposition == Mesh::ApplicationForwardingDisposition::StagingRequired && radio.Sends == 1U);

@@ -21,6 +21,9 @@ MembershipIncarnation Incarnation(std::uint8_t value) {
 }
 
 int main() {
+    constexpr ESPressio::Mesh::ApplicationPrimitiveDescriptor primitive{
+        ESPressio::Primitive::FamilyIds::Event, 1
+    };
     ApplicationTransmissionTable<> transmissions;
     DefaultMeshTrafficGovernor traffic;
     ApplicationTransmissionCoordinator<> aggregate(transmissions, traffic);
@@ -38,7 +41,7 @@ int main() {
     // A valid authenticated destination ACK commits Delivered in the aggregate and retires the exact delivery lifecycle.
     ApplicationTransmissionRecipient firstRecipient[] = {{Device(1), Incarnation(11), 101}};
     ApplicationTransmissionHandle firstHandle{};
-    assert(aggregate.Begin(firstRecipient, 1, payload, 100, 1000, firstHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(firstRecipient, 1, primitive, payload, 100, 1000, firstHandle) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator firstAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> firstDelivery(firstAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(firstHandle, 0, 100, true, firstDelivery) == ApplicationRecipientBeginResult::Begun);
@@ -67,7 +70,7 @@ int main() {
     // An ACK from the wrong authenticated source is unrelated and cannot terminalize or retire the recipient.
     ApplicationTransmissionRecipient secondRecipient[] = {{Device(2), Incarnation(12), 202}};
     ApplicationTransmissionHandle secondHandle{};
-    assert(aggregate.Begin(secondRecipient, 1, payload, 100, 1000, secondHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(secondRecipient, 1, primitive, payload, 100, 1000, secondHandle) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator secondAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> secondDelivery(secondAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(secondHandle, 0, 100, true, secondDelivery) == ApplicationRecipientBeginResult::Begun);
@@ -84,7 +87,7 @@ int main() {
     // If ACK processing discovers the immutable deadline has expired, DeadlineExpired is committed and delivery state retires.
     ApplicationTransmissionRecipient expiringRecipient[] = {{Device(3), Incarnation(13), 303}};
     ApplicationTransmissionHandle expiringHandle{};
-    assert(aggregate.Begin(expiringRecipient, 1, payload, 100, 200, expiringHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(expiringRecipient, 1, primitive, payload, 100, 200, expiringHandle) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator expiringAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> expiringDelivery(expiringAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(expiringHandle, 0, 100, true, expiringDelivery) == ApplicationRecipientBeginResult::Begun);
@@ -99,7 +102,7 @@ int main() {
     // while the exact stale per-delivery lifecycle is retired without first consuming the late ACK as delivery evidence.
     ApplicationTransmissionRecipient racedRecipient[] = {{Device(4), Incarnation(14), 404}};
     ApplicationTransmissionHandle racedHandle{};
-    assert(aggregate.Begin(racedRecipient, 1, payload, 100, 200, racedHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(racedRecipient, 1, primitive, payload, 100, 200, racedHandle) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator racedAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> racedDelivery(racedAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(racedHandle, 0, 100, true, racedDelivery) == ApplicationRecipientBeginResult::Begun);

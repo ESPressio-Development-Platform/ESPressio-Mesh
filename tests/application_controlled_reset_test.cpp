@@ -56,6 +56,9 @@ public:
 }
 
 int main() {
+    constexpr ESPressio::Mesh::ApplicationPrimitiveDescriptor primitive{
+        ESPressio::Primitive::FamilyIds::Event, 1
+    };
     const auto local = Device(1);
     const auto remote = Device(2);
     const auto incarnation = Incarnation(9);
@@ -108,7 +111,7 @@ int main() {
 
         Mesh::ApplicationTransmissionRecipient recipients[] = {{remote, incarnation, 601}};
         Mesh::ApplicationTransmissionHandle handle{};
-        assert(aggregate.Begin(recipients, 1, payload, 100, 500, handle) ==
+        assert(aggregate.Begin(recipients, 1, primitive, payload, 100, 500, handle) ==
             Mesh::ApplicationTransmissionAdmissionResult::Begun);
         assert(aggregate.BeginRecipient(handle, 0, 101, true, delivery) ==
             Mesh::ApplicationRecipientBeginResult::Begun);
@@ -158,7 +161,7 @@ int main() {
 
         Mesh::ApplicationTransmissionRecipient recipients[] = {{remote, incarnation, 701}};
         Mesh::ApplicationTransmissionHandle handle{};
-        assert(aggregate.Begin(recipients, 1, payload, 100, 500, handle) ==
+        assert(aggregate.Begin(recipients, 1, primitive, payload, 100, 500, handle) ==
             Mesh::ApplicationTransmissionAdmissionResult::Begun);
 
         FakeExternal wrong{702};

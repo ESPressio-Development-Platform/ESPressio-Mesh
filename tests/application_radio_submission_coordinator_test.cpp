@@ -42,6 +42,9 @@ public:
 }
 
 int main() {
+    constexpr ESPressio::Mesh::ApplicationPrimitiveDescriptor primitive{
+        ESPressio::Primitive::FamilyIds::Event, 1
+    };
     const auto local = Device(1);
     const auto remote = Device(2);
     const auto incarnation = Incarnation(9);
@@ -84,7 +87,7 @@ int main() {
     {
         Mesh::ApplicationTransmissionRecipient recipient[] = {{remote, incarnation, 101}};
         Mesh::ApplicationTransmissionHandle handle{};
-        assert(aggregate.Begin(recipient, 1, payload, 100, 500, handle) == Mesh::ApplicationTransmissionAdmissionResult::Begun);
+        assert(aggregate.Begin(recipient, 1, primitive, payload, 100, 500, handle) == Mesh::ApplicationTransmissionAdmissionResult::Begun);
         Mesh::RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
         Mesh::OutboundDeliveryLifecycle<2> delivery(attempts, acknowledgements);
         Mesh::ForwardingRadioAttemptCoordinator<4, 2, 2, 2> radioAttempts(forwarding, correlation, attempts);
@@ -123,7 +126,7 @@ int main() {
     {
         Mesh::ApplicationTransmissionRecipient recipient[] = {{remote, incarnation, 202}};
         Mesh::ApplicationTransmissionHandle handle{};
-        assert(aggregate.Begin(recipient, 1, payload, 200, 250, handle) == Mesh::ApplicationTransmissionAdmissionResult::Begun);
+        assert(aggregate.Begin(recipient, 1, primitive, payload, 200, 250, handle) == Mesh::ApplicationTransmissionAdmissionResult::Begun);
         Mesh::RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
         Mesh::OutboundDeliveryLifecycle<2> delivery(attempts, acknowledgements);
         Mesh::ForwardingRadioAttemptCoordinator<4, 2, 2, 2> radioAttempts(forwarding, correlation, attempts);
@@ -145,7 +148,7 @@ int main() {
     {
         Mesh::ApplicationTransmissionRecipient recipient[] = {{remote, incarnation, 303}};
         Mesh::ApplicationTransmissionHandle handle{};
-        assert(aggregate.Begin(recipient, 1, payload, 300, 600, handle) == Mesh::ApplicationTransmissionAdmissionResult::Begun);
+        assert(aggregate.Begin(recipient, 1, primitive, payload, 300, 600, handle) == Mesh::ApplicationTransmissionAdmissionResult::Begun);
         Mesh::RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
         Mesh::OutboundDeliveryLifecycle<2> delivery(attempts, acknowledgements);
         Mesh::ForwardingRadioAttemptCoordinator<4, 2, 2, 2> radioAttempts(forwarding, correlation, attempts);
@@ -167,7 +170,7 @@ int main() {
     {
         Mesh::ApplicationTransmissionRecipient recipient[] = {{remote, incarnation, 404}};
         Mesh::ApplicationTransmissionHandle handle{};
-        assert(aggregate.Begin(recipient, 1, payload, 400, 800, handle) == Mesh::ApplicationTransmissionAdmissionResult::Begun);
+        assert(aggregate.Begin(recipient, 1, primitive, payload, 400, 800, handle) == Mesh::ApplicationTransmissionAdmissionResult::Begun);
         Mesh::RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
         Mesh::OutboundDeliveryLifecycle<2> delivery(attempts, acknowledgements);
         Mesh::ForwardingRadioAttemptCoordinator<4, 2, 2, 2> radioAttempts(forwarding, correlation, attempts);

@@ -6,12 +6,25 @@
 #include <limits>
 
 #include <ESPressio_DeviceIdentifier.hpp>
+#include <ESPressio_PrimitiveFamilyRegistry.hpp>
+#include <ESPressio_PrimitiveTypes.hpp>
 
 #include "ESPressio_ApplicationPayload.hpp"
 #include "ESPressio_MeshLimits.hpp"
 #include "ESPressio_MeshTypes.hpp"
 
 namespace ESPressio::Mesh {
+
+/// <summary>Wire-neutral identity of the conceptual primitive family carried by an application transmission.</summary>
+struct ApplicationPrimitiveDescriptor final {
+    Primitive::PrimitiveFamilyId Family{Primitive::FamilyIds::Invalid};
+    Primitive::PrimitiveProtocolVersion Version{0};
+
+    constexpr bool IsValid() const noexcept {
+        return Primitive::FamilyIds::IsUsable(Family) && Family != Primitive::FamilyIds::MeshControl;
+    }
+    constexpr explicit operator bool() const noexcept { return IsValid(); }
+};
 
 /// <summary>Generation-safe sender-local handle to one accepted application transmission aggregate.</summary>
 struct ApplicationTransmissionHandle final {
@@ -55,10 +68,12 @@ class ApplicationTransmissionTable final {
         std::uint8_t RecipientCount{0};
         std::uint8_t TerminalCount{0};
         std::uint64_t AbsoluteDeadlineMilliseconds{0};
+        ApplicationPrimitiveDescriptor Primitive{};
         ApplicationPayload Payload{};
         std::array<RecipientRecord, RecipientCapacity> Recipients{};
         void ClearPayload() noexcept {
-            Used = false; RecipientCount = 0U; TerminalCount = 0U; AbsoluteDeadlineMilliseconds = 0U; Payload = {};
+            Used = false; RecipientCount = 0U; TerminalCount = 0U; AbsoluteDeadlineMilliseconds = 0U;
+            Primitive = {}; Payload = {};
             for (auto& recipient : Recipients) recipient = {};
         }
     };
@@ -104,10 +119,11 @@ class ApplicationTransmissionTable final {
 
 public:
     ApplicationTransmissionBeginResult Begin(const ApplicationTransmissionRecipient* recipients, std::size_t recipientCount,
-        const ApplicationPayload& payload, std::uint64_t nowMilliseconds, std::uint64_t absoluteDeadlineMilliseconds,
+        ApplicationPrimitiveDescriptor primitive, const ApplicationPayload& payload,
+        std::uint64_t nowMilliseconds, std::uint64_t absoluteDeadlineMilliseconds,
         ApplicationTransmissionHandle& handle) noexcept {
         handle = {};
-        if (recipients == nullptr || recipientCount == 0U || recipientCount > RecipientCapacity || !payload ||
+        if (recipients == nullptr || recipientCount == 0U || recipientCount > RecipientCapacity || !primitive || !payload ||
             absoluteDeadlineMilliseconds == 0U) return ApplicationTransmissionBeginResult::Invalid;
         if (nowMilliseconds >= absoluteDeadlineMilliseconds) return ApplicationTransmissionBeginResult::DeadlineExpired;
         for (std::size_t i = 0; i < recipientCount; ++i) {
@@ -121,7 +137,8 @@ public:
             auto& record = _records[slot]; if (record.Used) continue;
             AdvanceGeneration(record); record.ClearPayload(); record.Used = true;
             record.RecipientCount = static_cast<std::uint8_t>(recipientCount);
-            record.AbsoluteDeadlineMilliseconds = absoluteDeadlineMilliseconds; record.Payload = payload;
+            record.AbsoluteDeadlineMilliseconds = absoluteDeadlineMilliseconds;
+            record.Primitive = primitive; record.Payload = payload;
             for (std::size_t index = 0; index < recipientCount; ++index) record.Recipients[index].Recipient = recipients[index];
             handle = {static_cast<std::uint16_t>(slot), record.Generation}; return ApplicationTransmissionBeginResult::Begun;
         }
@@ -215,6 +232,7 @@ public:
     bool IsTerminal(ApplicationTransmissionHandle handle) const noexcept { const auto* record = Resolve(handle); return record != nullptr && record->TerminalCount == record->RecipientCount; }
     std::uint64_t AbsoluteDeadlineMilliseconds(ApplicationTransmissionHandle handle) const noexcept { const auto* record = Resolve(handle); return record == nullptr ? 0U : record->AbsoluteDeadlineMilliseconds; }
     std::size_t RecipientCount(ApplicationTransmissionHandle handle) const noexcept { const auto* record = Resolve(handle); return record == nullptr ? 0U : record->RecipientCount; }
+    const ApplicationPrimitiveDescriptor* PrimitiveDescriptor(ApplicationTransmissionHandle handle) const noexcept { const auto* record = Resolve(handle); return record == nullptr ? nullptr : &record->Primitive; }
     const ApplicationPayload* Payload(ApplicationTransmissionHandle handle) const noexcept { const auto* record = Resolve(handle); return record == nullptr ? nullptr : &record->Payload; }
 
     bool TryGetRecipient(ApplicationTransmissionHandle handle, std::size_t index, ApplicationTransmissionRecipient& recipient, ApplicationRecipientOutcome& outcome) const noexcept {

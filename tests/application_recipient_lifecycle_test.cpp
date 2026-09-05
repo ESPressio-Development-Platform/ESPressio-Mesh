@@ -21,6 +21,9 @@ MembershipIncarnation Incarnation(std::uint8_t value) {
 }
 
 int main() {
+    constexpr ESPressio::Mesh::ApplicationPrimitiveDescriptor primitive{
+        ESPressio::Primitive::FamilyIds::Event, 1
+    };
     ApplicationTransmissionTable<> transmissions;
     DefaultMeshTrafficGovernor traffic;
     ApplicationTransmissionCoordinator<> aggregate(transmissions, traffic);
@@ -39,7 +42,7 @@ int main() {
     };
 
     ApplicationTransmissionHandle handle{};
-    assert(aggregate.Begin(recipients, 2, payload, 100, 1000, handle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(recipients, 2, primitive, payload, 100, 1000, handle) == ApplicationTransmissionAdmissionResult::Begun);
     assert(traffic.Active(MeshTrafficClass::Application) == 1U);
 
     RouteAttemptCoordinator firstAttempts(routePolicy, retryPolicy);
@@ -73,7 +76,7 @@ int main() {
 
     ApplicationTransmissionRecipient lone[] = {{Device(3), Incarnation(13), 201}};
     ApplicationTransmissionHandle other{};
-    assert(aggregate.Begin(lone, 1, payload, 100, 1000, other) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(lone, 1, primitive, payload, 100, 1000, other) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator otherAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> otherDelivery(otherAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(other, 0, 201, false, otherDelivery) == ApplicationRecipientBeginResult::Begun);
@@ -87,7 +90,7 @@ int main() {
 
     ApplicationTransmissionRecipient expiring[] = {{Device(4), Incarnation(14), 301}};
     ApplicationTransmissionHandle expiringHandle{};
-    assert(aggregate.Begin(expiring, 1, payload, 100, 200, expiringHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(expiring, 1, primitive, payload, 100, 200, expiringHandle) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator expiringAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> expiringDelivery(expiringAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(expiringHandle, 0, 101, false, expiringDelivery) == ApplicationRecipientBeginResult::Begun);
@@ -108,7 +111,7 @@ int main() {
 
     ApplicationTransmissionRecipient raced[] = {{Device(5), Incarnation(15), 401}};
     ApplicationTransmissionHandle racedHandle{};
-    assert(aggregate.Begin(raced, 1, payload, 100, 200, racedHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(raced, 1, primitive, payload, 100, 200, racedHandle) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator racedAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> racedDelivery(racedAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(racedHandle, 0, 101, true, racedDelivery) == ApplicationRecipientBeginResult::Begun);
@@ -129,7 +132,7 @@ int main() {
         {Device(7), Incarnation(17), 502}
     };
     ApplicationTransmissionHandle sweptHandle{};
-    assert(aggregate.Begin(sweptRecipients, 2, payload, 100, 300, sweptHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(sweptRecipients, 2, primitive, payload, 100, 300, sweptHandle) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator sweptFirstAttempts(routePolicy, retryPolicy);
     RouteAttemptCoordinator sweptSecondAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> sweptFirst(sweptFirstAttempts, acknowledgements);
@@ -163,7 +166,7 @@ int main() {
     // A bad resolver can never reset another recipient. The mismatch is surfaced instead of silently cancelling state.
     ApplicationTransmissionRecipient mismatchRecipient[] = {{Device(8), Incarnation(18), 601}};
     ApplicationTransmissionHandle mismatchHandle{};
-    assert(aggregate.Begin(mismatchRecipient, 1, payload, 100, 300, mismatchHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate.Begin(mismatchRecipient, 1, primitive, payload, 100, 300, mismatchHandle) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator mismatchAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> mismatchDelivery(mismatchAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(mismatchHandle, 0, 101, true, mismatchDelivery) == ApplicationRecipientBeginResult::Begun);

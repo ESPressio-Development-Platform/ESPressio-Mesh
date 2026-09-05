@@ -102,20 +102,24 @@ public:
     ApplicationTransmissionAdmissionResult Begin(
         const ApplicationTransmissionRecipient* recipients,
         std::size_t recipientCount,
+        ApplicationPrimitiveDescriptor primitive,
         const ApplicationPayload& payload,
         std::uint64_t nowMilliseconds,
         std::uint64_t absoluteDeadlineMilliseconds,
         ApplicationTransmissionHandle& handle
     ) noexcept {
         handle = {};
-        if (!payload) return ApplicationTransmissionAdmissionResult::Invalid;
+        if (!primitive || !payload) return ApplicationTransmissionAdmissionResult::Invalid;
 
         MeshTrafficReservation reservation{};
         const auto admission = _traffic.TryAcquire(MeshTrafficClass::Application, reservation);
         if (admission == MeshTrafficAdmissionResult::ResourceUnavailable) return ApplicationTransmissionAdmissionResult::ResourceUnavailable;
         if (admission != MeshTrafficAdmissionResult::Admitted || !reservation) return ApplicationTransmissionAdmissionResult::Invalid;
 
-        const auto begun = _transmissions.Begin(recipients, recipientCount, payload, nowMilliseconds, absoluteDeadlineMilliseconds, handle);
+        const auto begun = _transmissions.Begin(
+            recipients, recipientCount, primitive, payload,
+            nowMilliseconds, absoluteDeadlineMilliseconds, handle
+        );
         if (begun != ApplicationTransmissionBeginResult::Begun) {
             (void)_traffic.Release(reservation);
             handle = {};
@@ -132,6 +136,7 @@ public:
     }
 
     bool Contains(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.Contains(handle); }
+    const ApplicationPrimitiveDescriptor* PrimitiveDescriptor(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.PrimitiveDescriptor(handle); }
     const ApplicationPayload* Payload(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.Payload(handle); }
 
     bool TryGetRecipientOutcome(
