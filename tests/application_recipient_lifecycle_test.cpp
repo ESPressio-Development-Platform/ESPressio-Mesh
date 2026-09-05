@@ -8,10 +8,10 @@
 using namespace ESPressio::Mesh;
 
 namespace {
-System::DeviceIdentifier Device(std::uint8_t value) {
-    System::DeviceIdentifier::Storage bytes{};
+ESPressio::System::DeviceIdentifier Device(std::uint8_t value) {
+    ESPressio::System::DeviceIdentifier::Storage bytes{};
     bytes[15] = value;
-    return System::DeviceIdentifier(bytes);
+    return ESPressio::System::DeviceIdentifier(bytes);
 }
 MembershipIncarnation Incarnation(std::uint8_t value) {
     MembershipIncarnation::Storage bytes{};
