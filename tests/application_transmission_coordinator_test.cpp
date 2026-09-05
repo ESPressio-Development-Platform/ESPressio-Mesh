@@ -47,6 +47,21 @@ int main() {
     assert(!coordinator.Expire(expiring, 199)); assert(coordinator.Expire(expiring, 200));
     assert(transmissions.IsTerminal(expiring) && traffic.Active(MeshTrafficClass::Application) == 0U); assert(coordinator.Release(expiring));
 
+    // Beginning a recipient at/after the immutable aggregate deadline terminalizes that recipient immediately. This avoids
+    // retaining an impossible Pending recipient until a later maintenance sweep and releases traffic when it was the last.
+    ApplicationTransmissionRecipient immediateRecipient[] = {{Device(5), Incarnation(15), 301}};
+    ApplicationTransmissionHandle immediate{};
+    assert(coordinator.Begin(immediateRecipient, 1, payload, 100, 250, immediate) == ApplicationTransmissionAdmissionResult::Begun);
+    RouteAttemptCoordinator immediateAttempts(routePolicy, retryPolicy);
+    OutboundDeliveryLifecycle<4> immediateDelivery(immediateAttempts, acknowledgements);
+    assert(coordinator.BeginRecipient(immediate, 0, 250, false, immediateDelivery) == ApplicationRecipientBeginResult::DeadlineExpired);
+    assert(!immediateDelivery.IsActive() && transmissions.IsTerminal(immediate));
+    ApplicationTransmissionRecipient immediateInspected{}; ApplicationRecipientOutcome immediateOutcome{};
+    assert(transmissions.TryGetRecipient(immediate, 0, immediateInspected, immediateOutcome));
+    assert(immediateOutcome == ApplicationRecipientOutcome::DeadlineExpired);
+    assert(traffic.Active(MeshTrafficClass::Application) == 0U);
+    assert(coordinator.Release(immediate));
+
     // A bounded sweep enforces immutable deadlines across all accepted aggregates without silently releasing records.
     ApplicationTransmissionRecipient sweepA[] = {{Device(3), Incarnation(13), 201}};
     ApplicationTransmissionRecipient sweepB[] = {{Device(4), Incarnation(14), 202}};
