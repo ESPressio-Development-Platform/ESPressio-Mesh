@@ -21,7 +21,7 @@ Mesh itself remains unaware of Command/Event/State payload semantics. Non-Mesh p
 
 The `structural_realignment_propagation` branch is the coordinated implementation branch for the finalized 1.0.0 Mesh architecture. Its `TRANCHE_HANDOFF.MD` is the authoritative, self-contained frozen specification and chronological implementation record while the tranche remains in progress.
 
-The current foundation now includes bounded authenticated-membership and tombstone storage, delivery deduplication and InProgress exclusion, policy-driven liveness/retention, separately bounded pre-authentication and authentication resources, authenticated admission promotion, generation-safe Radio peer bindings, incarnation-scoped `RadioIdentifier` allocation, peer-bound neighbour discovery, bounded primitive-family receiver registration, protected traffic-governor capacities, directed topology/routing foundations, authenticated forwarding/delivery lifecycle, and bounded clock root/parent coordination. All of these components remain narrow services intended to compose inside the serialized Mesh execution domain rather than becoming independent scheduling layers.
+The current foundation now includes bounded authenticated-membership and tombstone storage, delivery deduplication and InProgress exclusion, policy-driven liveness/retention, separately bounded pre-authentication and authentication resources, authenticated admission promotion, generation-safe Radio peer bindings, incarnation-scoped `RadioIdentifier` allocation, peer-bound neighbour discovery, bounded primitive-family receiver registration, protected traffic-governor capacities, directed topology/routing foundations, authenticated forwarding/delivery lifecycle, aggregate-aware selective application delivery, and bounded clock root/parent coordination. All of these components remain narrow services intended to compose inside the serialized Mesh execution domain rather than becoming independent scheduling layers.
 
 Control work is also required to have a finite lifetime. `IControlWorkLifetimePolicy` supplies those local operational lifetimes, while `FixedControlWorkLifetimePolicy` provides an explicit composition-root implementation without inventing universal timeout values. Application deliveries are deliberately excluded because they retain their own immutable delivery deadline.
 
@@ -75,6 +75,22 @@ Whole-device planning must add task stacks, RadioTransport/provider storage, pay
 Group and CapabilitySelector destinations are resolved once at the sender into a frozen bounded recipient set. Each resolved recipient receives an independent Node delivery with its own `MeshMessageId` and outcome state, while all recipient deliveries may share one immutable payload backing.
 
 Broadcast is different: it is one bounded best-effort controlled flood with one `MeshMessageId`, no frozen recipient set and no promise of delivery to every member. Applications requiring per-member delivery knowledge use selective multicast rather than reliable Broadcast.
+
+## Application delivery lifecycle
+
+Selective application delivery deliberately keeps aggregate authority, direct-link evidence, forwarding acceptance and final destination acceptance separate.
+
+`ApplicationTransmissionTable` and `ApplicationTransmissionCoordinator` own the sender-local bounded aggregate: the immutable deadline, frozen recipients, one independent `MeshMessageId` and outcome per recipient, and one shared immutable `ApplicationPayload`. Per-recipient routing, Radio correlation and acknowledgement machinery remains outside the aggregate and is reconciled through aggregate-aware coordinators.
+
+`ApplicationRadioSubmissionCoordinator` preflights the authoritative aggregate/message pair before submitting one recipient's next-hop work. Immediate deadline/permanent/attempt-limit stop conditions are committed to that exact recipient before composed delivery state is retired; retry and replan decisions leave the recipient pending.
+
+`ApplicationRadioTerminalCoordinator` applies the same rule to deferred Radio evidence. Physical transmission completion and peer acknowledgement are direct-link facts only. They do not mean final destination delivery and do not by themselves consume the Mesh forwarding transition.
+
+`ApplicationNextHopAcceptanceCoordinator` accepts only authenticated evidence for the exact expected next-hop device, membership incarnation and `MeshMessageId`. A valid next-hop acceptance commits exactly one forwarding transition and decrements `RemainingHopLimit` exactly once. The application recipient still remains pending because forwarding responsibility has merely moved to the next Mesh node. Wrong/stale evidence is non-mutating, and an already-terminal aggregate remains authoritative over late acceptance.
+
+`ApplicationDeliveryAcknowledgementCoordinator` handles the distinct final-destination acknowledgement path. Its ACK means that the authenticated destination Mesh framework accepted the delivery; it does **not** imply that a requested Command/application operation completed successfully.
+
+This separation prevents Radio submission, physical transmission, one-hop acknowledgement, Mesh next-hop acceptance and final destination delivery from being accidentally collapsed into the same success state.
 
 ## Platform independence
 
