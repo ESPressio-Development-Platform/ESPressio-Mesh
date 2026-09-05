@@ -18,6 +18,9 @@ int main() {
     ApplicationTransmissionRecipient recipients[] = {{Device(1), Incarnation(11), 101},{Device(2), Incarnation(12), 102}};
     const std::uint8_t bytes[] = {9,8,7}; const auto payload = ApplicationPayload::Borrowed(bytes, sizeof(bytes));
 
+    DefaultRouteAttemptPolicy routePolicy; DefaultRetryPolicy retryPolicy;
+    DeliveryAcknowledgementTracker<4> tracker; DeliveryAcknowledgementCoordinator<4> acknowledgements(tracker);
+
     ApplicationTransmissionHandle aggregate{};
     assert(coordinator.Begin(recipients, 2, payload, 100, 1000, aggregate) == ApplicationTransmissionAdmissionResult::Begun);
     assert(aggregate && traffic.Active(MeshTrafficClass::Application) == 1U);
@@ -28,8 +31,7 @@ int main() {
     assert(coordinator.Payload(aggregate) != nullptr && coordinator.Payload(aggregate)->StableData() == bytes);
     assert(traffic.Active(MeshTrafficClass::Application) == 1U);
 
-    DefaultRouteAttemptPolicy routePolicy; DefaultRetryPolicy retryPolicy; RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
-    DeliveryAcknowledgementTracker<4> tracker; DeliveryAcknowledgementCoordinator<4> acknowledgements(tracker);
+    RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> firstDelivery(attempts, acknowledgements);
     assert(coordinator.BeginRecipient(aggregate, 0, 101, true, firstDelivery) == ApplicationRecipientBeginResult::Begun);
     assert(firstDelivery.IsActive() && firstDelivery.MessageId() == 101U && firstDelivery.AbsoluteDeadlineMilliseconds() == 1000U);
@@ -50,10 +52,38 @@ int main() {
     assert(coordinator.Begin(recipients, 2, {}, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
     assert(traffic.Active(MeshTrafficClass::Application) == 0U);
 
+    // Explicit single-aggregate expiry offers the same aggregate-first external-cleanup ordering as the bulk sweep.
+    ApplicationTransmissionRecipient explicitRecipient[] = {{Device(6), Incarnation(16), 401}};
     ApplicationTransmissionHandle expiring{};
-    assert(coordinator.Begin(recipients, 2, payload, 100, 200, expiring) == ApplicationTransmissionAdmissionResult::Begun);
-    assert(!coordinator.Expire(expiring, 199)); assert(coordinator.Expire(expiring, 200));
-    assert(transmissions.IsTerminal(expiring) && traffic.Active(MeshTrafficClass::Application) == 0U); assert(coordinator.Release(expiring));
+    assert(coordinator.Begin(explicitRecipient, 1, payload, 100, 200, expiring) == ApplicationTransmissionAdmissionResult::Begun);
+    RouteAttemptCoordinator explicitAttempts(routePolicy, retryPolicy);
+    OutboundDeliveryLifecycle<4> explicitDelivery(explicitAttempts, acknowledgements);
+    assert(coordinator.BeginRecipient(expiring, 0, 110, true, explicitDelivery) == ApplicationRecipientBeginResult::Begun);
+    assert(explicitDelivery.IsActive() && explicitDelivery.AwaitingDestinationAcknowledgement());
+    assert(tracker.Size() == 1U && traffic.Active(MeshTrafficClass::Application) == 1U);
+
+    std::size_t explicitCallbacks = 0U;
+    assert(!coordinator.ExpireWithRecipients(expiring, 199, [&](ApplicationTransmissionHandle, MeshMessageId) noexcept {
+        assert(false && "explicit expiry callback must not run before the immutable deadline");
+    }));
+    assert(explicitDelivery.IsActive() && tracker.Size() == 1U);
+    assert(coordinator.ExpireWithRecipients(expiring, 200, [&](ApplicationTransmissionHandle handle, MeshMessageId messageId) noexcept {
+        ++explicitCallbacks;
+        assert(handle == expiring && messageId == 401U);
+        ApplicationRecipientOutcome outcome{};
+        assert(coordinator.TryGetRecipientOutcome(handle, messageId, outcome));
+        assert(outcome == ApplicationRecipientOutcome::DeadlineExpired);
+        // Traffic release occurs only after this exact external ACK-bearing lifecycle is retired.
+        assert(traffic.Active(MeshTrafficClass::Application) == 1U);
+        explicitDelivery.Reset();
+    }));
+    assert(explicitCallbacks == 1U);
+    assert(!explicitDelivery.IsActive() && tracker.Empty());
+    assert(transmissions.IsTerminal(expiring) && traffic.Active(MeshTrafficClass::Application) == 0U);
+    assert(!coordinator.ExpireWithRecipients(expiring, 201, [&](ApplicationTransmissionHandle, MeshMessageId) noexcept {
+        assert(false && "already-terminal explicit recipient must not be reported twice");
+    }));
+    assert(coordinator.Release(expiring));
 
     ApplicationTransmissionRecipient immediateRecipient[] = {{Device(5), Incarnation(15), 301}};
     ApplicationTransmissionHandle immediate{};
@@ -75,7 +105,6 @@ int main() {
     assert(coordinator.Begin(sweepB, 1, payload, 100, 400, later) == ApplicationTransmissionAdmissionResult::Begun);
     assert(traffic.Active(MeshTrafficClass::Application) == 2U);
 
-    // The early recipient owns an active ACK-bearing external lifecycle when the aggregate deadline arrives.
     RouteAttemptCoordinator sweepAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> sweepDelivery(sweepAttempts, acknowledgements);
     assert(coordinator.BeginRecipient(early, 0, 110, true, sweepDelivery) == ApplicationRecipientBeginResult::Begun);
@@ -94,8 +123,6 @@ int main() {
         ++expiredRecipientCallbacks;
         assert(handle == early);
         assert(messageId == 201U);
-
-        // Aggregate authority must already be committed before external bounded state is retired.
         ApplicationRecipientOutcome outcome{};
         assert(coordinator.TryGetRecipientOutcome(handle, messageId, outcome));
         assert(outcome == ApplicationRecipientOutcome::DeadlineExpired);
