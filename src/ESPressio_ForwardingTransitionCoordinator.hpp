@@ -62,6 +62,11 @@ enum class ForwardingAcceptanceResult : std::uint8_t {
 /// DeviceIdentifier + MembershipIncarnation accepted the same MeshMessageId. How that evidence is encoded, authenticated
 /// or transported belongs to the Mesh control/security composition and is intentionally not defined here.
 ///
+/// Identity is checked before deadline mutation. Authenticated evidence for another node, incarnation or MeshMessageId is
+/// therefore observationally unrelated even after this transition's deadline and cannot consume pending state or HopLimit.
+/// Deadline expiry is committed only when evidence identifies the exact pending transition; independent deadline sweeping
+/// remains a higher delivery-lifecycle responsibility.
+///
 /// This next-hop acceptance is also distinct from end-to-end destination delivery acknowledgement tracked by
 /// DeliveryAcknowledgementTracker: an intermediate next-hop acceptance transfers forwarding responsibility but does not
 /// say that the final destination framework has accepted the message.
@@ -111,15 +116,15 @@ public:
             return ForwardingAcceptanceResult::Invalid;
         }
         if (!_pending) return ForwardingAcceptanceResult::NotPending;
-        if (nowMilliseconds >= _pending.AbsoluteDeadlineMilliseconds) {
-            _pending = {};
-            return ForwardingAcceptanceResult::DeadlineExpired;
-        }
         if (authenticatedSource != _pending.NextHop) return ForwardingAcceptanceResult::WrongNextHop;
         if (authenticatedSourceIncarnation != _pending.NextHopIncarnation) {
             return ForwardingAcceptanceResult::WrongIncarnation;
         }
         if (acceptedMessageId != _pending.MessageId) return ForwardingAcceptanceResult::WrongMessage;
+        if (nowMilliseconds >= _pending.AbsoluteDeadlineMilliseconds) {
+            _pending = {};
+            return ForwardingAcceptanceResult::DeadlineExpired;
+        }
 
         if (CommitSuccessfulForwardingTransition(remainingHopLimit) != ForwardingTransitionResult::Committed) {
             _pending = {};
