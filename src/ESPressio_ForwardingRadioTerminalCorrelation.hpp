@@ -21,12 +21,9 @@ struct ForwardingRadioCorrelationHandle final {
     constexpr bool operator==(const ForwardingRadioCorrelationHandle& other) const noexcept {
         return Slot == other.Slot && Generation == other.Generation;
     }
-    constexpr bool operator!=(const ForwardingRadioCorrelationHandle& other) const noexcept {
-        return !(*this == other);
-    }
+    constexpr bool operator!=(const ForwardingRadioCorrelationHandle& other) const noexcept { return !(*this == other); }
 };
 
-/// <summary>Result of consuming terminal Radio evidence correlated to one Mesh forwarding attempt.</summary>
 struct ForwardingRadioTerminalObservation final {
     Radio::LogicalTransferTerminalEvidence Terminal{};
 };
@@ -36,16 +33,15 @@ struct ForwardingRadioTerminalObservation final {
 /// Mesh forwarding attempt which submitted them.
 /// </summary>
 /// <remarks>
-/// The table owns correlation only. It does not own payloads, routes, timers, retries, HopLimit or Mesh acceptance state.
-/// Capacity is deliberately a composition choice rather than a new universal Mesh limit. The caller stores the returned
-/// generation-safe handle in its already-bounded active forwarding state and later consumes terminal evidence through
-/// TryTake(). Radio completion/peer acknowledgement remains link evidence only; the caller must pass it through
-/// ForwardingAttemptLifecycle and still await authenticated next-hop Mesh acceptance after successful Radio completion.
+/// Capacity is reserved before Radio submission, so local Mesh correlation exhaustion is discovered before any physical
+/// fragment can be accepted. After an Accepted Send returns a valid DeferredTransfer, Bind() installs that Radio-owned
+/// handle before the serialized Radio execution domain is yielded. A submission with synchronous terminal evidence or no
+/// promised deferred evidence releases the reservation immediately.
 ///
-/// Register() is used only for a valid RadioTransport DeferredTransfer returned after Send. Radio's serialized execution
-/// contract guarantees that a promised deferred provider callback cannot be published before the corresponding Send has
-/// returned, allowing Mesh to install this correlation before yielding that execution domain. Mutation and callbacks must
-/// therefore remain serialized by the owning composition; this type deliberately introduces no mutex or task.
+/// The table owns correlation only. It does not own payloads, routes, timers, retries, HopLimit or Mesh acceptance state.
+/// Capacity is deliberately a composition choice rather than a new universal Mesh limit. Radio completion/peer ACK remains
+/// link evidence only and must still pass through ForwardingAttemptLifecycle before authenticated next-hop acceptance.
+/// Mutation and callbacks are serialized by the owning composition; this type deliberately introduces no mutex or task.
 /// </remarks>
 template<std::size_t Capacity>
 class ForwardingRadioTerminalCorrelation final : public Radio::ILogicalTransferTerminalObserver {
@@ -54,6 +50,7 @@ class ForwardingRadioTerminalCorrelation final : public Radio::ILogicalTransferT
 
     struct Record final {
         bool Used{false};
+        bool Bound{false};
         bool TerminalAvailable{false};
         std::uint16_t Generation{0};
         Radio::DeferredLogicalTransferHandle Deferred{};
@@ -73,27 +70,43 @@ class ForwardingRadioTerminalCorrelation final : public Radio::ILogicalTransferT
         return record.Used && record.Generation == handle.Generation ? &record : nullptr;
     }
 
+    static void ClearPayload(Record& record) noexcept {
+        record.Used = false;
+        record.Bound = false;
+        record.TerminalAvailable = false;
+        record.Deferred = {};
+        record.Terminal = {};
+    }
+
 public:
-    /// <summary>Reserves correlation for one accepted logical transfer whose terminal Radio evidence is deferred.</summary>
-    ForwardingRadioCorrelationHandle Register(Radio::DeferredLogicalTransferHandle deferred) noexcept {
-        if (!deferred) return {};
-        for (const auto& record : _records) {
-            if (record.Used && record.Deferred == deferred) return {};
-        }
+    /// <summary>Reserves one bounded Mesh-side correlation slot before forwarding is submitted to Radio.</summary>
+    ForwardingRadioCorrelationHandle Reserve() noexcept {
         for (std::size_t slot = 0; slot < Capacity; ++slot) {
             auto& record = _records[slot];
             if (record.Used) continue;
             AdvanceGeneration(record);
+            ClearPayload(record);
             record.Used = true;
-            record.TerminalAvailable = false;
-            record.Deferred = deferred;
-            record.Terminal = {};
             return {static_cast<std::uint16_t>(slot), record.Generation};
         }
         return {};
     }
 
-    /// <summary>Consumes terminal evidence when available and releases the correlation slot.</summary>
+    /// <summary>Binds a pre-reserved slot to the deferred logical-transfer handle returned by RadioTransport.</summary>
+    bool Bind(
+        ForwardingRadioCorrelationHandle handle,
+        Radio::DeferredLogicalTransferHandle deferred
+    ) noexcept {
+        auto* record = Resolve(handle);
+        if (record == nullptr || record->Bound || !deferred) return false;
+        for (const auto& candidate : _records) {
+            if (candidate.Used && candidate.Bound && candidate.Deferred == deferred) return false;
+        }
+        record->Deferred = deferred;
+        record->Bound = true;
+        return true;
+    }
+
     bool TryTake(
         ForwardingRadioCorrelationHandle handle,
         ForwardingRadioTerminalObservation& observation
@@ -101,21 +114,15 @@ public:
         auto* record = Resolve(handle);
         if (record == nullptr || !record->TerminalAvailable) return false;
         observation.Terminal = record->Terminal;
-        record->Used = false;
-        record->TerminalAvailable = false;
-        record->Deferred = {};
-        record->Terminal = {};
+        ClearPayload(*record);
         return true;
     }
 
-    /// <summary>Releases pending correlation after cancellation, deadline expiry or superseded route attempt.</summary>
+    /// <summary>Releases reservation/correlation after synchronous evidence, cancellation, expiry or superseded attempt.</summary>
     bool Release(ForwardingRadioCorrelationHandle handle) noexcept {
         auto* record = Resolve(handle);
         if (record == nullptr) return false;
-        record->Used = false;
-        record->TerminalAvailable = false;
-        record->Deferred = {};
-        record->Terminal = {};
+        ClearPayload(*record);
         return true;
     }
 
@@ -131,11 +138,10 @@ public:
         return count;
     }
 
-    /// <summary>Captures one RadioTransport terminal observation only when a matching live forwarding correlation exists.</summary>
     void OnLogicalTransferTerminal(const Radio::LogicalTransferTerminalEvidence& terminal) override {
         if (!terminal.Transfer || !terminal.Evidence.IsTerminal()) return;
         for (auto& record : _records) {
-            if (!record.Used || record.Deferred != terminal.Transfer) continue;
+            if (!record.Used || !record.Bound || record.Deferred != terminal.Transfer) continue;
             if (!record.TerminalAvailable) {
                 record.Terminal = terminal;
                 record.TerminalAvailable = true;
