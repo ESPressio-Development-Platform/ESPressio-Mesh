@@ -92,6 +92,14 @@ Selective application delivery deliberately keeps aggregate authority, direct-li
 
 This separation prevents Radio submission, physical transmission, one-hop acknowledgement, Mesh next-hop acceptance and final destination delivery from being accidentally collapsed into the same success state.
 
+## Controlled runtime reset
+
+`MeshRuntimeResetCoordinator` provides deterministic local teardown for the principal non-application Mesh runtime stores: remote membership/liveness/tombstones, admission and probe reservations, inbound delivery reservations, direct-peer bindings, topology, route cache, pending destination acknowledgements, deferred Radio-terminal correlations, clock observations and traffic reservations.
+
+Shutdown ordering is explicit. Radio transports must first be stopped so provider callbacks cannot repopulate correlation state; application composition must then reset every exact per-recipient lifecycle and aggregate through `ApplicationRecipientLifecycleCoordinator`; the runtime reset coordinator can then clear the remaining Mesh state and reset the injected traffic governor last. This cleanup emits no wire cancellation and fabricates no delivery, Radio-terminal, membership, reachability or clock evidence.
+
+Composition configuration is intentionally retained. Registered primitive receivers, injected policies and registered local Radio interfaces are not abandoned by a Mesh-service reset. Local `MembershipIncarnation`, `MeshMessageIdGenerator` continuity and incarnation-scoped `RadioIdentifier` allocation are likewise managed by the separate local identity lifecycle: starting a genuinely new incarnation must reset those together, while authenticated continuation restores the existing MessageId high-water mark rather than reusing identifiers.
+
 ## Platform independence
 
 Mesh contains no Arduino, ESP-IDF, FreeRTOS or Radio-hardware API calls. ESP32 Raw80211, NRF24 and future Radio concretes belong in their platform/technology repositories. ESP32-specific shared-Wi-Fi-PHY arbitration belongs in `ESPressio-ESP32`; channel changes appear to Mesh only as link/topology availability changes.

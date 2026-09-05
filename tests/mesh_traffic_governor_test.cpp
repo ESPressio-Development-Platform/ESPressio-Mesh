@@ -34,19 +34,33 @@ int main() {
     assert(governor.TryAcquire(MeshTrafficClass::GeneralControl, general) ==
            MeshTrafficAdmissionResult::Admitted);
 
-    const auto staleApplication = application.front();
-    assert(governor.Release(application.front()));
-    MeshTrafficReservation replacement{};
-    assert(governor.TryAcquire(MeshTrafficClass::Application, replacement) ==
+    governor.ResetForControlledShutdown();
+    assert(governor.Active(MeshTrafficClass::InfrastructureResponse) == 0);
+    assert(governor.Active(MeshTrafficClass::ClockControl) == 0);
+    assert(governor.Active(MeshTrafficClass::GeneralControl) == 0);
+    assert(governor.Active(MeshTrafficClass::Application) == 0);
+    assert(!governor.Release(application.back()));
+    assert(!governor.Release(infrastructure));
+
+    MeshTrafficReservation afterReset{};
+    assert(governor.TryAcquire(MeshTrafficClass::Application, afterReset) ==
            MeshTrafficAdmissionResult::Admitted);
+    assert(afterReset.Slot == application.front().Slot);
+    assert(afterReset.Generation != application.front().Generation);
+
+    const auto staleApplication = application.front();
+    assert(!governor.Release(application.front()));
+    MeshTrafficReservation replacement{};
+    assert(governor.Release(afterReset));
+    assert(governor.TryAcquire(MeshTrafficClass::Application, replacement) == MeshTrafficAdmissionResult::Admitted);
     assert(replacement.Slot == staleApplication.Slot);
     assert(replacement.Generation != staleApplication.Generation);
     assert(!governor.Release(staleApplication));
     assert(governor.Release(replacement));
 
-    assert(governor.Release(infrastructure));
-    assert(governor.Release(clock));
-    assert(governor.Release(general));
+    assert(!governor.Release(infrastructure));
+    assert(!governor.Release(clock));
+    assert(!governor.Release(general));
     assert(governor.Active(MeshTrafficClass::InfrastructureResponse) == 0);
     assert(governor.Active(MeshTrafficClass::ClockControl) == 0);
     assert(governor.Active(MeshTrafficClass::GeneralControl) == 0);

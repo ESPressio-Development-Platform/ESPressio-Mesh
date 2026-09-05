@@ -90,6 +90,15 @@ public:
     }
     std::size_t Size() const noexcept { std::size_t count = 0U; for (const auto& record : _records) if (record.Used) ++count; return count; }
 
+    /// <summary>Releases every retained local Radio-terminal correlation during controlled Mesh shutdown/reset.</summary>
+    /// <remarks>
+    /// Record generations are preserved so handles issued before reset cannot resolve after slot reuse. No Radio
+    /// terminal evidence is created: the owning Radio transport must independently abandon its provider work.
+    /// </remarks>
+    void Clear() noexcept {
+        for (auto& record : _records) ClearPayload(record);
+    }
+
     void OnLogicalTransferTerminal(const Radio::LogicalTransferTerminalEvidence& terminal) override {
         if (!terminal.Transfer || !terminal.Evidence.IsTerminal()) return;
         for (auto& record : _records) {

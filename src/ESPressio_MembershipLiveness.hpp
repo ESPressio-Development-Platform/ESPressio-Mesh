@@ -221,6 +221,15 @@ public:
         }
         return false;
     }
+
+    /// <summary>Forgets all locally retained liveness timing evidence during controlled Mesh shutdown/reset.</summary>
+    /// <remarks>
+    /// This does not mutate the separately owned authenticated-membership table or fabricate a reachability change.
+    /// The composition root clears membership authority independently as part of the same serialized reset.
+    /// </remarks>
+    void Clear() noexcept {
+        _slots = {};
+    }
 };
 
 } // namespace ESPressio::Mesh

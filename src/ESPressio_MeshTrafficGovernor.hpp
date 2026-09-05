@@ -55,6 +55,13 @@ public:
 
     /// <summary>Returns the configured reservation capacity of one class.</summary>
     virtual std::size_t Capacity(MeshTrafficClass trafficClass) const noexcept = 0;
+
+    /// <summary>Releases every retained local work reservation during controlled Mesh shutdown/reset.</summary>
+    /// <remarks>
+    /// Owning services must first abandon their exact work records. This final governor reset is local resource
+    /// reclamation only; it does not manufacture completion, cancellation or any distributed protocol evidence.
+    /// </remarks>
+    virtual void ResetForControlledShutdown() noexcept = 0;
 };
 
 /// <summary>
@@ -128,6 +135,11 @@ class DefaultMeshTrafficGovernor final : public IMeshTrafficGovernor {
         return active;
     }
 
+    template<std::size_t Capacity>
+    static void Reset(std::array<Slot, Capacity>& slots) noexcept {
+        for (auto& slot : slots) slot.Occupied = false;
+    }
+
 public:
     MeshTrafficAdmissionResult TryAcquire(
         MeshTrafficClass trafficClass,
@@ -180,6 +192,14 @@ public:
             case MeshTrafficClass::Application: return Limits::ApplicationTransmissionCapacity;
         }
         return 0;
+    }
+
+    /// <summary>Releases all class reservations while preserving generations so pre-reset handles remain stale.</summary>
+    void ResetForControlledShutdown() noexcept override {
+        Reset(_infrastructure);
+        Reset(_clock);
+        Reset(_general);
+        Reset(_application);
     }
 };
 

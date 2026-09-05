@@ -68,5 +68,15 @@ int main() {
     assert(!correlation.Bind(duplicateB, {8, 8}));
     assert(correlation.Release(duplicateA));
     assert(correlation.Release(duplicateB));
+
+    const auto preReset = correlation.Reserve();
+    assert(preReset && correlation.Bind(preReset, {9, 9}));
+    correlation.Clear();
+    assert(correlation.Size() == 0U);
+    assert(!correlation.Contains(preReset));
+    assert(!correlation.Release(preReset));
+    const auto postReset = correlation.Reserve();
+    assert(postReset && postReset.Slot == preReset.Slot && postReset.Generation != preReset.Generation);
+    assert(correlation.Release(postReset));
     return 0;
 }

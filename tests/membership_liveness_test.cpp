@@ -63,5 +63,11 @@ int main() {
 
     assert(fasterTracker.Forget(device, incarnation));
     assert(!fasterTracker.IsUnreachableRetentionElapsed(device, incarnation, 100'000));
+
+    assert(fasterTracker.ObserveAuthenticatedEvidence(device, incarnation, 40'000));
+    assert(fasterTracker.EvidenceFor(device, incarnation) != nullptr);
+    fasterTracker.Clear();
+    assert(fasterTracker.EvidenceFor(device, incarnation) == nullptr);
+    assert(members.FindExact(device, incarnation) != nullptr);
     return 0;
 }

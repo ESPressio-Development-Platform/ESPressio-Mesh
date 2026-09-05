@@ -163,3 +163,10 @@ jobs:
           ESPressio-Mesh/tests/topology_snapshot_test.cpp -o topology_snapshot_test -pthread
       - name: Run directed topology snapshot regression
         run: ./topology_snapshot_test
+      - name: Build controlled Mesh runtime reset regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_runtime_reset_coordinator_test.cpp -o mesh_runtime_reset_coordinator_test -pthread
+      - name: Run controlled Mesh runtime reset regression
+        run: ./mesh_runtime_reset_coordinator_test
