@@ -52,6 +52,19 @@ class ApplicationTransmissionCoordinator final {
         return ApplicationTransmissionAdmissionResult::Invalid;
     }
 
+    ApplicationTransmissionUpdateResult SetRecipientOutcomeAuthoritative(
+        ApplicationTransmissionHandle handle,
+        MeshMessageId messageId,
+        ApplicationRecipientOutcome outcome
+    ) noexcept {
+        const auto result = _transmissions.SetOutcome(handle, messageId, outcome);
+        if (result == ApplicationTransmissionUpdateResult::Updated) ReleaseTrafficIfTerminal(handle);
+        return result;
+    }
+
+    template<std::size_t, std::size_t, std::size_t>
+    friend class ApplicationRecipientLifecycleCoordinator;
+
 public:
     ApplicationTransmissionCoordinator(
         ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>& transmissions,
@@ -134,22 +147,12 @@ public:
             case OutboundDeliveryBeginResult::AlreadyActive: return ApplicationRecipientBeginResult::Invalid;
             case OutboundDeliveryBeginResult::ResourceUnavailable: return ApplicationRecipientBeginResult::ResourceUnavailable;
             case OutboundDeliveryBeginResult::DeadlineExpired:
-                if (_transmissions.SetOutcome(handle, recipient.MessageId, ApplicationRecipientOutcome::DeadlineExpired) ==
-                    ApplicationTransmissionUpdateResult::Updated) ReleaseTrafficIfTerminal(handle);
+                if (SetRecipientOutcomeAuthoritative(handle, recipient.MessageId, ApplicationRecipientOutcome::DeadlineExpired) ==
+                    ApplicationTransmissionUpdateResult::Updated) {}
                 return ApplicationRecipientBeginResult::DeadlineExpired;
             case OutboundDeliveryBeginResult::Invalid: return ApplicationRecipientBeginResult::Invalid;
         }
         return ApplicationRecipientBeginResult::Invalid;
-    }
-
-    ApplicationTransmissionUpdateResult SetRecipientOutcome(
-        ApplicationTransmissionHandle handle,
-        MeshMessageId messageId,
-        ApplicationRecipientOutcome outcome
-    ) noexcept {
-        const auto result = _transmissions.SetOutcome(handle, messageId, outcome);
-        if (result == ApplicationTransmissionUpdateResult::Updated) ReleaseTrafficIfTerminal(handle);
-        return result;
     }
 
     bool Expire(ApplicationTransmissionHandle handle, std::uint64_t nowMilliseconds) noexcept {
