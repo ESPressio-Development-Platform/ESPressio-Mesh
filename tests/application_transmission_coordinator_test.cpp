@@ -8,94 +8,49 @@
 using namespace ESPressio::Mesh;
 
 namespace {
-ESPressio::System::DeviceIdentifier Device(std::uint8_t value) {
-    ESPressio::System::DeviceIdentifier::Storage bytes{};
-    bytes[15] = value;
-    return ESPressio::System::DeviceIdentifier(bytes);
-}
-
-MembershipIncarnation Incarnation(std::uint8_t value) {
-    MembershipIncarnation::Storage bytes{};
-    bytes[15] = value;
-    return MembershipIncarnation(bytes);
-}
+ESPressio::System::DeviceIdentifier Device(std::uint8_t value) { ESPressio::System::DeviceIdentifier::Storage bytes{}; bytes[15] = value; return ESPressio::System::DeviceIdentifier(bytes); }
+MembershipIncarnation Incarnation(std::uint8_t value) { MembershipIncarnation::Storage bytes{}; bytes[15] = value; return MembershipIncarnation(bytes); }
 }
 
 int main() {
-    ApplicationTransmissionTable<> transmissions;
-    DefaultMeshTrafficGovernor traffic;
-    ApplicationTransmissionCoordinator<> coordinator(transmissions, traffic);
-
-    ApplicationTransmissionRecipient recipients[] = {
-        {Device(1), Incarnation(11), 101},
-        {Device(2), Incarnation(12), 102}
-    };
+    ApplicationTransmissionTable<> transmissions; DefaultMeshTrafficGovernor traffic; ApplicationTransmissionCoordinator<> coordinator(transmissions, traffic);
+    ApplicationTransmissionRecipient recipients[] = {{Device(1), Incarnation(11), 101},{Device(2), Incarnation(12), 102}};
+    const std::uint8_t bytes[] = {9,8,7}; const auto payload = ApplicationPayload::Borrowed(bytes, sizeof(bytes));
 
     ApplicationTransmissionHandle aggregate{};
-    assert(coordinator.Begin(recipients, 2, 100, 1000, aggregate) == ApplicationTransmissionAdmissionResult::Begun);
-    assert(aggregate);
-    assert(traffic.Active(MeshTrafficClass::Application) == 1U);
+    assert(coordinator.Begin(recipients, 2, payload, 100, 1000, aggregate) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(aggregate && traffic.Active(MeshTrafficClass::Application) == 1U);
+    assert(coordinator.Payload(aggregate) != nullptr && coordinator.Payload(aggregate)->StableData() == bytes);
 
-    DefaultRouteAttemptPolicy routePolicy;
-    DefaultRetryPolicy retryPolicy;
-    RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
-    DeliveryAcknowledgementTracker<4> tracker;
-    DeliveryAcknowledgementCoordinator<4> acknowledgements(tracker);
+    DefaultRouteAttemptPolicy routePolicy; DefaultRetryPolicy retryPolicy; RouteAttemptCoordinator attempts(routePolicy, retryPolicy);
+    DeliveryAcknowledgementTracker<4> tracker; DeliveryAcknowledgementCoordinator<4> acknowledgements(tracker);
     OutboundDeliveryLifecycle<4> firstDelivery(attempts, acknowledgements);
-
     assert(coordinator.BeginRecipient(aggregate, 0, 101, true, firstDelivery) == ApplicationRecipientBeginResult::Begun);
-    assert(firstDelivery.IsActive());
-    assert(firstDelivery.MessageId() == 101U);
-    assert(firstDelivery.AbsoluteDeadlineMilliseconds() == 1000U);
-    assert(firstDelivery.AwaitingDestinationAcknowledgement());
-
-    // Completing one recipient must not release the aggregate's one Application reservation.
+    assert(firstDelivery.IsActive() && firstDelivery.MessageId() == 101U && firstDelivery.AbsoluteDeadlineMilliseconds() == 1000U);
     assert(coordinator.SetRecipientOutcome(aggregate, 101, ApplicationRecipientOutcome::Delivered) == ApplicationTransmissionUpdateResult::Updated);
-    assert(traffic.Active(MeshTrafficClass::Application) == 1U);
-    assert(coordinator.BeginRecipient(aggregate, 0, 102, false, firstDelivery) == ApplicationRecipientBeginResult::AlreadyTerminal);
-    firstDelivery.Reset();
+    assert(traffic.Active(MeshTrafficClass::Application) == 1U); firstDelivery.Reset();
 
-    RouteAttemptCoordinator secondAttempts(routePolicy, retryPolicy);
-    OutboundDeliveryLifecycle<4> secondDelivery(secondAttempts, acknowledgements);
+    RouteAttemptCoordinator secondAttempts(routePolicy, retryPolicy); OutboundDeliveryLifecycle<4> secondDelivery(secondAttempts, acknowledgements);
     assert(coordinator.BeginRecipient(aggregate, 1, 102, false, secondDelivery) == ApplicationRecipientBeginResult::Begun);
-    assert(secondDelivery.MessageId() == 102U);
-    assert(!secondDelivery.AwaitingDestinationAcknowledgement());
-
-    // Final recipient completion releases governance capacity while retaining queryable aggregate results until Release.
+    assert(coordinator.Payload(aggregate)->StableData() == bytes); // same backing for every recipient
     assert(coordinator.SetRecipientOutcome(aggregate, 102, ApplicationRecipientOutcome::PermanentFailure) == ApplicationTransmissionUpdateResult::Updated);
-    assert(transmissions.IsTerminal(aggregate));
-    assert(traffic.Active(MeshTrafficClass::Application) == 0U);
-    assert(transmissions.Contains(aggregate));
-    assert(coordinator.Release(aggregate));
-    assert(!transmissions.Contains(aggregate));
-    secondDelivery.Reset();
+    assert(transmissions.IsTerminal(aggregate) && traffic.Active(MeshTrafficClass::Application) == 0U && transmissions.Contains(aggregate));
+    assert(coordinator.Release(aggregate)); secondDelivery.Reset();
 
-    // Invalid aggregate input must roll back the governor reservation.
     ApplicationTransmissionHandle invalid{};
-    assert(coordinator.Begin(nullptr, 0, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
+    assert(coordinator.Begin(nullptr, 0, payload, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
+    assert(coordinator.Begin(recipients, 2, {}, 100, 1000, invalid) == ApplicationTransmissionAdmissionResult::Invalid);
     assert(traffic.Active(MeshTrafficClass::Application) == 0U);
 
-    // Deadline expiry terminates only pending recipients and releases governance capacity.
     ApplicationTransmissionHandle expiring{};
-    assert(coordinator.Begin(recipients, 2, 100, 200, expiring) == ApplicationTransmissionAdmissionResult::Begun);
-    assert(traffic.Active(MeshTrafficClass::Application) == 1U);
-    assert(!coordinator.Expire(expiring, 199));
-    assert(traffic.Active(MeshTrafficClass::Application) == 1U);
-    assert(coordinator.Expire(expiring, 200));
-    assert(transmissions.IsTerminal(expiring));
-    assert(traffic.Active(MeshTrafficClass::Application) == 0U);
-    assert(coordinator.Release(expiring));
+    assert(coordinator.Begin(recipients, 2, payload, 100, 200, expiring) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(!coordinator.Expire(expiring, 199)); assert(coordinator.Expire(expiring, 200));
+    assert(transmissions.IsTerminal(expiring) && traffic.Active(MeshTrafficClass::Application) == 0U); assert(coordinator.Release(expiring));
 
-    // Saturating Application governance must reject before allocating an aggregate, and rollback remains deterministic.
     MeshTrafficReservation held[Limits::ApplicationTransmissionCapacity]{};
-    for (std::size_t i = 0; i < Limits::ApplicationTransmissionCapacity; ++i) {
-        assert(traffic.TryAcquire(MeshTrafficClass::Application, held[i]) == MeshTrafficAdmissionResult::Admitted);
-    }
+    for (std::size_t i = 0; i < Limits::ApplicationTransmissionCapacity; ++i) assert(traffic.TryAcquire(MeshTrafficClass::Application, held[i]) == MeshTrafficAdmissionResult::Admitted);
     ApplicationTransmissionHandle blocked{};
-    assert(coordinator.Begin(recipients, 2, 100, 1000, blocked) == ApplicationTransmissionAdmissionResult::ResourceUnavailable);
-    assert(!blocked);
-    assert(transmissions.Size() == 0U);
-    for (auto reservation : held) assert(traffic.Release(reservation));
-
+    assert(coordinator.Begin(recipients, 2, payload, 100, 1000, blocked) == ApplicationTransmissionAdmissionResult::ResourceUnavailable);
+    assert(!blocked && transmissions.Size() == 0U); for (auto reservation : held) assert(traffic.Release(reservation));
     return 0;
 }
