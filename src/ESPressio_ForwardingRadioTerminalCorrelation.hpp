@@ -21,6 +21,9 @@ struct ForwardingRadioCorrelationHandle final {
     constexpr bool operator==(const ForwardingRadioCorrelationHandle& other) const noexcept {
         return Slot == other.Slot && Generation == other.Generation;
     }
+    constexpr bool operator!=(const ForwardingRadioCorrelationHandle& other) const noexcept {
+        return !(*this == other);
+    }
 };
 
 /// <summary>Result of consuming terminal Radio evidence correlated to one Mesh forwarding attempt.</summary>
