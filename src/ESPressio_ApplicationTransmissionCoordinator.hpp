@@ -158,6 +158,17 @@ public:
         return expired;
     }
 
+    /// <summary>Expires every accepted aggregate whose immutable deadline has elapsed and releases its traffic reservation.</summary>
+    /// <remarks>
+    /// The sweep is bounded by TransmissionCapacity and does not release aggregate records or their immutable payload
+    /// references; callers may inspect terminal recipient outcomes and explicitly Release the aggregate afterwards.
+    /// </remarks>
+    std::size_t ExpireDue(std::uint64_t nowMilliseconds) noexcept {
+        return _transmissions.ExpireDue(nowMilliseconds, [&](ApplicationTransmissionHandle handle) {
+            ReleaseTrafficIfTerminal(handle);
+        });
+    }
+
     bool Release(ApplicationTransmissionHandle handle) noexcept {
         if (!_transmissions.Contains(handle)) return false;
         if (auto* binding = ResolveBinding(handle); binding != nullptr) {
