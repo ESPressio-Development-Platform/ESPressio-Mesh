@@ -94,6 +94,10 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/outbound_radio_delivery_coordinator_test.cpp -o outbound_radio_delivery_coordinator_test -pthread
       - name: Run outbound Radio delivery correlation regression
         run: ./outbound_radio_delivery_coordinator_test
+      - name: Build bounded application transmission aggregate regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src ESPressio-Mesh/tests/application_transmission_table_test.cpp -o application_transmission_table_test -pthread
+      - name: Run bounded application transmission aggregate regression
+        run: ./application_transmission_table_test
       - name: Build Mesh security authority contract regression
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src ESPressio-Mesh/tests/mesh_security_authority_test.cpp -o mesh_security_authority_test -pthread
       - name: Run Mesh security authority contract regression
