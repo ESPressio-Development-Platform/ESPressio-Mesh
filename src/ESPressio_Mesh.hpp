@@ -36,6 +36,7 @@
 #include "ESPressio_RouteAttemptCoordinator.hpp"
 #include "ESPressio_ForwardingTransition.hpp"
 #include "ESPressio_ForwardingSubmissionCoordinator.hpp"
+#include "ESPressio_ForwardingAttemptEvidence.hpp"
 #include "ESPressio_ForwardingAttemptLifecycle.hpp"
 #include "ESPressio_ForwardingTransitionCoordinator.hpp"
 #include "ESPressio_DeliveryAcknowledgementTracker.hpp"
