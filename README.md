@@ -21,7 +21,7 @@ Every accepted application transmission retains a wire-neutral `ApplicationPrimi
 
 ## Current implementation tranche
 
-The `structural_realignment_propagation` branch is the coordinated implementation branch for the finalized 1.0.0 Mesh architecture. Its `TRANCHE_HANDOFF.MD` is the authoritative, self-contained frozen specification and chronological implementation record while the tranche remains in progress.
+The `structural_realignment_propagation` branch is the coordinated implementation branch for the finalized 1.0.0 Mesh architecture. Its `TRANCHE_HANDOFF.MD` is the authoritative, self-contained frozen specification and chronological implementation record. The generic Mesh tranche is complete; shipping platform capacity profiles and application-specific composition remain explicit downstream work rather than hidden library defaults.
 
 The current foundation now includes bounded authenticated-membership and tombstone storage, delivery deduplication and InProgress exclusion, policy-driven liveness/retention, separately bounded pre-authentication and authentication resources, authenticated admission promotion, generation-safe Radio peer bindings, incarnation-scoped `RadioIdentifier` allocation, peer-bound neighbour discovery, bounded primitive-family receiver registration, protected traffic-governor capacities, directed topology/routing foundations, authenticated forwarding/delivery lifecycle, aggregate-aware selective application delivery, and bounded clock root/parent coordination. All of these components remain narrow services intended to compose inside the serialized Mesh execution domain rather than becoming independent scheduling layers.
 
