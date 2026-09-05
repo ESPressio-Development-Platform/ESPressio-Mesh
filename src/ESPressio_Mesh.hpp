@@ -38,6 +38,7 @@
 #include "ESPressio_ForwardingSubmissionCoordinator.hpp"
 #include "ESPressio_ForwardingAttemptEvidence.hpp"
 #include "ESPressio_ForwardingAttemptLifecycle.hpp"
+#include "ESPressio_ForwardingRadioTerminalCorrelation.hpp"
 #include "ESPressio_ForwardingTransitionCoordinator.hpp"
 #include "ESPressio_DeliveryAcknowledgementTracker.hpp"
 #include "ESPressio_DeliveryAcknowledgementCoordinator.hpp"
