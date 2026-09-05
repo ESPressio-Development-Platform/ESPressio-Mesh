@@ -20,13 +20,10 @@ enum class RouteResolutionDisposition : std::uint8_t {
     Invalid
 };
 
-/// <summary>
-/// Injected current-evidence gate for disposable cached and freshly planned routes.
-/// </summary>
+/// <summary>Injected current-evidence gate for disposable cached and freshly planned routes.</summary>
 /// <remarks>
-/// Implementations compose the independently owned evidence required by the application/technology build, including
-/// authenticated membership, topology freshness, executable local-link bindings and any routing-policy constraints.
-/// Returning false never mutates authoritative topology; it only declares this local route unusable now.
+/// Implementations compose independently owned evidence such as authenticated membership, topology freshness,
+/// executable local-link bindings and routing-policy constraints. Returning false only rejects this local route now.
 /// </remarks>
 template<std::size_t HopCapacity = Limits::MaxRouteHops>
 class IRouteUsabilityPolicy {
@@ -36,15 +33,7 @@ public:
     virtual bool IsUsable(const Route& route) const noexcept = 0;
 };
 
-/// <summary>
-/// Resolves a usable local route while preventing disposable cache hints from bypassing present evidence.
-/// </summary>
-/// <remarks>
-/// Cache hits are always revalidated through IRouteUsabilityPolicy before use. A rejected hit is invalidated and the
-/// injected IRoutingStrategy is consulted. Newly planned routes must satisfy both structural postconditions and the same
-/// current-evidence usability policy. Cache insertion is opportunistic: a full cache never converts an otherwise usable
-/// planned route into delivery failure.
-/// </remarks>
+/// <summary>Resolves a usable local route without allowing cache hints to bypass present evidence.</summary>
 template<
     typename TCharacteristics,
     std::size_t LinkCapacity = Limits::MaxTopologyLinks,
@@ -69,15 +58,12 @@ public:
     RoutingCoordinator(const Strategy& strategy, const UsabilityPolicy& usability, Cache& cache) noexcept
         : _strategy(strategy), _usability(usability), _cache(cache) {}
 
-    /// <summary>Resolves one currently usable route from cache or strategy.</summary>
     RouteResolutionDisposition Resolve(const Evidence& evidence, Route& route) noexcept {
         route.Clear();
         if (!evidence.Source || !evidence.Destination) return RouteResolutionDisposition::Invalid;
 
         if (evidence.Source == evidence.Destination) {
-            if (!route.Assign(evidence.Source, evidence.Destination, nullptr, 0U)) {
-                return RouteResolutionDisposition::Invalid;
-            }
+            if (!route.Assign(evidence.Source, evidence.Destination, nullptr, 0U)) return RouteResolutionDisposition::Invalid;
             return _usability.IsUsable(route)
                 ? RouteResolutionDisposition::LocalDestination
                 : RouteResolutionDisposition::TemporarilyUnavailable;
@@ -91,14 +77,12 @@ public:
                 route = *cached;
                 return RouteResolutionDisposition::Cached;
             }
-            _cache.InvalidateEndpoint(evidence.Destination);
+            (void)_cache.InvalidatePair(evidence.Source, evidence.Destination);
         }
 
         Route planned;
         const auto disposition = _strategy.Plan(evidence, planned);
-        if (disposition == RoutePlanningDisposition::LocalDestination) {
-            return RouteResolutionDisposition::Invalid;
-        }
+        if (disposition == RoutePlanningDisposition::LocalDestination) return RouteResolutionDisposition::Invalid;
         if (disposition != RoutePlanningDisposition::Planned) {
             switch (disposition) {
                 case RoutePlanningDisposition::Unreachable: return RouteResolutionDisposition::Unreachable;
