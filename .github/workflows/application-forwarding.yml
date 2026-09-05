@@ -47,31 +47,31 @@ jobs:
       - name: Run application forwarding regression
         run: ./application_forwarding_coordinator_test
       - name: Build application recipient lifecycle regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_recipient_lifecycle_test.cpp -o application_recipient_lifecycle_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_recipient_lifecycle_test.cpp -o application_recipient_lifecycle_test -pthread
       - name: Run application recipient lifecycle regression
         run: ./application_recipient_lifecycle_test
       - name: Build application destination ACK regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESpressio-Observable/src ESPressio-Mesh/tests/application_delivery_acknowledgement_test.cpp -o application_delivery_acknowledgement_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_delivery_acknowledgement_test.cpp -o application_delivery_acknowledgement_test -pthread
       - name: Run application destination ACK regression
         run: ./application_delivery_acknowledgement_test
       - name: Build application Radio submission regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESpressio-Observable/src ESPressio-Mesh/tests/application_radio_submission_coordinator_test.cpp -o application_radio_submission_coordinator_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_radio_submission_coordinator_test.cpp -o application_radio_submission_coordinator_test -pthread
       - name: Run application Radio submission regression
         run: ./application_radio_submission_coordinator_test
       - name: Build application Radio terminal regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESpressio-Observable/src ESPressio-Mesh/tests/application_radio_terminal_coordinator_test.cpp -o application_radio_terminal_coordinator_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_radio_terminal_coordinator_test.cpp -o application_radio_terminal_coordinator_test -pthread
       - name: Run application Radio terminal regression
         run: ./application_radio_terminal_coordinator_test
       - name: Build application next-hop acceptance regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_next_hop_acceptance_coordinator_test.cpp -o application_next_hop_acceptance_coordinator_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_next_hop_acceptance_coordinator_test.cpp -o application_next_hop_acceptance_coordinator_test -pthread
       - name: Run application next-hop acceptance regression
         run: ./application_next_hop_acceptance_coordinator_test
       - name: Build composed deadline retirement regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESpressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_deadline_radio_retirement_test.cpp -o application_deadline_radio_retirement_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_deadline_radio_retirement_test.cpp -o application_deadline_radio_retirement_test -pthread
       - name: Run composed deadline retirement regression
         run: ./application_deadline_radio_retirement_test
       - name: Build controlled application reset regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESpressio-System/src -IESpressio-Primitive/src -IESpressio-Radio/src -IESpressio-Observable/src ESPressio-Mesh/tests/application_controlled_reset_test.cpp -o application_controlled_reset_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_controlled_reset_test.cpp -o application_controlled_reset_test -pthread
       - name: Run controlled application reset regression
         run: ./application_controlled_reset_test
       - name: Build current Mesh umbrella
