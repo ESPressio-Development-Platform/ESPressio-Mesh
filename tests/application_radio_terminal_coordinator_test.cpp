@@ -134,9 +134,12 @@ int main() {
         assert(aggregate.TryGetRecipientOutcome(handle, 101, outcome));
         assert(outcome == Mesh::ApplicationRecipientOutcome::Pending);
 
-        assert(aggregate.SetRecipientOutcome(handle, 101, Mesh::ApplicationRecipientOutcome::PermanentFailure) ==
-            Mesh::ApplicationTransmissionUpdateResult::Updated);
-        radioDelivery.Reset();
+        assert(recipients.TerminalizeComposed(
+                   handle,
+                   101,
+                   Mesh::ApplicationRecipientOutcome::PermanentFailure,
+                   radioDelivery) == Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+        assert(!radioDelivery.IsActive());
         assert(aggregate.Release(handle));
     }
 
@@ -162,9 +165,12 @@ int main() {
         assert(outcome == Mesh::ApplicationRecipientOutcome::Pending);
         assert(delivery.AwaitingNextHopAcceptance());
 
-        assert(aggregate.SetRecipientOutcome(handle, 202, Mesh::ApplicationRecipientOutcome::PermanentFailure) ==
-            Mesh::ApplicationTransmissionUpdateResult::Updated);
-        radioDelivery.Reset();
+        assert(recipients.TerminalizeComposed(
+                   handle,
+                   202,
+                   Mesh::ApplicationRecipientOutcome::PermanentFailure,
+                   radioDelivery) == Mesh::ApplicationRecipientTerminalizationResult::Terminalized);
+        assert(!radioDelivery.IsActive());
         assert(aggregate.Release(handle));
     }
 
