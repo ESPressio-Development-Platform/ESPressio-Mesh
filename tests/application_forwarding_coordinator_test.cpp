@@ -1,3 +1,4 @@
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -13,13 +14,26 @@ Mesh::MembershipIncarnation Incarnation(std::uint8_t value) { Mesh::MembershipIn
 class Repeatable final : public Mesh::IRepeatableSerializedPayloadSource {
     const std::uint8_t* _bytes;
     std::size_t _size;
+    bool _fail{false};
 public:
     Repeatable(const std::uint8_t* bytes, std::size_t size) : _bytes(bytes), _size(size) {}
     std::size_t Size() const noexcept override { return _size; }
+    void SetFail(bool fail) noexcept { _fail = fail; }
     bool Read(std::size_t offset, std::uint8_t* destination, std::size_t length) const noexcept override {
-        if (destination == nullptr || offset > _size || length > _size - offset) return false;
+        if (_fail || destination == nullptr || offset > _size || length > _size - offset) return false;
         std::memcpy(destination, _bytes + offset, length); return true;
     }
+};
+
+template<std::size_t CapacityValue>
+class StagingBuffer final : public Mesh::IApplicationPayloadStagingBuffer {
+    std::array<std::uint8_t, CapacityValue> _bytes{};
+    bool _available{true};
+public:
+    std::size_t Capacity() const noexcept override { return _bytes.size(); }
+    std::uint8_t* Data() noexcept override { return _available ? _bytes.data() : nullptr; }
+    void SetAvailable(bool available) noexcept { _available = available; }
+    const std::uint8_t* Bytes() const noexcept { return _bytes.data(); }
 };
 
 class FakeRadio final : public Radio::IRadio {
@@ -64,8 +78,6 @@ int main() {
     auto result = coordinator.SubmitRecipient(aggregate, 0, local, route, 1, 110);
     assert(result.Disposition == Mesh::ApplicationForwardingDisposition::Submitted);
     assert(result.Submission.Disposition == Mesh::ForwardingSubmissionDisposition::Accepted);
-    // The aggregate still aliases the original logical bytes. RadioTransport is then expected to create its own
-    // physical fragment packet, so the provider-level pointer must not be mistaken for the application backing.
     assert(transmissions.Payload(aggregate)->StableData() == bytes);
     assert(radio.Sends == 1U && radio.LastPhysicalPacket != nullptr && radio.LastPhysicalPacketSize > sizeof(bytes));
 
@@ -80,8 +92,32 @@ int main() {
 
     Repeatable repeatable(bytes, sizeof(bytes)); Mesh::ApplicationTransmissionHandle repeatableAggregate{};
     assert(transmissions.Begin(&recipient, 1, Mesh::ApplicationPayload::Repeatable(repeatable), 100, 200, repeatableAggregate) == Mesh::ApplicationTransmissionBeginResult::Begun);
+
     result = coordinator.SubmitRecipient(repeatableAggregate, 0, local, route, 1, 113);
     assert(result.Disposition == Mesh::ApplicationForwardingDisposition::StagingRequired && radio.Sends == 1U);
+
+    StagingBuffer<2> tooSmall;
+    Mesh::ApplicationForwardingCoordinator<2,2,2,2,2> tooSmallCoordinator{transmissions, forwarding, &tooSmall};
+    result = tooSmallCoordinator.SubmitRecipient(repeatableAggregate, 0, local, route, 1, 114);
+    assert(result.Disposition == Mesh::ApplicationForwardingDisposition::StagingCapacityExceeded && radio.Sends == 1U);
+
+    StagingBuffer<8> staging;
+    staging.SetAvailable(false);
+    Mesh::ApplicationForwardingCoordinator<2,2,2,2,2> stagedCoordinator{transmissions, forwarding, &staging};
+    result = stagedCoordinator.SubmitRecipient(repeatableAggregate, 0, local, route, 1, 115);
+    assert(result.Disposition == Mesh::ApplicationForwardingDisposition::StagingUnavailable && radio.Sends == 1U);
+
+    staging.SetAvailable(true);
+    repeatable.SetFail(true);
+    result = stagedCoordinator.SubmitRecipient(repeatableAggregate, 0, local, route, 1, 116);
+    assert(result.Disposition == Mesh::ApplicationForwardingDisposition::SerializationFailed && radio.Sends == 1U);
+
+    repeatable.SetFail(false);
+    result = stagedCoordinator.SubmitRecipient(repeatableAggregate, 0, local, route, 1, 117);
+    assert(result.Disposition == Mesh::ApplicationForwardingDisposition::Submitted);
+    assert(result.Submission.Disposition == Mesh::ForwardingSubmissionDisposition::Accepted);
+    assert(std::memcmp(staging.Bytes(), bytes, sizeof(bytes)) == 0);
+    assert(radio.Sends == 2U);
     assert(transmissions.Release(repeatableAggregate));
 
     transport.Stop(); return 0;
