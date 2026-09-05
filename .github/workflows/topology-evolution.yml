@@ -51,7 +51,7 @@ jobs:
       - name: Run routing policy regression
         run: ./routing_policy_test
       - name: Build route planner/attempt regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/route_planner_attempt_test.cpp -o route_planner_attempt_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESpressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/route_planner_attempt_test.cpp -o route_planner_attempt_test -pthread
       - name: Run route planner/attempt regression
         run: ./route_planner_attempt_test
       - name: Build direct peer/forwarding transition regression
@@ -74,6 +74,10 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/forwarding_radio_terminal_correlation_test.cpp -o forwarding_radio_terminal_correlation_test -pthread
       - name: Run forwarding Radio terminal correlation regression
         run: ./forwarding_radio_terminal_correlation_test
+      - name: Build forwarding Radio attempt coordinator regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/forwarding_radio_attempt_coordinator_test.cpp -o forwarding_radio_attempt_coordinator_test -pthread
+      - name: Run forwarding Radio attempt coordinator regression
+        run: ./forwarding_radio_attempt_coordinator_test
       - name: Build delivery acknowledgement tracker regression
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src ESPressio-Mesh/tests/delivery_acknowledgement_tracker_test.cpp -o delivery_acknowledgement_tracker_test -pthread
       - name: Run delivery acknowledgement tracker regression
