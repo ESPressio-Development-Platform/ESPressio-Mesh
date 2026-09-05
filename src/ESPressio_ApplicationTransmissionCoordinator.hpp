@@ -13,12 +13,6 @@ namespace ESPressio::Mesh {
 enum class ApplicationTransmissionAdmissionResult : std::uint8_t { Begun, ResourceUnavailable, DeadlineExpired, DuplicateRecipient, DuplicateMessageId, Invalid };
 enum class ApplicationRecipientBeginResult : std::uint8_t { Begun, AlreadyTerminal, ResourceUnavailable, DeadlineExpired, UnknownRecipient, UnknownTransmission, Invalid };
 
-/// <summary>Composes one Application traffic reservation, one immutable shared payload and one bounded recipient aggregate.</summary>
-/// <remarks>
-/// One Application reservation represents the accepted aggregate. Recipient deliveries keep independent MeshMessageIds,
-/// route-attempt state and destination acknowledgements while all reference the aggregate's one immutable logical payload.
-/// The coordinator owns no payload bytes and introduces no hidden 8*32 active-delivery pool.
-/// </remarks>
 template<std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission>
 class ApplicationTransmissionCoordinator final {
@@ -77,16 +71,10 @@ public:
 
         MeshTrafficReservation reservation{};
         const auto admission = _traffic.TryAcquire(MeshTrafficClass::Application, reservation);
-        if (admission == MeshTrafficAdmissionResult::ResourceUnavailable) {
-            return ApplicationTransmissionAdmissionResult::ResourceUnavailable;
-        }
-        if (admission != MeshTrafficAdmissionResult::Admitted || !reservation) {
-            return ApplicationTransmissionAdmissionResult::Invalid;
-        }
+        if (admission == MeshTrafficAdmissionResult::ResourceUnavailable) return ApplicationTransmissionAdmissionResult::ResourceUnavailable;
+        if (admission != MeshTrafficAdmissionResult::Admitted || !reservation) return ApplicationTransmissionAdmissionResult::Invalid;
 
-        const auto begun = _transmissions.Begin(
-            recipients, recipientCount, payload, nowMilliseconds, absoluteDeadlineMilliseconds, handle
-        );
+        const auto begun = _transmissions.Begin(recipients, recipientCount, payload, nowMilliseconds, absoluteDeadlineMilliseconds, handle);
         if (begun != ApplicationTransmissionBeginResult::Begun) {
             (void)_traffic.Release(reservation);
             handle = {};
@@ -102,8 +90,25 @@ public:
         return ApplicationTransmissionAdmissionResult::Begun;
     }
 
-    const ApplicationPayload* Payload(ApplicationTransmissionHandle handle) const noexcept {
-        return _transmissions.Payload(handle);
+    const ApplicationPayload* Payload(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.Payload(handle); }
+
+    /// <summary>Reads the current aggregate outcome for one exact recipient MessageId.</summary>
+    bool TryGetRecipientOutcome(
+        ApplicationTransmissionHandle handle,
+        MeshMessageId messageId,
+        ApplicationRecipientOutcome& outcome
+    ) const noexcept {
+        if (!_transmissions.Contains(handle) || messageId == 0U) return false;
+        const std::size_t count = _transmissions.RecipientCount(handle);
+        for (std::size_t index = 0; index < count; ++index) {
+            ApplicationTransmissionRecipient recipient{};
+            ApplicationRecipientOutcome current{};
+            if (!_transmissions.TryGetRecipient(handle, index, recipient, current)) continue;
+            if (recipient.MessageId != messageId) continue;
+            outcome = current;
+            return true;
+        }
+        return false;
     }
 
     template<std::size_t AcknowledgementCapacity>
@@ -117,36 +122,22 @@ public:
         if (!_transmissions.Contains(handle)) return ApplicationRecipientBeginResult::UnknownTransmission;
         ApplicationTransmissionRecipient recipient{};
         ApplicationRecipientOutcome outcome{};
-        if (!_transmissions.TryGetRecipient(handle, recipientIndex, recipient, outcome)) {
-            return ApplicationRecipientBeginResult::UnknownRecipient;
-        }
+        if (!_transmissions.TryGetRecipient(handle, recipientIndex, recipient, outcome)) return ApplicationRecipientBeginResult::UnknownRecipient;
         if (outcome != ApplicationRecipientOutcome::Pending) return ApplicationRecipientBeginResult::AlreadyTerminal;
 
         const auto result = delivery.Begin(
-            recipient.Device,
-            recipient.Incarnation,
-            recipient.MessageId,
-            nowMilliseconds,
-            _transmissions.AbsoluteDeadlineMilliseconds(handle),
-            requireDestinationAcknowledgement
+            recipient.Device, recipient.Incarnation, recipient.MessageId, nowMilliseconds,
+            _transmissions.AbsoluteDeadlineMilliseconds(handle), requireDestinationAcknowledgement
         );
         switch (result) {
-            case OutboundDeliveryBeginResult::Begun:
-                return ApplicationRecipientBeginResult::Begun;
-            case OutboundDeliveryBeginResult::AlreadyActive:
-                return ApplicationRecipientBeginResult::Invalid;
-            case OutboundDeliveryBeginResult::ResourceUnavailable:
-                return ApplicationRecipientBeginResult::ResourceUnavailable;
+            case OutboundDeliveryBeginResult::Begun: return ApplicationRecipientBeginResult::Begun;
+            case OutboundDeliveryBeginResult::AlreadyActive: return ApplicationRecipientBeginResult::Invalid;
+            case OutboundDeliveryBeginResult::ResourceUnavailable: return ApplicationRecipientBeginResult::ResourceUnavailable;
             case OutboundDeliveryBeginResult::DeadlineExpired:
-                // The aggregate deadline is immutable. Once it has elapsed this recipient can never become active later,
-                // so commit the terminal outcome immediately rather than retaining Pending state until the next sweep.
                 if (_transmissions.SetOutcome(handle, recipient.MessageId, ApplicationRecipientOutcome::DeadlineExpired) ==
-                    ApplicationTransmissionUpdateResult::Updated) {
-                    ReleaseTrafficIfTerminal(handle);
-                }
+                    ApplicationTransmissionUpdateResult::Updated) ReleaseTrafficIfTerminal(handle);
                 return ApplicationRecipientBeginResult::DeadlineExpired;
-            case OutboundDeliveryBeginResult::Invalid:
-                return ApplicationRecipientBeginResult::Invalid;
+            case OutboundDeliveryBeginResult::Invalid: return ApplicationRecipientBeginResult::Invalid;
         }
         return ApplicationRecipientBeginResult::Invalid;
     }
@@ -157,9 +148,7 @@ public:
         ApplicationRecipientOutcome outcome
     ) noexcept {
         const auto result = _transmissions.SetOutcome(handle, messageId, outcome);
-        if (result == ApplicationTransmissionUpdateResult::Updated) {
-            ReleaseTrafficIfTerminal(handle);
-        }
+        if (result == ApplicationTransmissionUpdateResult::Updated) ReleaseTrafficIfTerminal(handle);
         return result;
     }
 
@@ -169,24 +158,12 @@ public:
         return expired;
     }
 
-    /// <summary>Expires every accepted aggregate whose immutable deadline has elapsed and releases its traffic reservation.</summary>
-    /// <remarks>
-    /// The sweep is bounded by TransmissionCapacity and does not release aggregate records or their immutable payload
-    /// references; callers may inspect terminal recipient outcomes and explicitly Release the aggregate afterwards.
-    /// </remarks>
     std::size_t ExpireDue(std::uint64_t nowMilliseconds) noexcept {
         return _transmissions.ExpireDue(nowMilliseconds, [&](ApplicationTransmissionHandle handle) {
             ReleaseTrafficIfTerminal(handle);
         });
     }
 
-    /// <summary>Releases a completed aggregate and its retained immutable payload reference.</summary>
-    /// <remarks>
-    /// Non-terminal aggregates are deliberately retained. Releasing one while any recipient remains Pending could discard
-    /// the only aggregate-level payload reference while that recipient still has legitimate retry/forwarding work. Explicit
-    /// cancellation/abandonment is a separate lifecycle semantic and is not inferred by Release(). Callers must first make
-    /// every recipient terminal (including deadline expiry) and retire any external per-recipient delivery lifecycle state.
-    /// </remarks>
     bool Release(ApplicationTransmissionHandle handle) noexcept {
         if (!_transmissions.Contains(handle) || !_transmissions.IsTerminal(handle)) return false;
         if (auto* binding = ResolveBinding(handle); binding != nullptr) {
