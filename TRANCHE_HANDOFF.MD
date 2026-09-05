@@ -56,10 +56,10 @@ Mesh:
 - Radio terminal correlation, delivery ACK tracking/coordinator and outbound delivery lifecycle implemented without conflating admission, link evidence, destination acceptance or application completion.
 - Clock coordination/membership/reachability/parent-usability foundations implemented.
 - Target-native fixed/cardinality memory accounting uses sizeof; variable payload/reassembly/security-provider storage remains separate.
-- `ApplicationTransmissionTable<8,32>` owns bounded selective aggregates with generation-safe handle, immutable deadline, frozen unique recipients, independent MessageIds/outcomes and now exactly one immutable `ApplicationPayload` reference shared by all recipients. It still owns no variable-capacity payload bytes, routes, Radio state, ACK tracker, selector identity or Broadcast semantics.
+- `ApplicationTransmissionTable<8,32>` owns bounded selective aggregates with generation-safe handle, immutable deadline, frozen unique recipients, independent MessageIds/outcomes and exactly one immutable `ApplicationPayload` reference shared by all recipients. It still owns no variable-capacity payload bytes, routes, Radio state, ACK tracker, selector identity or Broadcast semantics.
 - `ApplicationPayload` represents Borrowed Stable bytes or a non-owning `IRepeatableSerializedPayloadSource`. Both expose finite size before admission and immutable repeatable bytes for the complete aggregate lifetime. No payload byte capacity was selected. A future bounded-owned backing can satisfy the same aggregate contract once its capacity is explicitly approved.
 - `ApplicationTransmissionCoordinator<8,32>` composes one Application traffic reservation, one aggregate/shared payload and externally supplied per-recipient OutboundDeliveryLifecycle. It exposes the same aggregate payload to every recipient and still introduces no hidden 8*32 active-delivery pool.
-- `ApplicationForwardingCoordinator` now composes a frozen recipient, the aggregate's immutable payload and authenticated forwarding submission. Borrowed Stable payloads pass their original backing directly to Radio without per-recipient copy/re-serialization. Repeatable Serialized Source explicitly returns `StagingRequired` until a bounded staging capacity/policy is approved; no hidden byte capacity is invented. Terminal recipients and route/recipient mismatches are rejected before Radio submission.
+- `ApplicationForwardingCoordinator` composes a frozen recipient, aggregate immutable payload and authenticated forwarding submission. Borrowed Stable payloads are passed directly into RadioTransport without an application-layer/per-recipient copy or re-serialization; RadioTransport remains responsible for constructing physical fragment packets. Repeatable Serialized Source explicitly returns `StagingRequired` until a bounded staging capacity/policy is approved. Terminal recipients and route/recipient mismatches are rejected before Radio submission.
 
 ## Validation status
 
@@ -67,9 +67,11 @@ Representative green runs: Radio deferred correlation `33956249777`; forwarding 
 
 Immutable-payload continuation:
 - First Topology Evolution `33964359407` compiled and ran every regression through the application aggregate successfully, then failed only `-Werror=misleading-indentation` in the newly compacted ApplicationTransmissionCoordinator. No semantic/test failure occurred before that point.
-- Warning formatting corrected in commit `5ec5fea8c8c8a6483e9b39b68e83d4946109e9b5`.
-- Follow-up Topology Evolution `33964394229` completed successfully: all topology/routing/forwarding/ACK/application aggregate/application lifecycle/security-authority regressions and current Mesh umbrella build passed.
-- Zero-copy borrowed forwarding regression added in `tests/application_forwarding_coordinator_test.cpp`; dedicated `Application Forwarding` workflow added and subsequent branch push used to trigger validation. Final run result must be recorded after completion before treating this layer as green.
+- Warning formatting corrected in commit `5ec5fea8c8a6483e9b39b68e83d4946109e9b5`.
+- Follow-up Topology Evolution `33964394229` completed successfully across the full topology/routing/forwarding/ACK/application/security/umbrella suite.
+- Initial Application Forwarding run `33964689414` compiled successfully but exposed an incorrect test assumption: it compared the application backing pointer with the concrete provider's physical-packet pointer even though RadioTransport correctly owns fragmentation and constructs its own physical packet. Production code was not changed for this finding.
+- Regression corrected in commit `d3a541e9b9345dcf2b13dc9d2eaee40c19ac927e` to verify that the aggregate continues to alias the original immutable logical backing while the provider receives a Radio-owned physical fragment packet.
+- Follow-up Application Forwarding run `33964786992`: build, corrected application-forwarding regression and current Mesh umbrella all passed; workflow cleanup was still completing when recorded.
 
 ## Unresolved public/wire decisions — do not cross silently
 
@@ -82,10 +84,10 @@ Immutable-payload continuation:
 
 ## Immediate next work
 
-1. Validate the new zero-copy Borrowed Stable application-forwarding composition and reconcile any compiler/test findings.
-2. Keep Repeatable Serialized Source forwarding paused at explicit `StagingRequired` until bounded staging/owned-payload byte capacity is approved; do not invent capacity.
-3. Update target-native fixed/cardinality memory accounting for added payload-reference/coordinator metadata if not already naturally captured by sizeof(ApplicationTransmissionTable).
-4. Perform Command local-dispatch terminology cleanup when practical; local success means framework acceptance only.
+1. Keep Repeatable Serialized Source forwarding paused at explicit `StagingRequired` until bounded staging/owned-payload byte capacity is approved; do not invent capacity.
+2. Fixed/cardinality memory accounting already captures the ApplicationTransmissionTable by target-native sizeof; no separate coordinator storage term is required because the forwarding coordinator owns only references.
+3. Perform Command local-dispatch terminology cleanup when practical; local success means framework acceptance only.
+4. Continue only Mesh work that does not require unresolved family/Event/Group/security-wire/payload-capacity decisions.
 5. Do not begin Event/MeshAdapters wire integration until unresolved ID decisions are approved.
 
 ## Chronological continuation log
@@ -93,5 +95,5 @@ Immutable-payload continuation:
 - 2026-09-05T08:42Z-08:50Z: Integrated explicit-capacity deferred logical-transfer correlation into RadioTransport; run `33956249777` green native + ESP32 worker.
 - 2026-09-05T09:17Z-10:33Z: Added Mesh forwarding terminal correlation/attempt/outbound delivery composition; runs `33959946510` and `33960956661` green.
 - 2026-09-05T11:16Z-11:39Z: Added bounded ApplicationTransmissionTable and ApplicationTransmissionCoordinator; corrected one test namespace typo; runs `33963104967` and `33963873242` green.
-- 2026-09-05T11:46Z-11:51Z: Added `ApplicationPayload`, Borrowed Stable and Repeatable Serialized Source contracts; bound exactly one immutable payload reference to each aggregate; updated table/coordinator regressions and umbrella export. No byte-capacity constant introduced. Initial run `33964359407` exposed only warning-clean formatting in the coordinator after all preceding tests passed; corrected in `5ec5fea8c8c8a6483e9b39b68e83d4946109e9b5`. Follow-up Topology Evolution `33964394229` completed successfully across the full topology/routing/forwarding/ACK/application/security/umbrella suite.
-- 2026-09-05T11:55Z-12:08Z: Added `ApplicationForwardingCoordinator` for zero-copy Borrowed Stable recipient submission through authenticated forwarding; route/destination and terminal-recipient guards prevent accidental submission; Repeatable Serialized Source returns explicit `StagingRequired` rather than inventing staging capacity. Added dedicated regression/workflow and umbrella export; validation pending at handoff-write time.
+- 2026-09-05T11:46Z-11:51Z: Added `ApplicationPayload`, Borrowed Stable and Repeatable Serialized Source contracts; bound exactly one immutable payload reference to each aggregate; updated table/coordinator regressions and umbrella export. No byte-capacity constant introduced. Initial run `33964359407` exposed only warning-clean formatting in the coordinator after all preceding tests passed; corrected in `5ec5fea8c8c8a6483e9b39b68e83d4946109e9b5`. Follow-up Topology Evolution `33964394229` completed successfully.
+- 2026-09-05T11:55Z-12:00Z: Added `ApplicationForwardingCoordinator` for Borrowed Stable recipient submission through authenticated forwarding; route/destination and terminal-recipient guards prevent accidental submission; Repeatable Serialized Source returns explicit `StagingRequired`. Initial dedicated run `33964689414` found only a regression-fixture boundary mistake (application logical pointer was incorrectly expected to equal Radio provider physical-fragment pointer). Corrected the test without changing production semantics in `d3a541e9b9345dcf2b13dc9d2eaee40c19ac927e`; follow-up run `33964786992` passed build, regression and umbrella.
