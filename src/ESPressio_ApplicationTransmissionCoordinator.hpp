@@ -131,11 +131,22 @@ public:
             requireDestinationAcknowledgement
         );
         switch (result) {
-            case OutboundDeliveryBeginResult::Begun: return ApplicationRecipientBeginResult::Begun;
-            case OutboundDeliveryBeginResult::AlreadyActive: return ApplicationRecipientBeginResult::Invalid;
-            case OutboundDeliveryBeginResult::ResourceUnavailable: return ApplicationRecipientBeginResult::ResourceUnavailable;
-            case OutboundDeliveryBeginResult::DeadlineExpired: return ApplicationRecipientBeginResult::DeadlineExpired;
-            case OutboundDeliveryBeginResult::Invalid: return ApplicationRecipientBeginResult::Invalid;
+            case OutboundDeliveryBeginResult::Begun:
+                return ApplicationRecipientBeginResult::Begun;
+            case OutboundDeliveryBeginResult::AlreadyActive:
+                return ApplicationRecipientBeginResult::Invalid;
+            case OutboundDeliveryBeginResult::ResourceUnavailable:
+                return ApplicationRecipientBeginResult::ResourceUnavailable;
+            case OutboundDeliveryBeginResult::DeadlineExpired:
+                // The aggregate deadline is immutable. Once it has elapsed this recipient can never become active later,
+                // so commit the terminal outcome immediately rather than retaining Pending state until the next sweep.
+                if (_transmissions.SetOutcome(handle, recipient.MessageId, ApplicationRecipientOutcome::DeadlineExpired) ==
+                    ApplicationTransmissionUpdateResult::Updated) {
+                    ReleaseTrafficIfTerminal(handle);
+                }
+                return ApplicationRecipientBeginResult::DeadlineExpired;
+            case OutboundDeliveryBeginResult::Invalid:
+                return ApplicationRecipientBeginResult::Invalid;
         }
         return ApplicationRecipientBeginResult::Invalid;
     }
