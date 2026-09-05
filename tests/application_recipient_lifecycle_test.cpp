@@ -47,7 +47,6 @@ int main() {
     assert(aggregate.BeginRecipient(handle, 0, 101, true, first) == ApplicationRecipientBeginResult::Begun);
     assert(first.IsActive() && first.AwaitingDestinationAcknowledgement());
 
-    // A mismatched lifecycle cannot terminalize the recipient or discard its externally retained delivery state.
     RouteAttemptCoordinator unrelatedAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> unrelated(unrelatedAttempts, acknowledgements);
     assert(aggregate.BeginRecipient(handle, 1, 101, false, unrelated) == ApplicationRecipientBeginResult::Invalid);
@@ -55,7 +54,6 @@ int main() {
         ApplicationRecipientTerminalizationResult::Invalid);
     assert(first.IsActive() && transmissions.Contains(handle));
 
-    // Commit aggregate outcome before retiring the external lifecycle. The aggregate remains retained while recipient 2 is pending.
     assert(lifecycle.Terminalize(handle, 101, ApplicationRecipientOutcome::Delivered, first) ==
         ApplicationRecipientTerminalizationResult::Terminalized);
     assert(!first.IsActive());
@@ -74,7 +72,6 @@ int main() {
     assert(aggregate.Payload(handle) != nullptr && aggregate.Payload(handle)->StableData() == bytes);
     assert(aggregate.Release(handle));
 
-    // Unknown/mismatched aggregate state never resets an otherwise-active delivery lifecycle.
     ApplicationTransmissionRecipient lone[] = {{Device(3), Incarnation(13), 201}};
     ApplicationTransmissionHandle other{};
     assert(aggregate.Begin(lone, 1, payload, 100, 1000, other) == ApplicationTransmissionAdmissionResult::Begun);
@@ -89,6 +86,29 @@ int main() {
         ApplicationRecipientTerminalizationResult::Terminalized);
     assert(!otherDelivery.IsActive() && transmissions.IsTerminal(other));
     assert(aggregate.Release(other));
+
+    // Deadline sweeping terminalizes aggregate state independently; active external delivery state is then retired
+    // explicitly, preserving the aggregate outcome and never treating retirement as cancellation.
+    ApplicationTransmissionRecipient expiring[] = {{Device(4), Incarnation(14), 301}};
+    ApplicationTransmissionHandle expiringHandle{};
+    assert(aggregate.Begin(expiring, 1, payload, 100, 200, expiringHandle) == ApplicationTransmissionAdmissionResult::Begun);
+    RouteAttemptCoordinator expiringAttempts(routePolicy, retryPolicy);
+    OutboundDeliveryLifecycle<4> expiringDelivery(expiringAttempts, acknowledgements);
+    assert(aggregate.BeginRecipient(expiringHandle, 0, 101, false, expiringDelivery) == ApplicationRecipientBeginResult::Begun);
+    assert(lifecycle.RetireTerminal(expiringHandle, 301, expiringDelivery) == ApplicationRecipientRetirementResult::NotTerminal);
+    assert(expiringDelivery.IsActive());
+    assert(aggregate.ExpireDue(200) == 1U);
+    assert(transmissions.IsTerminal(expiringHandle));
+    assert(expiringDelivery.IsActive());
+
+    ApplicationRecipientOutcome expiredOutcome{};
+    assert(aggregate.TryGetRecipientOutcome(expiringHandle, 301, expiredOutcome));
+    assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
+    assert(lifecycle.RetireTerminal(expiringHandle, 301, expiringDelivery) == ApplicationRecipientRetirementResult::Retired);
+    assert(!expiringDelivery.IsActive());
+    assert(aggregate.TryGetRecipientOutcome(expiringHandle, 301, expiredOutcome));
+    assert(expiredOutcome == ApplicationRecipientOutcome::DeadlineExpired);
+    assert(aggregate.Release(expiringHandle));
 
     return 0;
 }
