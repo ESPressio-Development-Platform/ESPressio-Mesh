@@ -62,6 +62,23 @@ class ApplicationTransmissionCoordinator final {
         return result;
     }
 
+    /// <summary>
+    /// Releases all aggregate records and Application traffic reservations during controlled local shutdown/reset.
+    /// </summary>
+    /// <remarks>
+    /// This is deliberately not a delivery outcome or cancellation semantic. The lifecycle coordinator first gives the
+    /// composition root an opportunity to reset exact externally owned per-recipient state, then invokes this teardown.
+    /// No wire message, destination result or requested-operation completion is implied.
+    /// </remarks>
+    void ResetForControlledShutdown() noexcept {
+        for (auto& binding : _reservations) {
+            if (!binding.Used) continue;
+            (void)_traffic.Release(binding.Reservation);
+            binding = {};
+        }
+        _transmissions.Clear();
+    }
+
     template<std::size_t, std::size_t, std::size_t>
     friend class ApplicationRecipientLifecycleCoordinator;
 
@@ -160,13 +177,6 @@ public:
         return expired;
     }
 
-    /// <summary>
-    /// Expires one exact aggregate and reports each newly expired MessageId after aggregate DeadlineExpired authority exists.
-    /// </summary>
-    /// <remarks>
-    /// Composition can synchronously retire exact externally owned ACK/Radio/forwarding lifecycle state without hidden
-    /// ownership in this coordinator. The traffic reservation remains held until all callbacks for this aggregate finish.
-    /// </remarks>
     template<typename TExpiredRecipientCallback>
     bool ExpireWithRecipients(
         ApplicationTransmissionHandle handle,
@@ -176,9 +186,7 @@ public:
         const bool expired = _transmissions.ExpireWithRecipients(
             handle,
             nowMilliseconds,
-            [&](MeshMessageId messageId) noexcept {
-                onExpiredRecipient(handle, messageId);
-            }
+            [&](MeshMessageId messageId) noexcept { onExpiredRecipient(handle, messageId); }
         );
         if (expired) ReleaseTrafficIfTerminal(handle);
         return expired;
