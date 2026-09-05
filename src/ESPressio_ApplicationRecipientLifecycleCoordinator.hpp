@@ -36,6 +36,13 @@ public:
         ApplicationTransmissionCoordinator<TransmissionCapacity, RecipientCapacity>& transmissions
     ) noexcept : _transmissions(transmissions) {}
 
+    /// <summary>Commits a terminal recipient outcome and retires the exact matching external delivery lifecycle.</summary>
+    /// <remarks>
+    /// Aggregate state is authoritative for recipient terminality. If another owner (for example deadline sweeping)
+    /// already terminalized the recipient, an exact matching active delivery is still retired here while the previously
+    /// committed aggregate outcome is preserved. This closes the race between independently owned terminalization paths
+    /// without allowing a late result to overwrite DeadlineExpired or another terminal outcome.
+    /// </remarks>
     ApplicationRecipientTerminalizationResult Terminalize(
         ApplicationTransmissionHandle transmission,
         MeshMessageId messageId,
@@ -55,6 +62,9 @@ public:
                 delivery.Reset();
                 return ApplicationRecipientTerminalizationResult::Terminalized;
             case ApplicationTransmissionUpdateResult::AlreadyTerminal:
+                // The aggregate outcome won the race and must not be overwritten, but the exact external lifecycle is
+                // now stale and must release any pending destination-ACK reservation/forwarding transition.
+                delivery.Reset();
                 return ApplicationRecipientTerminalizationResult::AlreadyTerminal;
             case ApplicationTransmissionUpdateResult::UnknownRecipient:
                 return ApplicationRecipientTerminalizationResult::UnknownRecipient;
