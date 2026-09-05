@@ -74,6 +74,17 @@ class ApplicationTransmissionTable final {
         const auto& record = _records[handle.Slot]; return record.Used && record.Generation == handle.Generation ? &record : nullptr;
     }
 
+    static bool ExpireRecord(Record& record, std::uint64_t nowMilliseconds) noexcept {
+        if (!record.Used || nowMilliseconds < record.AbsoluteDeadlineMilliseconds || record.TerminalCount == record.RecipientCount) return false;
+        for (std::size_t index = 0; index < record.RecipientCount; ++index) {
+            auto& recipient = record.Recipients[index];
+            if (recipient.Outcome != ApplicationRecipientOutcome::Pending) continue;
+            recipient.Outcome = ApplicationRecipientOutcome::DeadlineExpired;
+            ++record.TerminalCount;
+        }
+        return true;
+    }
+
 public:
     ApplicationTransmissionBeginResult Begin(const ApplicationTransmissionRecipient* recipients, std::size_t recipientCount,
         const ApplicationPayload& payload, std::uint64_t nowMilliseconds, std::uint64_t absoluteDeadlineMilliseconds,
@@ -112,12 +123,25 @@ public:
     }
 
     bool Expire(ApplicationTransmissionHandle handle, std::uint64_t nowMilliseconds) noexcept {
-        auto* record = Resolve(handle); if (record == nullptr || nowMilliseconds < record->AbsoluteDeadlineMilliseconds) return false;
-        for (std::size_t index = 0; index < record->RecipientCount; ++index) {
-            auto& recipient = record->Recipients[index]; if (recipient.Outcome != ApplicationRecipientOutcome::Pending) continue;
-            recipient.Outcome = ApplicationRecipientOutcome::DeadlineExpired; ++record->TerminalCount;
+        auto* record = Resolve(handle);
+        return record != nullptr && ExpireRecord(*record, nowMilliseconds);
+    }
+
+    /// <summary>Expires every non-terminal aggregate whose immutable absolute deadline has elapsed.</summary>
+    /// <remarks>
+    /// The callback is invoked once for each aggregate newly made terminal by this sweep. Records remain retained for
+    /// outcome inspection until explicitly released; no payload backing or handle is silently discarded here.
+    /// </remarks>
+    template<typename TExpiredCallback>
+    std::size_t ExpireDue(std::uint64_t nowMilliseconds, TExpiredCallback&& onExpired) noexcept {
+        std::size_t expired = 0U;
+        for (std::size_t slot = 0; slot < TransmissionCapacity; ++slot) {
+            auto& record = _records[slot];
+            if (!ExpireRecord(record, nowMilliseconds)) continue;
+            ++expired;
+            onExpired(ApplicationTransmissionHandle{static_cast<std::uint16_t>(slot), record.Generation});
         }
-        return true;
+        return expired;
     }
 
     constexpr std::size_t Capacity() const noexcept { return TransmissionCapacity; }
