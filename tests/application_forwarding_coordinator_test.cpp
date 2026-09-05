@@ -65,7 +65,8 @@ int main() {
     assert(result.Submission.Disposition == Mesh::ForwardingSubmissionDisposition::Accepted);
     assert(radio.Sends == 1U && radio.LastPayload == bytes && radio.LastSize == sizeof(bytes));
 
-    Mesh::ResolvedRoute<2> wrong; assert(wrong.Assign(remote, local, nullptr, 0));
+    Mesh::TopologyLinkIdentity wrongHop{remote, 1, local, 1}; Mesh::ResolvedRoute<2> wrong;
+    assert(wrong.Assign(remote, local, &wrongHop, 1));
     result = coordinator.SubmitRecipient(aggregate, 0, local, wrong, 1, 111);
     assert(result.Disposition == Mesh::ApplicationForwardingDisposition::RouteMismatch && radio.Sends == 1U);
     assert(transmissions.SetOutcome(aggregate, 101, Mesh::ApplicationRecipientOutcome::Delivered) == Mesh::ApplicationTransmissionUpdateResult::Updated);
