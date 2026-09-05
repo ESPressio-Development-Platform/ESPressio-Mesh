@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "ESPressio_AdmissionResources.hpp"
+#include "ESPressio_ApplicationTransmissionTable.hpp"
 #include "ESPressio_AuthenticatedMembershipTable.hpp"
 #include "ESPressio_ClockCoordination.hpp"
 #include "ESPressio_DeliveryAcknowledgementTracker.hpp"
@@ -30,7 +31,8 @@ namespace ESPressio::Mesh {
 /// application objects, security-authority private state, delivery-acknowledgement storage and clock-coordination storage.
 /// The latter two are reported by explicit templated helpers because the architecture intentionally leaves acknowledgement
 /// capacity and the clock-quality representation to the composition root. Those terms must be added separately for a
-/// whole-device budget.
+/// whole-device budget. ApplicationTransmissionBytes accounts only for frozen recipient/outcome metadata; immutable shared
+/// payload backing remains a separate variable-capacity term.
 /// </remarks>
 template<typename TTopologyCharacteristics>
 struct MeshFixedMemoryAccounting final {
@@ -46,6 +48,7 @@ struct MeshFixedMemoryAccounting final {
     static constexpr std::size_t RouteCacheBytes = sizeof(RouteCache<>);
     static constexpr std::size_t PrimitiveReceiverRegistryBytes = sizeof(PrimitiveReceiverRegistry<>);
     static constexpr std::size_t TrafficGovernorBytes = sizeof(DefaultMeshTrafficGovernor);
+    static constexpr std::size_t ApplicationTransmissionBytes = sizeof(ApplicationTransmissionTable<>);
 
     /// <summary>Sum of the principal frozen-capacity stores represented above.</summary>
     static constexpr std::size_t PrincipalFixedCardinalityBytes =
@@ -60,7 +63,8 @@ struct MeshFixedMemoryAccounting final {
         TopologyGraphBytes +
         RouteCacheBytes +
         PrimitiveReceiverRegistryBytes +
-        TrafficGovernorBytes;
+        TrafficGovernorBytes +
+        ApplicationTransmissionBytes;
 
     /// <summary>Returns fixed storage for the composition-selected clock-quality representation at MaxMeshNodes.</summary>
     template<typename TClockQuality>
