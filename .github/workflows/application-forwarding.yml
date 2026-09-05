@@ -43,7 +43,7 @@ jobs:
       - name: Run outbound delivery lifecycle regression
         run: ./outbound_delivery_lifecycle_test
       - name: Build application forwarding regression
-        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_forwarding_coordinator_test.cpp -o application_forwarding_coordinator_test -pthread
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESpressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_forwarding_coordinator_test.cpp -o application_forwarding_coordinator_test -pthread
       - name: Run application forwarding regression
         run: ./application_forwarding_coordinator_test
       - name: Build application recipient lifecycle regression
@@ -66,5 +66,9 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_next_hop_acceptance_coordinator_test.cpp -o application_next_hop_acceptance_coordinator_test -pthread
       - name: Run application next-hop acceptance regression
         run: ./application_next_hop_acceptance_coordinator_test
+      - name: Build composed deadline retirement regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_deadline_radio_retirement_test.cpp -o application_deadline_radio_retirement_test -pthread
+      - name: Run composed deadline retirement regression
+        run: ./application_deadline_radio_retirement_test
       - name: Build current Mesh umbrella
         run: printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp && g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src umbrella.cpp -o umbrella -pthread
