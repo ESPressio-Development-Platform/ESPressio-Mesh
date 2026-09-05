@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "ESPressio_ApplicationPayloadStaging.hpp"
 #include "ESPressio_ApplicationTransmissionTable.hpp"
 #include "ESPressio_ForwardingSubmissionCoordinator.hpp"
 
@@ -11,6 +12,9 @@ namespace ESPressio::Mesh {
 enum class ApplicationForwardingDisposition : std::uint8_t {
     Submitted,
     StagingRequired,
+    StagingCapacityExceeded,
+    StagingUnavailable,
+    SerializationFailed,
     UnknownTransmission,
     UnknownRecipient,
     RecipientTerminal,
@@ -32,9 +36,10 @@ struct ApplicationForwardingResult final {
 /// </summary>
 /// <remarks>
 /// Borrowed Stable payloads are submitted directly from their aggregate backing without copying or re-serialization.
-/// Repeatable Serialized Source deliberately returns StagingRequired: RadioTransport currently accepts contiguous bytes,
-/// and choosing a bounded staging-buffer capacity is an explicit memory-policy decision that this coordinator must not
-/// invent. The aggregate remains the sole owner of recipient identity/message selection and payload reference semantics.
+/// Repeatable Serialized Source may be materialized into an optional composition-supplied bounded staging buffer. Mesh
+/// intentionally defines no staging byte capacity; absent/insufficient storage is reported explicitly. The staging bytes
+/// are borrowed only for the synchronous forwarding submission call and do not become aggregate-owned payload storage.
+/// The aggregate remains the sole owner of recipient identity/message selection and payload-reference semantics.
 /// </remarks>
 template<std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission,
@@ -44,12 +49,14 @@ template<std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmis
 class ApplicationForwardingCoordinator final {
     const ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>& _transmissions;
     ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& _forwarding;
+    IApplicationPayloadStagingBuffer* _staging{nullptr};
 
 public:
     ApplicationForwardingCoordinator(
         const ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>& transmissions,
-        ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& forwarding
-    ) noexcept : _transmissions(transmissions), _forwarding(forwarding) {}
+        ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>& forwarding,
+        IApplicationPayloadStagingBuffer* staging = nullptr
+    ) noexcept : _transmissions(transmissions), _forwarding(forwarding), _staging(staging) {}
 
     ApplicationForwardingResult SubmitRecipient(
         ApplicationTransmissionHandle transmission,
@@ -77,10 +84,20 @@ public:
 
         const auto* payload = _transmissions.Payload(transmission);
         if (payload == nullptr || !*payload) return {ApplicationForwardingDisposition::Invalid, {}};
+
+        const std::uint8_t* bytes = payload->StableData();
         if (payload->Type() == ApplicationPayload::Kind::RepeatableSerialized) {
-            return {ApplicationForwardingDisposition::StagingRequired, {}};
+            if (_staging == nullptr) return {ApplicationForwardingDisposition::StagingRequired, {}};
+            if (payload->Size() > _staging->Capacity()) {
+                return {ApplicationForwardingDisposition::StagingCapacityExceeded, {}};
+            }
+            auto* stagingBytes = _staging->Data();
+            if (stagingBytes == nullptr) return {ApplicationForwardingDisposition::StagingUnavailable, {}};
+            if (!payload->Read(0U, stagingBytes, payload->Size())) {
+                return {ApplicationForwardingDisposition::SerializationFailed, {}};
+            }
+            bytes = stagingBytes;
         }
-        const auto* bytes = payload->StableData();
         if (bytes == nullptr) return {ApplicationForwardingDisposition::Invalid, {}};
 
         auto submission = _forwarding.Submit(
