@@ -30,8 +30,8 @@ namespace ESPressio::Mesh {
 ///
 /// Composition configuration deliberately survives: registered primitive receivers, injected policies, registered
 /// local Radio interfaces, the local MembershipIncarnation and its MeshMessageId high-water value are not runtime work.
-/// Starting a genuinely new local membership incarnation remains an explicit identity-lifecycle operation and must reset
-/// MeshRadioRegistry and construct/restore MeshMessageIdGenerator consistently outside this coordinator.
+/// Starting or restoring a local membership incarnation remains a separate explicit identity-lifecycle operation,
+/// coordinated by LocalMeshIdentityLifecycleCoordinator after the required runtime/application/Radio teardown.
 /// </remarks>
 template<
     typename TTopologyCharacteristics,

@@ -45,9 +45,18 @@ public:
     /// This operation does not decide whether continuity is legitimate. The caller must only use it after the security/
     /// membership authority has established authenticated continuation of the same MembershipIncarnation.
     /// </remarks>
-    void RestoreHighWater(MeshMessageId lastIssued) noexcept {
+    bool RestoreHighWater(MeshMessageId lastIssued) noexcept {
+        if (lastIssued < _lastIssued) return false;
         _lastIssued = lastIssued;
+        return true;
     }
+
+    /// <summary>Restarts identifier issuance for a security-authorized genuinely new membership incarnation.</summary>
+    /// <remarks>
+    /// This operation must never be used to recover or restart the same incarnation because doing so would reuse
+    /// conceptual message identifiers. LocalMeshIdentityLifecycleCoordinator is the normal composition boundary.
+    /// </remarks>
+    void ResetForNewIncarnation() noexcept { _lastIssued = 0U; }
 };
 
 static_assert(sizeof(MeshMessageIdGenerator) == sizeof(MeshMessageId),

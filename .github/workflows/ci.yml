@@ -65,6 +65,13 @@ jobs:
           ESPressio-Mesh/tests/mesh_message_id_generator_test.cpp -o mesh_message_id_generator_test -pthread
       - name: Run Mesh message ID generator regression
         run: ./mesh_message_id_generator_test
+      - name: Build local Mesh identity lifecycle regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/local_mesh_identity_lifecycle_coordinator_test.cpp -o local_mesh_identity_lifecycle_coordinator_test -pthread
+      - name: Run local Mesh identity lifecycle regression
+        run: ./local_mesh_identity_lifecycle_coordinator_test
       - name: Build inbound delivery reservation regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror

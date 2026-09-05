@@ -21,6 +21,7 @@
 #include "ESPressio_PrimitiveSupportSnapshot.hpp"
 #include "ESPressio_NeighbourDiscoveryCoordinator.hpp"
 #include "ESPressio_MeshRadioRegistry.hpp"
+#include "ESPressio_LocalMeshIdentityLifecycleCoordinator.hpp"
 #include "ESPressio_RadioPeerLifecycleCoordinator.hpp"
 #include "ESPressio_DirectPeerBindings.hpp"
 #include "ESPressio_DirectPeerLifecycleCoordinator.hpp"
