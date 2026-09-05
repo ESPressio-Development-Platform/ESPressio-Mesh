@@ -118,5 +118,9 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src ESPressio-Mesh/tests/mesh_v1_initiator_admission_coordinator_test.cpp -o mesh_v1_initiator_admission_coordinator_test -pthread
       - name: Run transactional Mesh v1 initiator admission regression
         run: ./mesh_v1_initiator_admission_coordinator_test
+      - name: Build protected Mesh v1 application forwarding/destination regression
+        run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/mesh_v1_application_protection_coordinator_test.cpp -o mesh_v1_application_protection_coordinator_test -pthread
+      - name: Run protected Mesh v1 application forwarding/destination regression
+        run: ./mesh_v1_application_protection_coordinator_test
       - name: Build current Mesh umbrella
         run: printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp && g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src umbrella.cpp -o umbrella -pthread

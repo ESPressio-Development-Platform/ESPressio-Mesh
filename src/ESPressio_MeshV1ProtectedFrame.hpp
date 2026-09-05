@@ -22,6 +22,7 @@ struct MeshV1EndToEndFrameHeader final {
     System::DeviceIdentifier Destination{};
     MembershipIncarnation DestinationIncarnation{};
     MeshMessageId MessageId{0};
+    std::uint64_t AbsoluteDeadlineMilliseconds{0};
     Primitive::PrimitiveFamilyId PrimitiveFamily{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersion PrimitiveVersion{0};
     std::uint16_t PlaintextBytes{0};
@@ -30,7 +31,8 @@ struct MeshV1EndToEndFrameHeader final {
         return static_cast<bool>(Mesh) && static_cast<bool>(Session) && Sequence != 0U &&
                static_cast<bool>(Source) && static_cast<bool>(SourceIncarnation) &&
                static_cast<bool>(Destination) && static_cast<bool>(DestinationIncarnation) &&
-               MessageId != 0U && Primitive::FamilyIds::IsUsable(PrimitiveFamily);
+               MessageId != 0U && AbsoluteDeadlineMilliseconds != 0U &&
+               Primitive::FamilyIds::IsUsable(PrimitiveFamily);
     }
 };
 
@@ -68,7 +70,7 @@ struct MeshV1ProtectedFrameView final {
 /// <summary>Canonical layered Mesh v1 protected-frame codec.</summary>
 /// <remarks>
 /// An EndToEnd frame authenticates and encrypts the immutable application/control payload and its canonical source,
-/// destination, incarnation, MessageId and primitive identity. Each forwarding transition wraps that complete frame in
+/// destination, incarnation, MessageId, immutable absolute deadline and primitive identity. Each forwarding transition wraps that complete frame in
 /// a Hop frame protected by the current direct-neighbour session. A relay opens only the Hop layer, decrements HopLimit
 /// through the existing forwarding transition, chooses the next hop, and seals a replacement Hop layer; it cannot open
 /// or alter the EndToEnd frame. The final destination requires all duplicated destination/MessageId values to match.
@@ -135,7 +137,7 @@ class MeshV1ProtectedFrameCodec final {
 
 public:
     static constexpr std::size_t CommonHeaderBytes = 10U;
-    static constexpr std::size_t EndToEndFixedBodyBytes = 118U;
+    static constexpr std::size_t EndToEndFixedBodyBytes = 126U;
     static constexpr std::size_t EndToEndAuthenticatedHeaderBytes = CommonHeaderBytes + EndToEndFixedBodyBytes;
     static constexpr std::size_t HopFixedBodyBytes = 147U;
     static constexpr std::size_t HopAuthenticatedHeaderBytes = CommonHeaderBytes + HopFixedBodyBytes;
@@ -168,6 +170,7 @@ public:
         Copy(cursor, header.Destination.Bytes().data(), header.Destination.Bytes().size());
         Copy(cursor, header.DestinationIncarnation.Bytes().data(), header.DestinationIncarnation.Bytes().size());
         WriteU64(cursor, header.MessageId); cursor += 8U;
+        WriteU64(cursor, header.AbsoluteDeadlineMilliseconds); cursor += 8U;
         WriteU16(cursor, header.PrimitiveFamily); cursor += 2U;
         WriteU16(cursor, header.PrimitiveVersion); cursor += 2U;
         WriteU16(cursor, header.PlaintextBytes);
@@ -200,6 +203,7 @@ public:
         Read(cursor, destination.data(), destination.size()); header.Destination = System::DeviceIdentifier{destination};
         Read(cursor, destinationIncarnation.data(), destinationIncarnation.size()); header.DestinationIncarnation = MembershipIncarnation{destinationIncarnation};
         header.MessageId = ReadU64(cursor); cursor += 8U;
+        header.AbsoluteDeadlineMilliseconds = ReadU64(cursor); cursor += 8U;
         header.PrimitiveFamily = ReadU16(cursor); cursor += 2U;
         header.PrimitiveVersion = ReadU16(cursor); cursor += 2U;
         header.PlaintextBytes = ReadU16(cursor); cursor += 2U;
@@ -279,7 +283,7 @@ public:
     }
 };
 
-static_assert(MeshV1ProtectedFrameCodec::EndToEndAuthenticatedHeaderBytes == 128U);
+static_assert(MeshV1ProtectedFrameCodec::EndToEndAuthenticatedHeaderBytes == 136U);
 static_assert(MeshV1ProtectedFrameCodec::HopAuthenticatedHeaderBytes == 157U);
 
 } // namespace ESPressio::Mesh

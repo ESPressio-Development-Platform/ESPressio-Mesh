@@ -138,11 +138,12 @@ int main() {
     endToEnd.Destination = responder.Device;
     endToEnd.DestinationIncarnation = responder.Incarnation;
     endToEnd.MessageId = 11U;
+    endToEnd.AbsoluteDeadlineMilliseconds = 1000U;
     endToEnd.PrimitiveFamily = Primitive::FamilyIds::Event;
     endToEnd.PrimitiveVersion = 2U;
     endToEnd.PlaintextBytes = 4U;
     const std::array<std::uint8_t, 4> protectedPayload{{1, 2, 3, 4}};
-    std::array<std::uint8_t, 148> endToEndWire{};
+    std::array<std::uint8_t, 156> endToEndWire{};
     static_assert(endToEndWire.size() ==
         Mesh::MeshV1ProtectedFrameCodec::EndToEndAuthenticatedHeaderBytes + 4U +
         Mesh::MeshV1SecuritySuite::AuthenticationTagBytes);
@@ -176,7 +177,7 @@ int main() {
     hop.MessageId = endToEnd.MessageId;
     hop.HopLimit = 16U;
     hop.InnerFrameBytes = static_cast<std::uint16_t>(endToEndWire.size());
-    std::array<std::uint8_t, 321> hopWire{};
+    std::array<std::uint8_t, 329> hopWire{};
     static_assert(hopWire.size() == Mesh::MeshV1ProtectedFrameCodec::HopAuthenticatedHeaderBytes +
         endToEndWire.size() + Mesh::MeshV1SecuritySuite::AuthenticationTagBytes);
     assert(Mesh::MeshV1ProtectedFrameCodec::EncodeHopAuthenticatedHeader(
