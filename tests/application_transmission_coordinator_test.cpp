@@ -29,6 +29,11 @@ int main() {
     assert(aggregate && traffic.Active(MeshTrafficClass::Application) == 1U);
     assert(coordinator.PrimitiveDescriptor(aggregate) != nullptr);
     assert(coordinator.PrimitiveDescriptor(aggregate)->Family == ESPressio::Primitive::FamilyIds::Event);
+    ApplicationTransmissionRecipient retainedRecipient;
+    ApplicationRecipientOutcome retainedOutcome{};
+    assert(coordinator.TryGetRecipient(aggregate, 1, retainedRecipient, retainedOutcome));
+    assert(retainedRecipient.Device == Device(2) && retainedRecipient.MessageId == 102U);
+    assert(retainedOutcome == ApplicationRecipientOutcome::Pending);
     assert(coordinator.Payload(aggregate) != nullptr && coordinator.Payload(aggregate)->StableData() == bytes);
 
     assert(!coordinator.Release(aggregate));

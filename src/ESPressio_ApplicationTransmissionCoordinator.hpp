@@ -138,6 +138,14 @@ public:
     bool Contains(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.Contains(handle); }
     const ApplicationPrimitiveDescriptor* PrimitiveDescriptor(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.PrimitiveDescriptor(handle); }
     const ApplicationPayload* Payload(ApplicationTransmissionHandle handle) const noexcept { return _transmissions.Payload(handle); }
+    bool TryGetRecipient(
+        ApplicationTransmissionHandle handle,
+        std::size_t recipientIndex,
+        ApplicationTransmissionRecipient& recipient,
+        ApplicationRecipientOutcome& outcome
+    ) const noexcept {
+        return _transmissions.TryGetRecipient(handle, recipientIndex, recipient, outcome);
+    }
 
     bool TryGetRecipientOutcome(
         ApplicationTransmissionHandle handle,
