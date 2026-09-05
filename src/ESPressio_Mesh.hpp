@@ -24,6 +24,7 @@
 #include "ESPressio_MeshV1ProtectedFrame.hpp"
 #include "ESPressio_MeshV1FrameWorkspace.hpp"
 #include "ESPressio_MeshV1ApplicationProtectionCoordinator.hpp"
+#include "ESPressio_MeshV1RelayCoordinator.hpp"
 #include "ESPressio_AdmissionLifecycleCoordinator.hpp"
 #include "ESPressio_AdmissionPromotionCoordinator.hpp"
 #include "ESPressio_MeshTrafficGovernor.hpp"

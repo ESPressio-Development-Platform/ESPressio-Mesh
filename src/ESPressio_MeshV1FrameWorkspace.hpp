@@ -41,4 +41,12 @@ public:
     }
 };
 
+template<typename TWorkspace>
+class MeshV1WorkspaceResetGuard final {
+    TWorkspace& _workspace;
+public:
+    explicit MeshV1WorkspaceResetGuard(TWorkspace& workspace) noexcept : _workspace(workspace) {}
+    ~MeshV1WorkspaceResetGuard() { _workspace.Reset(); }
+};
+
 } // namespace ESPressio::Mesh

@@ -45,14 +45,6 @@ struct MeshV1ProtectedDestinationResult final {
     PrimitiveReceiveDisposition ReceiverDisposition{PrimitiveReceiveDisposition::Malformed};
 };
 
-template<typename TWorkspace>
-class MeshV1WorkspaceResetGuard final {
-    TWorkspace& _workspace;
-public:
-    explicit MeshV1WorkspaceResetGuard(TWorkspace& workspace) noexcept : _workspace(workspace) {}
-    ~MeshV1WorkspaceResetGuard() { _workspace.Reset(); }
-};
-
 /// <summary>Protects one frozen application recipient and submits the complete Hop frame to existing routing.</summary>
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
