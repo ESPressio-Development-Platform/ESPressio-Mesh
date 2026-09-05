@@ -23,14 +23,14 @@ enum class ApplicationDeliveryAcknowledgementResult : std::uint8_t {
 /// </summary>
 /// <remarks>
 /// Callers must use this boundary instead of applying an ACK directly to OutboundDeliveryLifecycle when that delivery
-/// belongs to an ApplicationTransmission aggregate. A successfully authenticated destination ACK first updates the exact
-/// per-delivery ACK lifecycle and then commits the corresponding aggregate recipient outcome before retiring the external
-/// delivery state. Thus the ACK tracker and aggregate cannot accidentally diverge.
+/// belongs to an ApplicationTransmission aggregate. Aggregate authority is inspected first: an unknown aggregate or
+/// recipient can never consume per-delivery ACK state, while an already-terminal aggregate retires its exact stale
+/// delivery lifecycle without first applying the late ACK. Only a known Pending recipient may consume destination-ACK
+/// state, after which the corresponding aggregate terminal outcome is committed and the external lifecycle retired.
 ///
 /// An ACK still means only definitive destination-framework acceptance of this Mesh delivery. It is not application work
 /// completion. Radio/link evidence and next-hop acceptance remain unrelated. Existing aggregate terminal outcomes win
-/// races: a late ACK cannot overwrite DeadlineExpired or another terminal result, but the exact stale delivery lifecycle
-/// is still retired by ApplicationRecipientLifecycleCoordinator.
+/// races: a late ACK cannot overwrite DeadlineExpired or another terminal result.
 /// </remarks>
 template<
     std::size_t AcknowledgementCapacity,
@@ -78,6 +78,24 @@ public:
         if (!transmission || !delivery.IsActive() || acknowledgedMessageId == 0U ||
             delivery.MessageId() != acknowledgedMessageId) {
             return ApplicationDeliveryAcknowledgementResult::Invalid;
+        }
+
+        const auto inspection = _recipients.Inspect(transmission, acknowledgedMessageId);
+        switch (inspection) {
+            case ApplicationRecipientInspectionResult::UnknownTransmission:
+                return ApplicationDeliveryAcknowledgementResult::UnknownTransmission;
+            case ApplicationRecipientInspectionResult::UnknownRecipient:
+                return ApplicationDeliveryAcknowledgementResult::UnknownRecipient;
+            case ApplicationRecipientInspectionResult::Invalid:
+                return ApplicationDeliveryAcknowledgementResult::Invalid;
+            case ApplicationRecipientInspectionResult::Terminal: {
+                const auto retirement = _recipients.RetireTerminal(transmission, acknowledgedMessageId, delivery);
+                return retirement == ApplicationRecipientRetirementResult::Retired
+                    ? ApplicationDeliveryAcknowledgementResult::AlreadyTerminal
+                    : ApplicationDeliveryAcknowledgementResult::Invalid;
+            }
+            case ApplicationRecipientInspectionResult::Pending:
+                break;
         }
 
         const auto action = delivery.ApplyDestinationAcknowledgementAuthenticated(
