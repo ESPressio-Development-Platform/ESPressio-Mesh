@@ -31,6 +31,14 @@ enum class ApplicationRecipientInspectionResult : std::uint8_t {
     Invalid
 };
 
+/// <summary>Summary of one aggregate-deadline sweep and its synchronous external-lifecycle cleanup.</summary>
+struct ApplicationDeadlineSweepResult final {
+    std::size_t ExpiredTransmissions{0};
+    std::size_t ExpiredRecipients{0};
+    std::size_t RetiredExternalLifecycles{0};
+    std::size_t ExternalLifecycleMismatches{0};
+};
+
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
@@ -159,6 +167,44 @@ public:
         TExternalLifecycle& external
     ) noexcept {
         return RetireTerminalExternal(transmission, messageId, external);
+    }
+
+    /// <summary>
+    /// Expires every due aggregate recipient and synchronously retires any matching externally owned delivery lifecycle.
+    /// </summary>
+    /// <remarks>
+    /// The resolver is invoked only after the aggregate has committed DeadlineExpired for the exact MessageId. It may
+    /// return nullptr when that recipient has no active external lifecycle (for example, forwarding never began). When it
+    /// returns a lifecycle, that object must expose IsActive(), MessageId() and Reset(). Exact MessageId matching is checked
+    /// before Reset, so a resolver bug cannot cancel another recipient's bounded ACK/Radio/forwarding state. The resolver
+    /// is composition-supplied rather than a Mesh-owned registry, preserving external lifecycle ownership and avoiding a
+    /// second capacity/identity table. All cleanup happens synchronously inside the sweep before the caller regains control.
+    /// </remarks>
+    template<typename TExternalLifecycleResolver>
+    ApplicationDeadlineSweepResult ExpireDueAndRetire(
+        std::uint64_t nowMilliseconds,
+        TExternalLifecycleResolver&& resolveExternalLifecycle
+    ) noexcept {
+        ApplicationDeadlineSweepResult result{};
+        result.ExpiredTransmissions = _transmissions.ExpireDueWithRecipients(
+            nowMilliseconds,
+            [&](ApplicationTransmissionHandle transmission, MeshMessageId messageId) noexcept {
+                ++result.ExpiredRecipients;
+                auto* external = resolveExternalLifecycle(transmission, messageId);
+                if (external == nullptr) return;
+                if (!external->IsActive() || external->MessageId() != messageId) {
+                    ++result.ExternalLifecycleMismatches;
+                    return;
+                }
+                const auto retired = RetireTerminalExternal(transmission, messageId, *external);
+                if (retired == ApplicationRecipientRetirementResult::Retired) {
+                    ++result.RetiredExternalLifecycles;
+                } else {
+                    ++result.ExternalLifecycleMismatches;
+                }
+            }
+        );
+        return result;
     }
 };
 
