@@ -13,6 +13,7 @@
 #include "ESPressio_MembershipLiveness.hpp"
 #include "ESPressio_MembershipTombstoneTable.hpp"
 #include "ESPressio_MeshTrafficGovernor.hpp"
+#include "ESPressio_MeshSecurityAuthority.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
 #include "ESPressio_RouteCache.hpp"
 #include "ESPressio_TopologyGraphStore.hpp"
@@ -25,7 +26,8 @@ namespace ESPressio::Mesh {
 /// <remarks>
 /// The caller must first stop every RadioTransport so no provider callback can repopulate forwarding correlation, then
 /// reset exact externally owned application-delivery lifecycles through ApplicationRecipientLifecycleCoordinator. This
-/// coordinator subsequently releases all retained non-application execution, pairwise session/provider secrets and
+/// coordinator subsequently releases all retained non-application execution, pending-handshake state when supplied,
+/// pairwise session/provider secrets and
 /// remote-Mesh state before finally resetting the traffic governor. It emits no wire message and creates no delivery,
 /// cancellation, reachability, membership, Radio-terminal or clock evidence.
 ///
@@ -68,6 +70,7 @@ class MeshRuntimeResetCoordinator final {
     IMeshV1CryptographicProvider& _cryptography;
     ClockCoordinationTable<TClockQuality, MembershipCapacity>& _clock;
     IMeshTrafficGovernor& _traffic;
+    IMeshPendingAuthenticationReset* _pendingAuthentication;
 
 public:
     MeshRuntimeResetCoordinator(
@@ -86,7 +89,8 @@ public:
         MeshSecuritySessionTable<SecuritySessionCapacity>& securitySessions,
         IMeshV1CryptographicProvider& cryptography,
         ClockCoordinationTable<TClockQuality, MembershipCapacity>& clock,
-        IMeshTrafficGovernor& traffic
+        IMeshTrafficGovernor& traffic,
+        IMeshPendingAuthenticationReset* pendingAuthentication = nullptr
     ) noexcept :
         _memberships(memberships),
         _liveness(liveness),
@@ -103,10 +107,14 @@ public:
         _securitySessions(securitySessions),
         _cryptography(cryptography),
         _clock(clock),
-        _traffic(traffic) {}
+        _traffic(traffic),
+        _pendingAuthentication(pendingAuthentication) {}
 
     /// <summary>Releases every retained principal non-application runtime record in bounded deterministic order.</summary>
     void ResetForControlledShutdown() noexcept {
+        if (_pendingAuthentication != nullptr) {
+            _pendingAuthentication->ReleasePendingAuthenticationBeforeProviderReset();
+        }
         _radioCorrelations.Clear();
         _acknowledgements.Clear();
         _inboundDeliveries.Clear();
@@ -117,6 +125,9 @@ public:
         _topology.Clear();
         _directPeers.Clear();
         _securitySessions.ResetForControlledShutdown(_cryptography);
+        if (_pendingAuthentication != nullptr) {
+            _pendingAuthentication->ClearPendingAuthenticationAfterProviderReset();
+        }
         _clock.Clear();
         _liveness.Clear();
         _tombstones.Clear();

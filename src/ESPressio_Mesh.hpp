@@ -17,6 +17,7 @@
 #include "ESPressio_MeshSecurityAuthority.hpp"
 #include "ESPressio_MeshV1Security.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
+#include "ESPressio_MeshV1ResponderAdmissionCoordinator.hpp"
 #include "ESPressio_MeshV1ProtectedFrame.hpp"
 #include "ESPressio_AdmissionLifecycleCoordinator.hpp"
 #include "ESPressio_AdmissionPromotionCoordinator.hpp"

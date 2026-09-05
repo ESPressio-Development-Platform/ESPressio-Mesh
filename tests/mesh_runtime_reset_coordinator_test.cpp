@@ -27,6 +27,23 @@ Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
     bytes[15] = tail;
     return Mesh::MembershipIncarnation{bytes};
 }
+
+class PendingAuthenticationReset final : public Mesh::IMeshPendingAuthenticationReset {
+    TestCryptographicProvider& _cryptography;
+public:
+    bool ReleasedBeforeProviderReset{false};
+    bool ClearedAfterProviderReset{false};
+    explicit PendingAuthenticationReset(TestCryptographicProvider& cryptography) : _cryptography(cryptography) {}
+    bool ReleasePendingAuthenticationBeforeProviderReset() noexcept override {
+        assert(_cryptography.Resets == 0U);
+        ReleasedBeforeProviderReset = true;
+        return true;
+    }
+    void ClearPendingAuthenticationAfterProviderReset() noexcept override {
+        assert(_cryptography.Resets == 1U);
+        ClearedAfterProviderReset = true;
+    }
+};
 }
 
 int main() {
@@ -86,6 +103,7 @@ int main() {
     assert(correlation && radioCorrelations.Bind(correlation, Radio::DeferredLogicalTransferHandle{0U, 1U}));
 
     TestCryptographicProvider cryptography;
+    PendingAuthenticationReset pendingAuthentication{cryptography};
     Mesh::MeshSecuritySessionTable<Capacity> securitySessions;
     Mesh::MeshSecuritySessionIdentifier securityIdentifier{};
     securityIdentifier.Value[15] = 1U;
@@ -107,7 +125,7 @@ int main() {
                                       Capacity> reset{
         memberships, liveness, tombstones, inboundDeliveries, candidates, authentications, probes,
         directPeers, topology, routes, acknowledgements, radioCorrelations,
-        securitySessions, cryptography, clock, traffic
+        securitySessions, cryptography, clock, traffic, &pendingAuthentication
     };
     reset.ResetForControlledShutdown();
 
@@ -125,6 +143,8 @@ int main() {
     assert(radioCorrelations.Size() == 0U);
     assert(!securitySessions.ProviderSession(securitySession));
     assert(cryptography.Releases == 1U && cryptography.Resets == 1U);
+    assert(pendingAuthentication.ReleasedBeforeProviderReset);
+    assert(pendingAuthentication.ClearedAfterProviderReset);
     assert(clock.Size() == 0U);
     assert(traffic.Active(Mesh::MeshTrafficClass::GeneralControl) == 0U);
 

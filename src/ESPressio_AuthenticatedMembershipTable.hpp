@@ -81,6 +81,23 @@ public:
     constexpr std::size_t Size() const noexcept { return _size; }
     constexpr bool Empty() const noexcept { return _size == 0U; }
 
+    /// <summary>Non-mutating classification for a serialized authenticated upsert.</summary>
+    AuthenticatedMembershipInsertResult PreflightAuthenticatedUpsert(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation
+    ) const noexcept {
+        if (!device || !incarnation) return AuthenticatedMembershipInsertResult::Invalid;
+        for (const auto& slot : _slots) {
+            if (!slot.Occupied || slot.Record.Device != device) continue;
+            return slot.Record.Incarnation == incarnation
+                ? AuthenticatedMembershipInsertResult::Updated
+                : AuthenticatedMembershipInsertResult::ConflictingIncarnation;
+        }
+        return _size < Capacity
+            ? AuthenticatedMembershipInsertResult::Inserted
+            : AuthenticatedMembershipInsertResult::ResourceUnavailable;
+    }
+
     /// <summary>Finds the authenticated record for an exact device/incarnation identity.</summary>
     AuthenticatedMembershipRecord* FindExact(
         const System::DeviceIdentifier& device,

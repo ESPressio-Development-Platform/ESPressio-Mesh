@@ -81,6 +81,14 @@ public:
     ) noexcept = 0;
 };
 
+/// <summary>Optional controlled-reset participant for staged pre-membership cryptographic state.</summary>
+class IMeshPendingAuthenticationReset {
+public:
+    virtual ~IMeshPendingAuthenticationReset() = default;
+    virtual bool ReleasePendingAuthenticationBeforeProviderReset() noexcept = 0;
+    virtual void ClearPendingAuthenticationAfterProviderReset() noexcept = 0;
+};
+
 /// <summary>Input supplied to admission policy only after security established exact authenticated identity.</summary>
 struct MeshAdmissionContext final {
     MeshSecurityCandidateContext Candidate{};

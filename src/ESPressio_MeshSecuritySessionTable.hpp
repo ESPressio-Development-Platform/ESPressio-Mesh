@@ -122,6 +122,20 @@ class MeshSecuritySessionTable final {
 public:
     static constexpr std::size_t MaximumSize = Capacity;
 
+    constexpr std::size_t Size() const noexcept {
+        std::size_t size = 0U;
+        for (const auto& record : _records) if (record.Used) ++size;
+        return size;
+    }
+
+    bool CanInstall(const System::DeviceIdentifier& peer) const noexcept {
+        if (!peer) return false;
+        for (const auto& record : _records) {
+            if (!record.Used || record.Device == peer) return true;
+        }
+        return false;
+    }
+
     bool Install(
         const System::DeviceIdentifier& peer,
         const MembershipIncarnation& incarnation,

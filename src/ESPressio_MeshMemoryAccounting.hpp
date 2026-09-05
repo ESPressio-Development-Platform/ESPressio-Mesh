@@ -88,7 +88,8 @@ struct MeshFixedMemoryAccounting final {
 
 /// <summary>Whole-device static storage accounting for an explicitly selected platform profile.</summary>
 /// <remarks>
-/// TSecurityAuthority must be the concrete bounded authority/session owner used by the build, not its interface type.
+/// TSecurityAuthority must be the concrete bounded security-composition owner used by the build, not its interface type;
+/// it includes provider, signer/identity storage and pending-handshake records when those are separately composed.
 /// RadioTransportBytes includes its fixed reassembly arrays and all other retained Radio transport state. Task stacks
 /// and composition-owned storage not represented by concrete types remain explicit profile terms.
 /// </remarks>
