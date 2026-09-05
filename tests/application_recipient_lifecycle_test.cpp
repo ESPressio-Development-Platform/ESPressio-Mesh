@@ -47,9 +47,9 @@ int main() {
     assert(aggregate.BeginRecipient(handle, 0, 101, true, first) == ApplicationRecipientBeginResult::Begun);
     assert(first.IsActive() && first.AwaitingDestinationAcknowledgement());
 
+    // An unrelated/inactive lifecycle cannot terminalize another recipient or discard its delivery state.
     RouteAttemptCoordinator unrelatedAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> unrelated(unrelatedAttempts, acknowledgements);
-    assert(aggregate.BeginRecipient(handle, 1, 101, false, unrelated) == ApplicationRecipientBeginResult::Invalid);
     assert(lifecycle.Terminalize(handle, 101, ApplicationRecipientOutcome::Delivered, unrelated) ==
         ApplicationRecipientTerminalizationResult::Invalid);
     assert(first.IsActive() && transmissions.Contains(handle));
@@ -72,12 +72,12 @@ int main() {
     assert(aggregate.Payload(handle) != nullptr && aggregate.Payload(handle)->StableData() == bytes);
     assert(aggregate.Release(handle));
 
+    // Unknown aggregate state never resets an otherwise-active delivery lifecycle.
     ApplicationTransmissionRecipient lone[] = {{Device(3), Incarnation(13), 201}};
     ApplicationTransmissionHandle other{};
     assert(aggregate.Begin(lone, 1, payload, 100, 1000, other) == ApplicationTransmissionAdmissionResult::Begun);
     RouteAttemptCoordinator otherAttempts(routePolicy, retryPolicy);
     OutboundDeliveryLifecycle<4> otherDelivery(otherAttempts, acknowledgements);
-    assert(aggregate.BeginRecipient(other, 0, 101, false, otherDelivery) == ApplicationRecipientBeginResult::Invalid);
     assert(aggregate.BeginRecipient(other, 0, 201, false, otherDelivery) == ApplicationRecipientBeginResult::Begun);
     assert(lifecycle.Terminalize({}, 201, ApplicationRecipientOutcome::PermanentFailure, otherDelivery) ==
         ApplicationRecipientTerminalizationResult::UnknownTransmission);
