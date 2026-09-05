@@ -47,6 +47,24 @@ int main() {
     assert(!coordinator.Expire(expiring, 199)); assert(coordinator.Expire(expiring, 200));
     assert(transmissions.IsTerminal(expiring) && traffic.Active(MeshTrafficClass::Application) == 0U); assert(coordinator.Release(expiring));
 
+    // A bounded sweep enforces immutable deadlines across all accepted aggregates without silently releasing records.
+    ApplicationTransmissionRecipient sweepA[] = {{Device(3), Incarnation(13), 201}};
+    ApplicationTransmissionRecipient sweepB[] = {{Device(4), Incarnation(14), 202}};
+    ApplicationTransmissionHandle early{}; ApplicationTransmissionHandle later{};
+    assert(coordinator.Begin(sweepA, 1, payload, 100, 300, early) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(coordinator.Begin(sweepB, 1, payload, 100, 400, later) == ApplicationTransmissionAdmissionResult::Begun);
+    assert(traffic.Active(MeshTrafficClass::Application) == 2U);
+    assert(coordinator.ExpireDue(299) == 0U && traffic.Active(MeshTrafficClass::Application) == 2U);
+    assert(coordinator.ExpireDue(300) == 1U && transmissions.IsTerminal(early) && !transmissions.IsTerminal(later));
+    assert(traffic.Active(MeshTrafficClass::Application) == 1U && transmissions.Contains(early));
+    ApplicationTransmissionRecipient inspected{}; ApplicationRecipientOutcome inspectedOutcome{};
+    assert(transmissions.TryGetRecipient(early, 0, inspected, inspectedOutcome));
+    assert(inspectedOutcome == ApplicationRecipientOutcome::DeadlineExpired);
+    assert(coordinator.ExpireDue(450) == 1U && transmissions.IsTerminal(later));
+    assert(traffic.Active(MeshTrafficClass::Application) == 0U);
+    assert(coordinator.ExpireDue(500) == 0U); // terminal aggregates are not reported repeatedly
+    assert(coordinator.Release(early)); assert(coordinator.Release(later));
+
     MeshTrafficReservation held[Limits::ApplicationTransmissionCapacity]{};
     for (std::size_t i = 0; i < Limits::ApplicationTransmissionCapacity; ++i) assert(traffic.TryAcquire(MeshTrafficClass::Application, held[i]) == MeshTrafficAdmissionResult::Admitted);
     ApplicationTransmissionHandle blocked{};
