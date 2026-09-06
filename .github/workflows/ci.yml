@@ -50,7 +50,7 @@ jobs:
       - name: Build Mesh core type regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src -IESPressio-Timing/src -IESPressio-Timing/tests/stubs -IESPressio-Units/src
           ESPressio-Mesh/tests/mesh_types_test.cpp -o mesh_types_test -pthread
       - name: Run Mesh core type regression
         run: ./mesh_types_test
