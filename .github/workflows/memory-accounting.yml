@@ -37,6 +37,16 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: structural_realignment
           path: ESPressio-Observable
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: structural_realignment
+          path: ESPressio-Timing
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Units
+          ref: structural_realignment
+          path: ESPressio-Units
       - name: Build target-native memory accounting regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
@@ -48,7 +58,7 @@ jobs:
         run: |
           printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > mesh_umbrella.cpp
           g++ -std=c++17 -Wall -Wextra -Werror \
-            -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src \
+            -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src -IESPressio-Timing/src -IESPressio-Timing/tests/stubs -IESPressio-Units/src \
             mesh_umbrella.cpp -o mesh_umbrella -pthread
 
   esp32-accounting-contract:

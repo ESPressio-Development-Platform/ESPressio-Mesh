@@ -34,6 +34,16 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: structural_realignment
           path: ESPressio-Observable
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: structural_realignment
+          path: ESPressio-Timing
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Units
+          ref: structural_realignment
+          path: ESPressio-Units
       - name: Build application transmission coordinator regression
         run: g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src ESPressio-Mesh/tests/application_transmission_coordinator_test.cpp -o application_transmission_coordinator_test -pthread
       - name: Run application transmission coordinator regression
@@ -79,4 +89,4 @@ jobs:
       - name: Run controlled application reset regression
         run: ./application_controlled_reset_test
       - name: Build current Mesh umbrella
-        run: printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp && g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src umbrella.cpp -o umbrella -pthread
+        run: printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp && g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src -IESPressio-Timing/src -IESPressio-Timing/tests/stubs -IESPressio-Units/src umbrella.cpp -o umbrella -pthread

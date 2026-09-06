@@ -24,6 +24,21 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Radio
           ref: structural_realignment_propagation_ESPressio-Mesh
           path: ESPressio-Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: structural_realignment
+          path: ESPressio-Timing
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Units
+          ref: structural_realignment
+          path: ESPressio-Units
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Observable
+          ref: structural_realignment
+          path: ESPressio-Observable
       - name: Build clock coordination regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
@@ -52,3 +67,13 @@ jobs:
           ESPressio-Mesh/tests/clock_parent_usability_test.cpp -o clock_parent_usability_test
       - name: Run direct authenticated parent usability regression
         run: ./clock_parent_usability_test
+      - name: Build System Clock synchronization convergence regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Radio/src
+          -IESPressio-Timing/src -IESPressio-Timing/tests/stubs
+          -IESPressio-Units/src -IESPressio-Observable/src
+          ESPressio-Mesh/tests/mesh_system_clock_synchronization_test.cpp
+          -o mesh_system_clock_synchronization_test -pthread
+      - name: Run System Clock synchronization convergence regression
+        run: ./mesh_system_clock_synchronization_test

@@ -85,7 +85,11 @@ Mesh coordinates distributed clock root and parent choice while leaving synchron
 
 The supplied default election behavior is quality-first with deterministic `DeviceIdentifier` tie-breaking. Parent choice prefers a lower stratum, then better root quality, then `DeviceIdentifier`. A node which elects itself as root has no parent; a non-root parent candidate must advertise the same elected root and becomes the upstream node from which the local stratum is derived. New authenticated membership incarnations replace old informational observations; monotonic observation time cannot regress within one incarnation.
 
-The clock-coordination types define no Mesh control-family number and no wire encoding. They own no Radio exchange, task, timer or Timing discipline. Precision T1/T2/T3/T4 exchange remains a separate protected Radio/Timing path and does not become ordinary Mesh forwarding traffic.
+`MeshSystemClockSynchronizationCoordinator` is the execution boundary which was previously missing between that selection and the system timeline. It accepts only a structurally valid elected relationship, requires the exact authenticated direct-peer binding for a non-local parent, configures the Radio-owned precision synchronizer, advances it from the serialized composition loop, exposes disciplined System Clock milliseconds, and reports deadline-clock readiness only when ESPressio-Timing reaches `Synchronized`. A local elected root is immediately usable as a reference timeline. A root change resets Timing's accumulated synchronization relationship before acquiring the new root; changing parent beneath the same root preserves the existing discipline.
+
+`RadioMeshSystemClockSynchronizationTransport` resolves the selected generation-safe peer through `RadioTransport` and configures `RadioClockSynchronizer` as `Reference` or `ClientAndReference`. Radio retains the direct T1/T2/T3/T4 exchange and receive-timestamp mechanics. Timing retains offset/delay validation, filtering, startup stepping, monotonic slewing, drift learning and synchronization state. Deadline-bearing Mesh composition must use the coordinator's clock only while `IsDeadlineClockReady()` is true.
+
+Clock advertisements still define no universal quality schema: they must arrive through authenticated Mesh control composition before `ClockMembershipCoordinator::ObserveAuthenticated()` is called. The precision exchange remains link-local and does not become ordinary Mesh forwarding traffic.
 
 ## Memory accounting
 

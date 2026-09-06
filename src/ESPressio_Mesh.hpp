@@ -78,5 +78,6 @@
 #include "ESPressio_ClockMembershipCoordinator.hpp"
 #include "ESPressio_ClockReachabilityCoordinator.hpp"
 #include "ESPressio_ClockParentUsability.hpp"
+#include "ESPressio_MeshSystemClockSynchronization.hpp"
 #include "ESPressio_MeshRuntimeResetCoordinator.hpp"
 #include "ESPressio_MeshMemoryAccounting.hpp"
