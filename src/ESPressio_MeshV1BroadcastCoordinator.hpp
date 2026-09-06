@@ -12,6 +12,7 @@
 #include "ESPressio_ApplicationTransmissionTable.hpp"
 #include "ESPressio_AuthenticatedMembershipTable.hpp"
 #include "ESPressio_DirectPeerBindings.hpp"
+#include "ESPressio_MembershipLiveness.hpp"
 #include "ESPressio_MeshMessageIdGenerator.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
 #include "ESPressio_MeshTrafficGovernor.hpp"
@@ -120,6 +121,8 @@ public:
 /// authenticated origin signature survives relays; the pairwise Hop wrapper protects each direct transition. A verified
 /// Broadcast is committed to its source/incarnation deduplication window before local dispatch/fan-out so cycles cannot
 /// amplify receiver backpressure or failed links. Broadcast consumes Application traffic capacity only while processed.
+/// Successfully authenticated protected traffic is also passive membership-liveness evidence. Unreachable members remain
+/// authenticated/retained, but are excluded from outbound fan-out until new authenticated evidence restores Reachable.
 /// </remarks>
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
@@ -130,6 +133,8 @@ template<std::size_t InnerWorkspaceBytes,
          std::size_t SessionCapacity = Limits::MaxMeshNodes>
 class MeshV1BroadcastCoordinator final {
     AuthenticatedMembershipTable<MembershipCapacity>& _memberships;
+    DefaultMeshLivenessPolicy _livenessPolicy{};
+    MembershipLivenessTracker<MembershipCapacity> _liveness;
     const AuthenticatedDirectPeerBindingTable<BindingCapacity>& _bindings;
     MeshSecuritySessionTable<SessionCapacity>& _sessions;
     IMeshV1CryptographicProvider& _provider;
@@ -177,7 +182,8 @@ class MeshV1BroadcastCoordinator final {
             const auto* binding = _bindings.Resolve(
                 target->LocalRadio, target->Neighbour, target->Incarnation);
             const auto session = _sessions.Find(target->Neighbour, target->Incarnation);
-            if (member == nullptr || member->State != MembershipState::Active || binding == nullptr ||
+            if (member == nullptr || member->State != MembershipState::Active ||
+                member->Reachability == ReachabilityState::Unreachable || binding == nullptr ||
                 binding->Peer != target->Peer || !session) continue;
             const auto sequence = _sessions.IssueSequence(session, MeshSecurityTrafficPurpose::Hop);
             if (sequence == 0U) continue;
@@ -214,9 +220,55 @@ public:
         const System::DeviceIdentifier& localDevice,
         const MembershipIncarnation& localIncarnation
     ) noexcept :
-        _memberships(memberships), _bindings(bindings), _sessions(sessions), _provider(provider),
-        _receivers(receivers), _transport(transport), _traffic(traffic), _workspace(workspace),
-        _messageIds(messageIds), _mesh(mesh), _localDevice(localDevice), _localIncarnation(localIncarnation) {}
+        _memberships(memberships), _liveness(_memberships, _livenessPolicy), _bindings(bindings),
+        _sessions(sessions), _provider(provider), _receivers(receivers), _transport(transport),
+        _traffic(traffic), _workspace(workspace), _messageIds(messageIds), _mesh(mesh),
+        _localDevice(localDevice), _localIncarnation(localIncarnation) {}
+
+    /// <summary>Seeds or refreshes passive liveness only from already-authenticated composition evidence.</summary>
+    bool ObserveAuthenticatedLivenessEvidence(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation,
+        std::uint64_t nowMilliseconds
+    ) noexcept {
+        return _liveness.ObserveAuthenticatedEvidence(device, incarnation, nowMilliseconds);
+    }
+
+    /// <summary>Evaluates current local reachability for one exact authenticated membership incarnation.</summary>
+    ReachabilityState EvaluateMembershipReachability(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation,
+        std::uint64_t nowMilliseconds
+    ) noexcept {
+        return _liveness.Evaluate(device, incarnation, nowMilliseconds);
+    }
+
+    /// <summary>Returns retained passive liveness evidence for one exact membership incarnation.</summary>
+    const AuthenticatedLivenessEvidence* MembershipLivenessEvidence(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation
+    ) const noexcept {
+        return _liveness.EvidenceFor(device, incarnation);
+    }
+
+    /// <summary>Returns whether the configured full-record unreachable retention has elapsed.</summary>
+    bool IsMembershipUnreachableRetentionElapsed(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation,
+        std::uint64_t nowMilliseconds,
+        std::uint64_t retentionMilliseconds = Limits::UnreachableMemberRetentionMilliseconds
+    ) noexcept {
+        return _liveness.IsUnreachableRetentionElapsed(
+            device, incarnation, nowMilliseconds, retentionMilliseconds);
+    }
+
+    /// <summary>Forgets passive evidence after a higher-level membership owner retires the record.</summary>
+    bool ForgetMembershipLiveness(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation
+    ) noexcept {
+        return _liveness.Forget(device, incarnation);
+    }
 
     MeshV1BroadcastResult Submit(
         ApplicationPrimitiveDescriptor primitive,
@@ -371,6 +423,12 @@ public:
                 hopSession, MeshSecurityTrafficPurpose::Hop, hop.Sequence)) {
             result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
             return result;
+        }
+        (void)_liveness.ObserveAuthenticatedEvidence(
+            hop.Sender, hop.SenderIncarnation, nowMilliseconds);
+        if (!localLoop) {
+            (void)_liveness.ObserveAuthenticatedEvidence(
+                origin.Source, origin.SourceIncarnation, nowMilliseconds);
         }
         if (localLoop) {
             result.Disposition = MeshV1BroadcastDisposition::Duplicate;
