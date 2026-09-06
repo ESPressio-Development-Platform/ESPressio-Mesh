@@ -83,7 +83,7 @@ void TestReleaseFailureIsNonMutating() {
     assert(fixture.Bindings.HasNeighbour(fixture.Peer, fixture.Old));
     assert(fixture.Bindings.Size() == 2U);
     assert(fixture.Tombstones.FindRetained(fixture.Peer, fixture.Old) == nullptr);
-    assert(fixture.Liveness.Evidence(fixture.Peer, fixture.Old) != nullptr);
+    assert(fixture.Liveness.EvidenceFor(fixture.Peer, fixture.Old) != nullptr);
 }
 
 void TestSuccessfulSupersessionRetiresExactOldExecutionState() {
@@ -95,11 +95,11 @@ void TestSuccessfulSupersessionRetiresExactOldExecutionState() {
     assert(result == Mesh::AuthenticatedIncarnationSupersessionResult::Superseded);
     assert(fixture.Provider.Releases == 1U);
 
-    assert(fixture.Sessions.Find(fixture.Peer, fixture.Old).operator bool() == false);
+    assert(!fixture.Sessions.Find(fixture.Peer, fixture.Old));
     assert(!fixture.Bindings.HasNeighbour(fixture.Peer, fixture.Old));
     assert(fixture.Bindings.Size() == 0U);
     assert(fixture.Memberships.FindExact(fixture.Peer, fixture.Old) == nullptr);
-    assert(fixture.Liveness.Evidence(fixture.Peer, fixture.Old) == nullptr);
+    assert(fixture.Liveness.EvidenceFor(fixture.Peer, fixture.Old) == nullptr);
 
     const auto* tombstone = fixture.Tombstones.FindRetained(fixture.Peer, fixture.Old);
     assert(tombstone != nullptr);
