@@ -122,9 +122,10 @@ public:
 ///
 /// A valid pairwise Hop proves only that the immediate Hop sender is alive now. It does not prove that a signed origin
 /// whose immutable packet is being relayed is still alive; therefore passive liveness evidence is never attributed to
-/// origin.Source merely because an authenticated relay carried its packet. After Hop authentication/replay commit,
-/// already-committed source/message IDs are dropped before expensive origin signature verification. This is safe because
-/// the fast path only discards known duplicates/too-old packets and never advances source deduplication or dispatches data.
+/// origin.Source merely because an authenticated relay carried its packet. After Hop AEAD authentication, already-
+/// committed source/message IDs are classified before expensive origin signature verification. Replay/liveness commit
+/// occurs only once the receive outcome is definitive, so temporary origin-verifier pressure remains retryable while
+/// known duplicates still avoid asymmetric cryptography.
 /// </remarks>
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
@@ -148,6 +149,18 @@ class MeshV1BroadcastCoordinator final {
     MeshIdentifier _mesh;
     System::DeviceIdentifier _localDevice;
     MembershipIncarnation _localIncarnation;
+
+    bool CommitAuthenticatedHop(
+        MeshSecuritySessionRecordHandle session,
+        const MeshV1BroadcastHopHeader& hop,
+        std::uint64_t nowMilliseconds
+    ) noexcept {
+        if (!_sessions.CommitAuthenticatedInbound(
+                session, MeshSecurityTrafficPurpose::Hop, hop.Sequence)) return false;
+        (void)_liveness.ObserveAuthenticatedEvidence(
+            hop.Sender, hop.SenderIncarnation, nowMilliseconds);
+        return true;
+    }
 
     void DispatchLocal(
         const MeshV1BroadcastOriginHeader& origin,
@@ -398,44 +411,48 @@ public:
             return result;
         }
 
-        // A successfully opened Hop packet authenticates current evidence only for the immediate sender. Commit the
-        // Hop replay window before exposing that evidence so the same packet can never refresh liveness twice.
-        if (!_sessions.CommitAuthenticatedInbound(
-                hopSession, MeshSecurityTrafficPurpose::Hop, hop.Sequence)) {
-            result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
-            return result;
-        }
-        (void)_liveness.ObserveAuthenticatedEvidence(
-            hop.Sender, hop.SenderIncarnation, nowMilliseconds);
-
         const bool localLoop = origin.Source == _localDevice &&
                                origin.SourceIncarnation == _localIncarnation;
         if (localLoop) {
+            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+                result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
+                return result;
+            }
             result.Disposition = MeshV1BroadcastDisposition::Duplicate;
             return result;
         }
 
         auto* source = _memberships.FindExact(origin.Source, origin.SourceIncarnation);
         if (source == nullptr || source->State != MembershipState::Active) {
+            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+                result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
+                return result;
+            }
             result.Disposition = MeshV1BroadcastDisposition::UnknownAuthenticatedSource;
             return result;
         }
 
-        // Hop authentication makes it safe to classify without mutating source state. A malicious authenticated relay
-        // can at worst make us drop a packet we already committed or one outside the retained window. Unseen packets
-        // still require the immutable origin signature before the source deduplication window can advance.
+        // Pairwise Hop authentication makes non-mutating duplicate classification safe. The replay slot is committed
+        // before returning from a definitive duplicate/too-old result, but not while the origin verifier is merely busy.
         const auto duplicate = source->BroadcastDeduplication.Classify(origin.MessageId);
-        if (duplicate == DeduplicationDisposition::Duplicate) {
-            result.Disposition = MeshV1BroadcastDisposition::Duplicate;
-            return result;
-        }
-        if (duplicate == DeduplicationDisposition::TooOld) {
-            result.Disposition = MeshV1BroadcastDisposition::TooOld;
+        if (duplicate == DeduplicationDisposition::Duplicate ||
+            duplicate == DeduplicationDisposition::TooOld) {
+            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+                result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
+                return result;
+            }
+            result.Disposition = duplicate == DeduplicationDisposition::Duplicate
+                ? MeshV1BroadcastDisposition::Duplicate
+                : MeshV1BroadcastDisposition::TooOld;
             return result;
         }
         if (duplicate != DeduplicationDisposition::Unseen) return result;
 
         if (nowMilliseconds >= origin.AbsoluteDeadlineMilliseconds) {
+            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+                result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
+                return result;
+            }
             result.Disposition = MeshV1BroadcastDisposition::DeadlineExpired;
             return result;
         }
@@ -452,7 +469,17 @@ public:
             return result;
         }
         if (verification != MeshIdentityVerificationResult::Verified) {
+            // The Hop itself is authenticated and this origin failure is definitive. Consume the replay position so an
+            // authenticated malicious neighbour cannot force repeated asymmetric verification of the same invalid frame.
+            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+                result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
+                return result;
+            }
             result.Disposition = MeshV1BroadcastDisposition::AuthenticationFailed;
+            return result;
+        }
+        if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+            result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
             return result;
         }
         if (source->BroadcastDeduplication.Commit(origin.MessageId) != DeduplicationDisposition::Unseen) {
