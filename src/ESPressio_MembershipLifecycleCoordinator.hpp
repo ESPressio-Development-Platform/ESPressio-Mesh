@@ -16,6 +16,7 @@ enum class MembershipLifecycleResult : std::uint8_t {
     ActivatedAuthenticated,
     RetiredLocallyForgotten,
     RetiredAuthoritativeLeave,
+    RetiredSupersededIncarnation,
     MembershipNotFound,
     Invalid
 };
@@ -200,6 +201,36 @@ public:
         _liveness.Forget(device, incarnation);
         if (_notifications != nullptr) _notifications->NotifyDisconnected(event);
         return MembershipLifecycleResult::RetiredAuthoritativeLeave;
+    }
+
+    /// <summary>
+    /// Retires an older incarnation only after a higher authentication path has established a different incarnation
+    /// for the same DeviceIdentifier. The old record is tombstoned before release and observers see it as Lost with
+    /// SupersededIncarnation reason; an unauthenticated discovery claim must never call this operation.
+    /// </summary>
+    MembershipLifecycleResult RecordSupersededIncarnation(
+        const System::DeviceIdentifier& device,
+        const MembershipIncarnation& incarnation,
+        std::uint64_t nowMilliseconds,
+        std::uint64_t tombstoneRetentionMilliseconds =
+            Limits::MembershipTombstoneRetentionMilliseconds
+    ) noexcept {
+        if (!device || !incarnation || nowMilliseconds == 0U || tombstoneRetentionMilliseconds == 0U) {
+            return MembershipLifecycleResult::Invalid;
+        }
+        if (_memberships.FindExact(device, incarnation) == nullptr) {
+            return MembershipLifecycleResult::MembershipNotFound;
+        }
+        const auto event = Snapshot(device, incarnation, MeshNodeLifecycleReason::SupersededIncarnation);
+        const auto retirement = _retention.RecordSupersededIncarnation(
+            device, incarnation, nowMilliseconds, tombstoneRetentionMilliseconds);
+        if (retirement == MembershipRetirementResult::MembershipNotFound) {
+            return MembershipLifecycleResult::MembershipNotFound;
+        }
+        if (retirement != MembershipRetirementResult::Retired) return MembershipLifecycleResult::Invalid;
+        _liveness.Forget(device, incarnation);
+        if (_notifications != nullptr) _notifications->NotifyLost(event);
+        return MembershipLifecycleResult::RetiredSupersededIncarnation;
     }
 };
 
