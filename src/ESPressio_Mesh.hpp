@@ -21,6 +21,7 @@
 #include "ESPressio_MeshPendingAuthenticationResetGroup.hpp"
 #include "ESPressio_MeshV1Security.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
+#include "ESPressio_AuthenticatedIncarnationSupersessionCoordinator.hpp"
 #include "ESPressio_MeshV1AdmissionTransaction.hpp"
 #include "ESPressio_MeshV1ResponderAdmissionCoordinator.hpp"
 #include "ESPressio_MeshV1InitiatorAdmissionCoordinator.hpp"
