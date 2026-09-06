@@ -103,6 +103,7 @@ class MeshSystemClockSynchronizationCoordinator final {
     MeshSystemClockRole _role{MeshSystemClockRole::Disabled};
     ClockCoordinationSelection _selection{};
     RadioIdentifier _localRadio{0U};
+    bool _deadlineClockEstablished{false};
 
     bool SameRelationship(
         const ClockCoordinationSelection& selection,
@@ -132,6 +133,7 @@ public:
             _role = MeshSystemClockRole::Disabled;
             _selection = {};
             _localRadio = 0U;
+            _deadlineClockEstablished = false;
             return MeshSystemClockConvergenceDisposition::Disabled;
         }
 
@@ -146,11 +148,13 @@ public:
             }
             if (!_transport.ConfigureReference()) {
                 _role = MeshSystemClockRole::Disabled;
+                _deadlineClockEstablished = false;
                 return MeshSystemClockConvergenceDisposition::TransportConfigurationFailed;
             }
             _role = MeshSystemClockRole::Reference;
             _selection = selection;
             _localRadio = localRadio;
+            _deadlineClockEstablished = true;
             return MeshSystemClockConvergenceDisposition::ReferenceConfigured;
         }
 
@@ -168,24 +172,38 @@ public:
             return MeshSystemClockConvergenceDisposition::Unchanged;
         }
 
+        const bool continuingRoot =
+            _role == MeshSystemClockRole::ClientAndReference &&
+            _selection.HasRoot() && _selection.Root == selection.Root;
         const bool rootChanged = _selection.HasRoot() && _selection.Root != selection.Root;
         if (rootChanged) _clock.ResetSynchronization();
         if (!_transport.ConfigureClientAndReference(*parentBinding)) {
             _role = MeshSystemClockRole::Disabled;
+            _deadlineClockEstablished = false;
             return MeshSystemClockConvergenceDisposition::TransportConfigurationFailed;
         }
         _role = MeshSystemClockRole::ClientAndReference;
         _selection = selection;
         _localRadio = localRadio;
+        if (!continuingRoot) _deadlineClockEstablished = false;
         return MeshSystemClockConvergenceDisposition::ParentConfigured;
     }
 
-    void Update() { if (_role != MeshSystemClockRole::Disabled) _transport.Update(); }
+    void Update() {
+        if (_role == MeshSystemClockRole::Disabled) return;
+        _transport.Update();
+        if (_role != MeshSystemClockRole::ClientAndReference) return;
+        const auto state = _clock.GetSynchronizationStatus().State;
+        if (state == Timing::ClockSynchronizationState::Synchronized) {
+            _deadlineClockEstablished = true;
+        } else if (state == Timing::ClockSynchronizationState::Unsynchronized) {
+            _deadlineClockEstablished = false;
+        }
+    }
 
     bool IsDeadlineClockReady() const {
         if (_role == MeshSystemClockRole::Reference) return true;
-        return _role == MeshSystemClockRole::ClientAndReference &&
-               _clock.GetSynchronizationStatus().State == Timing::ClockSynchronizationState::Synchronized;
+        return _role == MeshSystemClockRole::ClientAndReference && _deadlineClockEstablished;
     }
 
     std::uint64_t NowMilliseconds() const noexcept {
@@ -205,6 +223,7 @@ public:
         _role = MeshSystemClockRole::Disabled;
         _selection = {};
         _localRadio = 0U;
+        _deadlineClockEstablished = false;
     }
 };
 

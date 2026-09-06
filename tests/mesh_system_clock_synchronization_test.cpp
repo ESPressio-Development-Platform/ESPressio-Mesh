@@ -104,11 +104,21 @@ int main() {
     assert(coordinator.NowMilliseconds() == 5000U);
 
     clock.Status.State = Timing::ClockSynchronizationState::Synchronized;
+    coordinator.Update();
     assert(coordinator.IsDeadlineClockReady());
     assert(coordinator.SynchronizationStatus().State ==
            Timing::ClockSynchronizationState::Synchronized);
-    coordinator.Update();
     assert(transport.Updates == 1U);
+    clock.Status.State = Timing::ClockSynchronizationState::Acquiring;
+    coordinator.Update();
+    assert(coordinator.IsDeadlineClockReady());
+    clock.Status.State = Timing::ClockSynchronizationState::Unsynchronized;
+    coordinator.Update();
+    assert(!coordinator.IsDeadlineClockReady());
+    clock.Status.State = Timing::ClockSynchronizationState::Synchronized;
+    coordinator.Update();
+    assert(coordinator.IsDeadlineClockReady());
+    assert(transport.Updates == 4U);
     assert(coordinator.Converge(parentSelection, &parent, 1U) ==
            MeshSystemClockConvergenceDisposition::Unchanged);
     assert(transport.ParentConfigurations == 1U);
