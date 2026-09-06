@@ -90,6 +90,24 @@ public:
         return Resolve(nextHop.LocalRadio, nextHop.Neighbour, neighbourIncarnation);
     }
 
+    /// <summary>Removes every local-Radio binding for exactly one authenticated neighbour incarnation.</summary>
+    std::size_t RemoveNeighbour(
+        const System::DeviceIdentifier& neighbour,
+        const MembershipIncarnation& incarnation
+    ) noexcept {
+        if (!neighbour || !incarnation) return 0U;
+        std::size_t removed = 0U;
+        for (auto& slot : _slots) {
+            if (!slot.Occupied || slot.Binding.Neighbour != neighbour ||
+                slot.Binding.Incarnation != incarnation) continue;
+            slot = {};
+            --_size;
+            ++removed;
+        }
+        return removed;
+    }
+
+    /// <summary>Removes every local-Radio binding for a neighbour regardless of retained incarnation.</summary>
     std::size_t RemoveNeighbour(const System::DeviceIdentifier& neighbour) noexcept {
         if (!neighbour) return 0U;
         std::size_t removed = 0U;
