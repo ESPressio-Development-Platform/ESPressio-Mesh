@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 
+#include <ESPressio_DeviceIdentifier.hpp>
 #include <ESPressio_Memory.hpp>
 #include <ESPressio_ThreadSafeObservable.hpp>
 
