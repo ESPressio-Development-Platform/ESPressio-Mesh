@@ -369,6 +369,9 @@ int main() {
     assert(resultB.MessageId == 1U && resultB.FanoutAttempted == 1U && resultB.FanoutAccepted == 1U);
     assert(receiverB.Calls == 1U && receiverB.LastContext.Broadcast && receiverB.LastContext.RemainingHops == 3U);
     assert(std::memcmp(receiverB.LastPayload.data(), payload.data(), payload.size()) == 0);
+    const auto* authenticatedEvidence = coordinatorB.MembershipLivenessEvidence(a, ia);
+    assert(authenticatedEvidence != nullptr && authenticatedEvidence->HasEvidence());
+    assert(authenticatedEvidence->LastEvidenceMilliseconds == 101U);
 
     // Application saturation and origin-verification pressure commit neither replay nor Broadcast deduplication.
     std::array<Mesh::MeshTrafficReservation, Mesh::Limits::ApplicationTransmissionCapacity> saturation{};
@@ -428,6 +431,31 @@ int main() {
         radioA.LastPhysicalPacketBytes - RadioHeaderBytes, 200U, planB);
     assert(late.Disposition == Mesh::MeshV1BroadcastDisposition::DeadlineExpired);
     assert(receiverB.Calls == 1U && radioB.Sends == 1U);
+
+    // Passive authenticated evidence degrades through policy without destroying membership. Unreachable
+    // neighbours remain retained/authenticated but are no longer eligible for outbound fan-out. New valid
+    // authenticated evidence restores Reachable immediately and therefore restores fan-out eligibility.
+    assert(coordinatorA.ObserveAuthenticatedLivenessEvidence(b, ib, 1000U));
+    assert(coordinatorA.EvaluateMembershipReachability(b, ib, 5999U) == Mesh::ReachabilityState::Reachable);
+    assert(coordinatorA.EvaluateMembershipReachability(b, ib, 6000U) == Mesh::ReachabilityState::Suspect);
+    assert(coordinatorA.EvaluateMembershipReachability(b, ib, 16000U) == Mesh::ReachabilityState::Unreachable);
+    assert(membersA.FindExact(b, ib) != nullptr &&
+           membersA.FindExact(b, ib)->State == Mesh::MembershipState::Active);
+    const auto sendsBeforeUnreachableFanout = radioA.Sends;
+    const auto unreachableFanout = coordinatorA.Submit(
+        {Primitive::FamilyIds::Event, 1U}, Mesh::ApplicationPayload::Borrowed(payload.data(), payload.size()),
+        16001U, 17000U, 3U, planA, Mesh::MeshBroadcastLocalDispatch::Exclude);
+    assert(unreachableFanout.Disposition == Mesh::MeshV1BroadcastDisposition::Completed);
+    assert(unreachableFanout.FanoutAttempted == 1U && unreachableFanout.FanoutAccepted == 0U);
+    assert(radioA.Sends == sendsBeforeUnreachableFanout);
+    assert(coordinatorA.ObserveAuthenticatedLivenessEvidence(b, ib, 16002U));
+    assert(coordinatorA.EvaluateMembershipReachability(b, ib, 16002U) == Mesh::ReachabilityState::Reachable);
+    const auto restoredFanout = coordinatorA.Submit(
+        {Primitive::FamilyIds::Event, 1U}, Mesh::ApplicationPayload::Borrowed(payload.data(), payload.size()),
+        16003U, 17000U, 3U, planA, Mesh::MeshBroadcastLocalDispatch::Exclude);
+    assert(restoredFanout.Disposition == Mesh::MeshV1BroadcastDisposition::Completed);
+    assert(restoredFanout.FanoutAttempted == 1U && restoredFanout.FanoutAccepted == 1U);
+    assert(radioA.Sends == sendsBeforeUnreachableFanout + 1U);
 
     assert(trafficA.Active(Mesh::MeshTrafficClass::Application) == 0U);
     assert(trafficB.Active(Mesh::MeshTrafficClass::Application) == 0U);
