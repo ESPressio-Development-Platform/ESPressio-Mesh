@@ -83,6 +83,12 @@ enum class MeshV1BroadcastDisposition : std::uint8_t {
     Invalid
 };
 
+/// <summary>Controls whether an originated Broadcast is also delivered through the local primitive registry.</summary>
+enum class MeshBroadcastLocalDispatch : std::uint8_t {
+    Include,
+    Exclude
+};
+
 struct MeshV1BroadcastResult final {
     MeshV1BroadcastDisposition Disposition{MeshV1BroadcastDisposition::Invalid};
     MeshMessageId MessageId{0U};
@@ -218,7 +224,8 @@ public:
         std::uint64_t nowMilliseconds,
         std::uint64_t absoluteDeadlineMilliseconds,
         RemainingHopLimit hopLimit,
-        const MeshBroadcastFanoutPlan<FanoutCapacity>& plan
+        const MeshBroadcastFanoutPlan<FanoutCapacity>& plan,
+        MeshBroadcastLocalDispatch localDispatch = MeshBroadcastLocalDispatch::Include
     ) noexcept {
         MeshV1WorkspaceResetGuard<decltype(_workspace)> workspaceReset(_workspace);
         MeshV1BroadcastResult result{};
@@ -275,7 +282,9 @@ public:
             originPacket, signedBytes,
             originPacket + MeshV1BroadcastFrameCodec::OriginAuthenticatedHeaderBytes,
             payload.Size(), signature};
-        DispatchLocal(origin, view, hopLimit, result);
+        if (localDispatch == MeshBroadcastLocalDispatch::Include) {
+            DispatchLocal(origin, view, hopLimit, result);
+        }
         Fanout(originPacket, originBytes, origin, plan, {}, hopLimit, result);
         result.Disposition = MeshV1BroadcastDisposition::Completed;
         return result;

@@ -409,11 +409,20 @@ int main() {
     assert(loop.Disposition == Mesh::MeshV1BroadcastDisposition::Duplicate);
     assert(receiverA.Calls == 1U && radioA.Sends == 1U);
 
+    // A family adapter whose originating manager already dispatched locally can
+    // suppress only the origin-side primitive dispatch while retaining fan-out.
+    const auto remoteOnly = coordinatorA.Submit(
+        {Primitive::FamilyIds::Event, 1U}, Mesh::ApplicationPayload::Borrowed(payload.data(), payload.size()),
+        150U, 250U, 3U, planA, Mesh::MeshBroadcastLocalDispatch::Exclude);
+    assert(remoteOnly.Disposition == Mesh::MeshV1BroadcastDisposition::Completed);
+    assert(remoteOnly.MessageId == 2U && remoteOnly.FanoutAccepted == 1U);
+    assert(receiverA.Calls == 1U);
+
     // The signed immutable deadline suppresses both local delivery and onward fan-out at a late relay.
     resultA = coordinatorA.Submit(
         {Primitive::FamilyIds::Event, 1U}, Mesh::ApplicationPayload::Borrowed(payload.data(), payload.size()),
         150U, 200U, 3U, planA);
-    assert(resultA.Disposition == Mesh::MeshV1BroadcastDisposition::Completed && resultA.MessageId == 2U);
+    assert(resultA.Disposition == Mesh::MeshV1BroadcastDisposition::Completed && resultA.MessageId == 3U);
     const auto late = coordinatorB.Receive(
         radioA.LastPhysicalPacket.data() + RadioHeaderBytes,
         radioA.LastPhysicalPacketBytes - RadioHeaderBytes, 200U, planB);
