@@ -18,19 +18,54 @@ static Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
     return Mesh::MembershipIncarnation{bytes};
 }
 
+class LifecycleObserver final : public Mesh::IMeshLifecycleObserver {
+public:
+    std::uint32_t Joining{0};
+    std::uint32_t Authenticated{0};
+    std::uint32_t Unavailable{0};
+    std::uint32_t Lost{0};
+    std::uint32_t Disconnected{0};
+    Mesh::MeshNodeLifecycleNotification Last{};
+
+    void OnMeshNodeJoining(const Mesh::MeshNodeLifecycleNotification& event) override {
+        ++Joining; Last = event;
+    }
+    void OnMeshNodeAuthenticated(const Mesh::MeshNodeLifecycleNotification& event) override {
+        ++Authenticated; Last = event;
+    }
+    void OnMeshNodeUnavailable(const Mesh::MeshNodeLifecycleNotification& event) override {
+        ++Unavailable; Last = event;
+    }
+    void OnMeshNodeLost(const Mesh::MeshNodeLifecycleNotification& event) override {
+        ++Lost; Last = event;
+    }
+    void OnMeshNodeDisconnected(const Mesh::MeshNodeLifecycleNotification& event) override {
+        ++Disconnected; Last = event;
+    }
+};
+
 int main() {
     Mesh::AuthenticatedMembershipTable<2> members;
     Mesh::MembershipTombstoneTable<4> tombstones;
     Mesh::DefaultMeshLivenessPolicy policy{100, 200};
     Mesh::MembershipLivenessTracker<2> liveness{members, policy};
     Mesh::MembershipRetentionCoordinator<2, 4> retention{members, tombstones};
-    Mesh::MembershipLifecycleCoordinator<2, 4> lifecycle{members, liveness, retention};
+    Mesh::MeshLifecycleNotifications notifications;
+    LifecycleObserver observer;
+    auto observerHandle = notifications.RegisterObserver(&observer);
+    assert(observerHandle);
+    Mesh::MembershipLifecycleCoordinator<2, 4> lifecycle{
+        members, liveness, retention, &notifications};
 
     const auto device = Device(1);
     const auto incarnation = Incarnation(1);
-    assert(members.UpsertAuthenticated(device, incarnation, Mesh::MembershipState::Active) ==
+    assert(members.UpsertAuthenticated(device, incarnation, Mesh::MembershipState::Validating) ==
            Mesh::AuthenticatedMembershipInsertResult::Inserted);
-    assert(liveness.ObserveAuthenticatedEvidence(device, incarnation, 1'000));
+    assert(lifecycle.ActivateAuthenticated(device, incarnation, 1'000) ==
+           Mesh::MembershipLifecycleResult::ActivatedAuthenticated);
+    assert(observer.Joining == 1U && observer.Authenticated == 1U);
+    assert(observer.Last.Device == device && observer.Last.Incarnation == incarnation);
+    assert(members.FindExact(device, incarnation)->Reachability == Mesh::ReachabilityState::Reachable);
 
     assert(lifecycle.Evaluate(device, incarnation, 1'099, 500, 1'000) ==
            Mesh::MembershipLifecycleResult::NoChange);
@@ -41,6 +76,7 @@ int main() {
     assert(lifecycle.Evaluate(device, incarnation, 1'200, 500, 1'000) ==
            Mesh::MembershipLifecycleResult::ReachabilityChanged);
     assert(members.FindExact(device, incarnation)->Reachability == Mesh::ReachabilityState::Unreachable);
+    assert(observer.Unavailable == 1U);
 
     // The complete record remains available throughout the requested unreachable retention interval.
     assert(lifecycle.Evaluate(device, incarnation, 1'699, 500, 1'000) ==
@@ -54,8 +90,36 @@ int main() {
     const auto* tombstone = tombstones.FindRetained(device, incarnation);
     assert(tombstone != nullptr);
     assert(tombstone->Disposition == Mesh::MembershipTombstoneDisposition::LocallyForgotten);
+    assert(observer.Lost == 1U);
+    assert(observer.Last.Reason == Mesh::MeshNodeLifecycleReason::UnreachableTimeout);
 
-    assert(lifecycle.Evaluate(device, incarnation, 1'701, 500, 1'000) ==
+    // A cryptographically authenticated new incarnation may retire the old incarnation immediately.
+    const auto oldIncarnation = Incarnation(2);
+    assert(members.UpsertAuthenticated(device, oldIncarnation, Mesh::MembershipState::Active,
+                                       Mesh::ReachabilityState::Reachable) ==
+           Mesh::AuthenticatedMembershipInsertResult::Inserted);
+    assert(liveness.ObserveAuthenticatedEvidence(device, oldIncarnation, 2'000));
+    assert(lifecycle.RecordSupersededIncarnation(device, oldIncarnation, 2'001, 1'000) ==
+           Mesh::MembershipLifecycleResult::RetiredSupersededIncarnation);
+    assert(members.FindExact(device, oldIncarnation) == nullptr);
+    tombstone = tombstones.FindRetained(device, oldIncarnation);
+    assert(tombstone != nullptr);
+    assert(tombstone->Disposition == Mesh::MembershipTombstoneDisposition::SupersededIncarnation);
+    assert(observer.Lost == 2U);
+    assert(observer.Last.Reason == Mesh::MeshNodeLifecycleReason::SupersededIncarnation);
+
+    // Graceful authenticated Leave is semantically distinct from timeout/loss.
+    const auto leaveIncarnation = Incarnation(3);
+    assert(members.UpsertAuthenticated(device, leaveIncarnation, Mesh::MembershipState::Active,
+                                       Mesh::ReachabilityState::Reachable) ==
+           Mesh::AuthenticatedMembershipInsertResult::Inserted);
+    assert(liveness.ObserveAuthenticatedEvidence(device, leaveIncarnation, 3'000));
+    assert(lifecycle.RecordAuthoritativeLeave(device, leaveIncarnation, 3'001, 1'000) ==
+           Mesh::MembershipLifecycleResult::RetiredAuthoritativeLeave);
+    assert(observer.Disconnected == 1U);
+    assert(observer.Last.Reason == Mesh::MeshNodeLifecycleReason::AuthoritativeLeave);
+
+    assert(lifecycle.Evaluate(device, leaveIncarnation, 3'002, 500, 1'000) ==
            Mesh::MembershipLifecycleResult::MembershipNotFound);
     return 0;
 }
