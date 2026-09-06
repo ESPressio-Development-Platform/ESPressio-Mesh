@@ -118,11 +118,13 @@ public:
 /// <remarks>
 /// Composition selects at most one current authenticated direct-peer binding for each neighbour in the fan-out plan.
 /// The coordinator validates every target again, attempts each once, and retains no retry/acknowledgement state. An
-/// authenticated origin signature survives relays; the pairwise Hop wrapper protects each direct transition. A verified
-/// Broadcast is committed to its source/incarnation deduplication window before local dispatch/fan-out so cycles cannot
-/// amplify receiver backpressure or failed links. Broadcast consumes Application traffic capacity only while processed.
-/// Successfully authenticated protected traffic is also passive membership-liveness evidence. Unreachable members remain
-/// authenticated/retained, but are excluded from outbound fan-out until new authenticated evidence restores Reachable.
+/// authenticated origin signature survives relays; the pairwise Hop wrapper protects each direct transition.
+///
+/// A valid pairwise Hop proves only that the immediate Hop sender is alive now. It does not prove that a signed origin
+/// whose immutable packet is being relayed is still alive; therefore passive liveness evidence is never attributed to
+/// origin.Source merely because an authenticated relay carried its packet. After Hop authentication/replay commit,
+/// already-committed source/message IDs are dropped before expensive origin signature verification. This is safe because
+/// the fast path only discards known duplicates/too-old packets and never advances source deduplication or dispatches data.
 /// </remarks>
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
@@ -225,7 +227,6 @@ public:
         _traffic(traffic), _workspace(workspace), _messageIds(messageIds), _mesh(mesh),
         _localDevice(localDevice), _localIncarnation(localIncarnation) {}
 
-    /// <summary>Seeds or refreshes passive liveness only from already-authenticated composition evidence.</summary>
     bool ObserveAuthenticatedLivenessEvidence(
         const System::DeviceIdentifier& device,
         const MembershipIncarnation& incarnation,
@@ -234,7 +235,6 @@ public:
         return _liveness.ObserveAuthenticatedEvidence(device, incarnation, nowMilliseconds);
     }
 
-    /// <summary>Evaluates current local reachability for one exact authenticated membership incarnation.</summary>
     ReachabilityState EvaluateMembershipReachability(
         const System::DeviceIdentifier& device,
         const MembershipIncarnation& incarnation,
@@ -243,7 +243,6 @@ public:
         return _liveness.Evaluate(device, incarnation, nowMilliseconds);
     }
 
-    /// <summary>Returns retained passive liveness evidence for one exact membership incarnation.</summary>
     const AuthenticatedLivenessEvidence* MembershipLivenessEvidence(
         const System::DeviceIdentifier& device,
         const MembershipIncarnation& incarnation
@@ -251,7 +250,9 @@ public:
         return _liveness.EvidenceFor(device, incarnation);
     }
 
-    /// <summary>Returns whether the configured full-record unreachable retention has elapsed.</summary>
+    MembershipLivenessTracker<MembershipCapacity>& LivenessTracker() noexcept { return _liveness; }
+    const MembershipLivenessTracker<MembershipCapacity>& LivenessTracker() const noexcept { return _liveness; }
+
     bool IsMembershipUnreachableRetentionElapsed(
         const System::DeviceIdentifier& device,
         const MembershipIncarnation& incarnation,
@@ -262,7 +263,6 @@ public:
             device, incarnation, nowMilliseconds, retentionMilliseconds);
     }
 
-    /// <summary>Forgets passive evidence after a higher-level membership owner retires the record.</summary>
     bool ForgetMembershipLiveness(
         const System::DeviceIdentifier& device,
         const MembershipIncarnation& incarnation
@@ -397,13 +397,49 @@ public:
             result.Disposition = MeshV1BroadcastDisposition::AuthenticationFailed;
             return result;
         }
-        auto* source = _memberships.FindExact(origin.Source, origin.SourceIncarnation);
+
+        // A successfully opened Hop packet authenticates current evidence only for the immediate sender. Commit the
+        // Hop replay window before exposing that evidence so the same packet can never refresh liveness twice.
+        if (!_sessions.CommitAuthenticatedInbound(
+                hopSession, MeshSecurityTrafficPurpose::Hop, hop.Sequence)) {
+            result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
+            return result;
+        }
+        (void)_liveness.ObserveAuthenticatedEvidence(
+            hop.Sender, hop.SenderIncarnation, nowMilliseconds);
+
         const bool localLoop = origin.Source == _localDevice &&
                                origin.SourceIncarnation == _localIncarnation;
-        if (!localLoop && (source == nullptr || source->State != MembershipState::Active)) {
+        if (localLoop) {
+            result.Disposition = MeshV1BroadcastDisposition::Duplicate;
+            return result;
+        }
+
+        auto* source = _memberships.FindExact(origin.Source, origin.SourceIncarnation);
+        if (source == nullptr || source->State != MembershipState::Active) {
             result.Disposition = MeshV1BroadcastDisposition::UnknownAuthenticatedSource;
             return result;
         }
+
+        // Hop authentication makes it safe to classify without mutating source state. A malicious authenticated relay
+        // can at worst make us drop a packet we already committed or one outside the retained window. Unseen packets
+        // still require the immutable origin signature before the source deduplication window can advance.
+        const auto duplicate = source->BroadcastDeduplication.Classify(origin.MessageId);
+        if (duplicate == DeduplicationDisposition::Duplicate) {
+            result.Disposition = MeshV1BroadcastDisposition::Duplicate;
+            return result;
+        }
+        if (duplicate == DeduplicationDisposition::TooOld) {
+            result.Disposition = MeshV1BroadcastDisposition::TooOld;
+            return result;
+        }
+        if (duplicate != DeduplicationDisposition::Unseen) return result;
+
+        if (nowMilliseconds >= origin.AbsoluteDeadlineMilliseconds) {
+            result.Disposition = MeshV1BroadcastDisposition::DeadlineExpired;
+            return result;
+        }
+
         MeshSecurityDigest digest{};
         if (!_provider.Hash(originView.SignedBytes, originView.SignedByteCount, digest)) {
             result.Disposition = MeshV1BroadcastDisposition::AuthenticationFailed;
@@ -419,38 +455,10 @@ public:
             result.Disposition = MeshV1BroadcastDisposition::AuthenticationFailed;
             return result;
         }
-        if (!_sessions.CommitAuthenticatedInbound(
-                hopSession, MeshSecurityTrafficPurpose::Hop, hop.Sequence)) {
-            result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
+        if (source->BroadcastDeduplication.Commit(origin.MessageId) != DeduplicationDisposition::Unseen) {
             return result;
         }
-        (void)_liveness.ObserveAuthenticatedEvidence(
-            hop.Sender, hop.SenderIncarnation, nowMilliseconds);
-        if (!localLoop) {
-            (void)_liveness.ObserveAuthenticatedEvidence(
-                origin.Source, origin.SourceIncarnation, nowMilliseconds);
-        }
-        if (localLoop) {
-            result.Disposition = MeshV1BroadcastDisposition::Duplicate;
-            return result;
-        }
-        const auto duplicate = source->BroadcastDeduplication.Classify(origin.MessageId);
-        if (duplicate == DeduplicationDisposition::Duplicate) {
-            result.Disposition = MeshV1BroadcastDisposition::Duplicate;
-            return result;
-        }
-        if (duplicate == DeduplicationDisposition::TooOld) {
-            result.Disposition = MeshV1BroadcastDisposition::TooOld;
-            return result;
-        }
-        if (duplicate != DeduplicationDisposition::Unseen ||
-            source->BroadcastDeduplication.Commit(origin.MessageId) != DeduplicationDisposition::Unseen) {
-            return result;
-        }
-        if (nowMilliseconds >= origin.AbsoluteDeadlineMilliseconds) {
-            result.Disposition = MeshV1BroadcastDisposition::DeadlineExpired;
-            return result;
-        }
+
         DispatchLocal(origin, originView, hop.HopLimit, result);
         if (hop.HopLimit > 1U) {
             Fanout(originPacket, hopView.CiphertextBytes, origin, plan, hop.Sender,
