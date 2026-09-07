@@ -16,6 +16,11 @@
       "platforms":"*"
     },
     {
+      "name":"ESPressio-Threads",
+      "version":"https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git#structural_realignment",
+      "platforms":"*"
+    },
+    {
       "name":"ESPressio-Primitive",
       "version":"https://github.com/ESPressio-Development-Platform/ESPressio-Primitive.git#structural_realignment_propagation_ESPressio-Mesh",
       "platforms":"*"
