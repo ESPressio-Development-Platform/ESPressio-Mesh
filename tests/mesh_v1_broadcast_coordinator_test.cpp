@@ -34,6 +34,13 @@ Mesh::MeshSecuritySessionIdentifier SessionId(std::uint8_t value) {
     return result;
 }
 
+Mesh::MeshV1BroadcastReceiveTimes ReceiveTimes(
+    std::uint64_t deadlineClockMilliseconds,
+    std::uint64_t monotonicMilliseconds
+) noexcept {
+    return {deadlineClockMilliseconds, monotonicMilliseconds};
+}
+
 class Provider final : public Mesh::IMeshV1CryptographicProvider {
     std::array<bool, 8> _sessions{};
 
@@ -362,16 +369,20 @@ int main() {
     assert(receiverA.Calls == 1U && receiverA.LastContext.Broadcast && receiverA.LastContext.RemainingHops == 3U);
     assert(radioA.LastPhysicalPacketBytes > RadioHeaderBytes);
 
+    // Deadline and liveness clocks deliberately differ by orders of magnitude. Successful Hop authentication must
+    // record only local monotonic time as liveness evidence, never the distributed/system deadline-clock value.
     auto resultB = coordinatorB.Receive(
         radioA.LastPhysicalPacket.data() + RadioHeaderBytes,
-        radioA.LastPhysicalPacketBytes - RadioHeaderBytes, 101U, planB);
+        radioA.LastPhysicalPacketBytes - RadioHeaderBytes, ReceiveTimes(101U, 11U), planB);
     assert(resultB.Disposition == Mesh::MeshV1BroadcastDisposition::Completed);
     assert(resultB.MessageId == 1U && resultB.FanoutAttempted == 1U && resultB.FanoutAccepted == 1U);
     assert(receiverB.Calls == 1U && receiverB.LastContext.Broadcast && receiverB.LastContext.RemainingHops == 3U);
     assert(std::memcmp(receiverB.LastPayload.data(), payload.data(), payload.size()) == 0);
     const auto* authenticatedEvidence = coordinatorB.MembershipLivenessEvidence(a, ia);
     assert(authenticatedEvidence != nullptr && authenticatedEvidence->HasEvidence());
-    assert(authenticatedEvidence->LastEvidenceMilliseconds == 101U);
+    assert(authenticatedEvidence->LastEvidenceMilliseconds == 11U);
+    assert(coordinatorB.EvaluateMembershipReachability(a, ia, 5010U) == Mesh::ReachabilityState::Reachable);
+    assert(coordinatorB.EvaluateMembershipReachability(a, ia, 5011U) == Mesh::ReachabilityState::Suspect);
 
     // Application saturation and origin-verification pressure commit neither replay nor Broadcast deduplication.
     std::array<Mesh::MeshTrafficReservation, Mesh::Limits::ApplicationTransmissionCapacity> saturation{};
@@ -381,18 +392,18 @@ int main() {
     }
     auto resultC = coordinatorC.Receive(
         radioB.LastPhysicalPacket.data() + RadioHeaderBytes,
-        radioB.LastPhysicalPacketBytes - RadioHeaderBytes, 102U, planC);
+        radioB.LastPhysicalPacketBytes - RadioHeaderBytes, ReceiveTimes(102U, 12U), planC);
     assert(resultC.Disposition == Mesh::MeshV1BroadcastDisposition::ResourceUnavailable);
     for (const auto reservation : saturation) assert(trafficC.Release(reservation));
     providerC.PermitIdentityVerification = false;
     resultC = coordinatorC.Receive(
         radioB.LastPhysicalPacket.data() + RadioHeaderBytes,
-        radioB.LastPhysicalPacketBytes - RadioHeaderBytes, 102U, planC);
+        radioB.LastPhysicalPacketBytes - RadioHeaderBytes, ReceiveTimes(102U, 12U), planC);
     assert(resultC.Disposition == Mesh::MeshV1BroadcastDisposition::ResourceUnavailable);
     providerC.PermitIdentityVerification = true;
     resultC = coordinatorC.Receive(
         radioB.LastPhysicalPacket.data() + RadioHeaderBytes,
-        radioB.LastPhysicalPacketBytes - RadioHeaderBytes, 102U, planC);
+        radioB.LastPhysicalPacketBytes - RadioHeaderBytes, ReceiveTimes(102U, 12U), planC);
     assert(resultC.Disposition == Mesh::MeshV1BroadcastDisposition::Completed);
     assert(resultC.FanoutAttempted == 1U && resultC.FanoutAccepted == 1U);
     assert(receiverC.Calls == 1U && receiverC.LastContext.RemainingHops == 2U);
@@ -401,14 +412,14 @@ int main() {
     // The successful receive commits both Hop replay and source-scoped Broadcast deduplication.
     const auto replay = coordinatorC.Receive(
         radioB.LastPhysicalPacket.data() + RadioHeaderBytes,
-        radioB.LastPhysicalPacketBytes - RadioHeaderBytes, 103U, planC);
+        radioB.LastPhysicalPacketBytes - RadioHeaderBytes, ReceiveTimes(103U, 13U), planC);
     assert(replay.Disposition == Mesh::MeshV1BroadcastDisposition::ReplayRejected);
     assert(receiverC.Calls == 1U);
 
     // A cycle back to the origin is authenticated and dropped without local redispatch or further fan-out.
     const auto loop = coordinatorA.Receive(
         radioC.LastPhysicalPacket.data() + RadioHeaderBytes,
-        radioC.LastPhysicalPacketBytes - RadioHeaderBytes, 103U, planA);
+        radioC.LastPhysicalPacketBytes - RadioHeaderBytes, ReceiveTimes(103U, 13U), planA);
     assert(loop.Disposition == Mesh::MeshV1BroadcastDisposition::Duplicate);
     assert(receiverA.Calls == 1U && radioA.Sends == 1U);
 
@@ -428,7 +439,7 @@ int main() {
     assert(resultA.Disposition == Mesh::MeshV1BroadcastDisposition::Completed && resultA.MessageId == 3U);
     const auto late = coordinatorB.Receive(
         radioA.LastPhysicalPacket.data() + RadioHeaderBytes,
-        radioA.LastPhysicalPacketBytes - RadioHeaderBytes, 200U, planB);
+        radioA.LastPhysicalPacketBytes - RadioHeaderBytes, ReceiveTimes(200U, 20U), planB);
     assert(late.Disposition == Mesh::MeshV1BroadcastDisposition::DeadlineExpired);
     assert(receiverB.Calls == 1U && radioB.Sends == 1U);
 
