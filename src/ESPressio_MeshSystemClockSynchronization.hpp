@@ -35,6 +35,10 @@ public:
     virtual bool ConfigureClientAndReference(
         const AuthenticatedDirectPeerBinding& parent
     ) = 0;
+    /// <summary>
+    /// Services transport-side relationship bookkeeping only. Clock exchange cadence belongs to the Radio control
+    /// lifecycle and MUST NOT be driven from Mesh/application traffic processing.
+    /// </summary>
     virtual void Update() = 0;
     virtual void Shutdown() noexcept = 0;
 };
@@ -43,8 +47,8 @@ public:
 /// Adapts one Radio-owned precision synchronizer to Mesh's authenticated direct-peer binding.
 /// </summary>
 /// <remarks>
-/// Radio retains the T1/T2/T3/T4 packet exchange and timestamp boundary. This adapter only resolves the
-/// generation-safe binding selected by Mesh and supplies the resulting opaque Radio address to Radio.
+/// Radio retains the T1/T2/T3/T4 packet exchange, independent control-worker lifecycle and timestamp boundary. This
+/// adapter only resolves the generation-safe binding selected by Mesh and configures the resulting opaque Radio address.
 /// </remarks>
 class RadioMeshSystemClockSynchronizationTransport final :
     public IMeshSystemClockSynchronizationTransport {
@@ -84,7 +88,10 @@ public:
         return _synchronizer.Initialize(configuration);
     }
 
-    void Update() override { _synchronizer.Update(); }
+    // RadioClockSynchronizer cadence/timeouts are serviced exclusively by RadioControlWorker::ServiceControl().
+    // Mesh owns relationship configuration, not execution of the clock protocol lifecycle.
+    void Update() override {}
+
     void Shutdown() noexcept override { _synchronizer.Shutdown(); }
 };
 
@@ -93,8 +100,9 @@ public:
 /// </summary>
 /// <remarks>
 /// Mesh owns root/parent authority and refuses a parent without the exact authenticated direct binding. Radio owns
-/// exchange mechanics. Timing owns timestamp calculation, filtering, stepping/slewing, drift and synchronization state.
-/// Deadline-driven Mesh traffic should use NowMilliseconds() only when IsDeadlineClockReady() is true.
+/// exchange mechanics and lifecycle. Timing owns timestamp calculation, filtering, stepping/slewing, drift and
+/// synchronization state. Deadline-driven Mesh traffic should use NowMilliseconds() only when
+/// IsDeadlineClockReady() is true.
 /// </remarks>
 class MeshSystemClockSynchronizationCoordinator final {
     Timing::IClockSynchronizationTarget<Timing::ClockTick>& _clock;
