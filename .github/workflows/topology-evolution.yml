@@ -31,6 +31,16 @@ jobs:
           path: ESPressio-Radio
       - uses: actions/checkout@v4
         with:
+          repository: ESPressio-Development-Platform/ESPressio-Task
+          ref: structural_realignment
+          path: ESPressio-Task
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Threads
+          ref: structural_realignment
+          path: ESPressio-Threads
+      - uses: actions/checkout@v4
+        with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: structural_realignment
           path: ESPressio-Observable
@@ -133,4 +143,4 @@ jobs:
       - name: Run protected Mesh v1 application forwarding/destination regression
         run: ./mesh_v1_application_protection_coordinator_test
       - name: Build current Mesh umbrella
-        run: printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp && g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src -IESPressio-Timing/src -IESPressio-Timing/tests/stubs -IESPressio-Units/src umbrella.cpp -o umbrella -pthread
+        run: printf '#include <ESPressio_Mesh.hpp>\nint main(){return 0;}\n' > umbrella.cpp && g++ -std=c++17 -Wall -Wextra -Werror -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Task/src -IESPressio-Threads/src -IESPressio-Primitive/src -IESPressio-Radio/src -IESPressio-Observable/src -IESPressio-Timing/src -IESPressio-Timing/tests/stubs -IESPressio-Units/src umbrella.cpp -o umbrella -pthread
