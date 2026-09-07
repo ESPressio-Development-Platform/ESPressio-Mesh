@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
+#include <utility>
 
 #include <ESPressio_PrecisionThread.hpp>
 #include <ESPressio_PrecisionThreadTraits.hpp>
@@ -119,12 +121,13 @@ private:
         const auto period = MaintenancePeriodNanoseconds();
         if (period == 0U) return;
 
-        auto due = _nextMaintenanceNanoseconds.load(std::memory_order_acquire);
+        const auto due = _nextMaintenanceNanoseconds.load(std::memory_order_acquire);
         if (due != 0U && nowNanoseconds < due) return;
 
         // Only this worker task executes this method, so publication is diagnostic/lifecycle state rather than a lock.
+        const auto maximum = std::numeric_limits<std::uint64_t>::max();
         _nextMaintenanceNanoseconds.store(
-            nowNanoseconds > UINT64_MAX - period ? UINT64_MAX : nowNanoseconds + period,
+            nowNanoseconds > maximum - period ? maximum : nowNanoseconds + period,
             std::memory_order_release);
 
         const auto started = System::Clock::Monotonic().NowNanoseconds();
@@ -179,14 +182,11 @@ public:
         SetPriority(_configuration.Priority);
         SetCoreID(_configuration.Core);
         SetStackSize(_configuration.StackSize);
-        SetIterationPeriod(Units::MilliSeconds<std::uint32_t>(
-            _configuration.MaintenancePeriodMilliseconds == 0U
-                ? 1U
-                : _configuration.MaintenancePeriodMilliseconds));
-        SetDesiredIterationPeriod(Units::MilliSeconds<std::uint32_t>(
-            _configuration.MaintenancePeriodMilliseconds == 0U
-                ? 1U
-                : _configuration.MaintenancePeriodMilliseconds));
+        const auto cadence = _configuration.MaintenancePeriodMilliseconds == 0U
+            ? 1U
+            : _configuration.MaintenancePeriodMilliseconds;
+        SetIterationPeriod(Units::MilliSeconds<std::uint32_t>(cadence));
+        SetDesiredIterationPeriod(Units::MilliSeconds<std::uint32_t>(cadence));
     }
 
     ~MeshRuntimeWorker() override { Shutdown(); }
