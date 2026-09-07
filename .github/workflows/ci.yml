@@ -34,6 +34,16 @@ jobs:
           path: ESPressio-Radio
       - uses: actions/checkout@v4
         with:
+          repository: ESPressio-Development-Platform/ESPressio-Task
+          ref: structural_realignment
+          path: ESPressio-Task
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Threads
+          ref: structural_realignment
+          path: ESPressio-Threads
+      - uses: actions/checkout@v4
+        with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: structural_realignment
           path: ESPressio-Observable
@@ -47,6 +57,13 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Units
           ref: structural_realignment
           path: ESPressio-Units
+      - name: Build Mesh runtime worker contract regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror
+          -IESPressio-Mesh/src -IESPressio-System/src -IESPressio-Task/src -IESPressio-Threads/src -IESPressio-Observable/src -IESPressio-Timing/src -IESPressio-Timing/tests/stubs -IESPressio-Units/src
+          ESPressio-Mesh/tests/mesh_runtime_worker_contract_test.cpp -o mesh_runtime_worker_contract_test -pthread
+      - name: Run Mesh runtime worker contract regression
+        run: ./mesh_runtime_worker_contract_test
       - name: Build Mesh core type regression
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror
