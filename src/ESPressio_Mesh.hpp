@@ -4,6 +4,7 @@
 #include "ESPressio_BoundedOwnedBytePool.hpp"
 #include "ESPressio_MeshCapacityProfile.hpp"
 #include "ESPressio_MeshTypes.hpp"
+#include "ESPressio_MeshRuntimeWorker.hpp"
 #include "ESPressio_MeshLifecycleObservers.hpp"
 #include "ESPressio_MeshNodeProfile.hpp"
 #include "ESPressio_MeshDestinationResolver.hpp"
