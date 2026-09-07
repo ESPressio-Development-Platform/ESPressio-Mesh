@@ -99,6 +99,23 @@ struct MeshV1BroadcastResult final {
     std::uint8_t FanoutAccepted{0U};
 };
 
+/// <summary>Explicitly separates distributed deadline time from local liveness-evidence time.</summary>
+/// <remarks>
+/// DeadlineClockMilliseconds belongs to the synchronized Mesh/System Clock domain used by the signed absolute
+/// application deadline. MonotonicMilliseconds belongs exclusively to the local monotonic runtime domain used for
+/// authenticated-evidence age, reachability and membership retention. These domains may differ by an arbitrary amount
+/// after reboot and MUST NOT be substituted for one another.
+/// </remarks>
+struct MeshV1BroadcastReceiveTimes final {
+    std::uint64_t DeadlineClockMilliseconds{0U};
+    std::uint64_t MonotonicMilliseconds{0U};
+
+    constexpr bool IsValid() const noexcept {
+        return DeadlineClockMilliseconds != 0U && MonotonicMilliseconds != 0U;
+    }
+    constexpr explicit operator bool() const noexcept { return IsValid(); }
+};
+
 class MeshBroadcastTrafficReservationGuard final {
     IMeshTrafficGovernor& _traffic;
     MeshTrafficReservation _reservation{};
@@ -126,6 +143,9 @@ public:
 /// committed source/message IDs are classified before expensive origin signature verification. Replay/liveness commit
 /// occurs only once the receive outcome is definitive, so temporary origin-verifier pressure remains retryable while
 /// known duplicates still avoid asymmetric cryptography.
+///
+/// Receive deliberately requires separate synchronized-deadline and local-monotonic timestamps. This prevents a
+/// discontinuously stepped System Clock from writing future-dated evidence into the monotonic liveness tracker.
 /// </remarks>
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
@@ -153,12 +173,12 @@ class MeshV1BroadcastCoordinator final {
     bool CommitAuthenticatedHop(
         MeshSecuritySessionRecordHandle session,
         const MeshV1BroadcastHopHeader& hop,
-        std::uint64_t nowMilliseconds
+        std::uint64_t livenessMonotonicMilliseconds
     ) noexcept {
         if (!_sessions.CommitAuthenticatedInbound(
                 session, MeshSecurityTrafficPurpose::Hop, hop.Sequence)) return false;
         (void)_liveness.ObserveAuthenticatedEvidence(
-            hop.Sender, hop.SenderIncarnation, nowMilliseconds);
+            hop.Sender, hop.SenderIncarnation, livenessMonotonicMilliseconds);
         return true;
     }
 
@@ -358,14 +378,14 @@ public:
     MeshV1BroadcastResult Receive(
         const std::uint8_t* packet,
         std::size_t packetBytes,
-        std::uint64_t nowMilliseconds,
+        const MeshV1BroadcastReceiveTimes& times,
         const MeshBroadcastFanoutPlan<FanoutCapacity>& plan
     ) noexcept {
         MeshV1WorkspaceResetGuard<decltype(_workspace)> workspaceReset(_workspace);
         MeshV1BroadcastResult result{};
         MeshV1BroadcastHopHeader hop{};
         MeshV1BroadcastHopView hopView{};
-        if (!_mesh || !_localDevice || !_localIncarnation || nowMilliseconds == 0U ||
+        if (!_mesh || !_localDevice || !_localIncarnation || !times ||
             !MeshV1BroadcastFrameCodec::DecodeHop(packet, packetBytes, hop, hopView)) return result;
         result.MessageId = hop.MessageId;
         if (hop.Mesh != _mesh || hop.NextHop != _localDevice ||
@@ -414,7 +434,7 @@ public:
         const bool localLoop = origin.Source == _localDevice &&
                                origin.SourceIncarnation == _localIncarnation;
         if (localLoop) {
-            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+            if (!CommitAuthenticatedHop(hopSession, hop, times.MonotonicMilliseconds)) {
                 result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
                 return result;
             }
@@ -424,7 +444,7 @@ public:
 
         auto* source = _memberships.FindExact(origin.Source, origin.SourceIncarnation);
         if (source == nullptr || source->State != MembershipState::Active) {
-            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+            if (!CommitAuthenticatedHop(hopSession, hop, times.MonotonicMilliseconds)) {
                 result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
                 return result;
             }
@@ -437,7 +457,7 @@ public:
         const auto duplicate = source->BroadcastDeduplication.Classify(origin.MessageId);
         if (duplicate == DeduplicationDisposition::Duplicate ||
             duplicate == DeduplicationDisposition::TooOld) {
-            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+            if (!CommitAuthenticatedHop(hopSession, hop, times.MonotonicMilliseconds)) {
                 result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
                 return result;
             }
@@ -448,8 +468,8 @@ public:
         }
         if (duplicate != DeduplicationDisposition::Unseen) return result;
 
-        if (nowMilliseconds >= origin.AbsoluteDeadlineMilliseconds) {
-            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+        if (times.DeadlineClockMilliseconds >= origin.AbsoluteDeadlineMilliseconds) {
+            if (!CommitAuthenticatedHop(hopSession, hop, times.MonotonicMilliseconds)) {
                 result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
                 return result;
             }
@@ -471,14 +491,14 @@ public:
         if (verification != MeshIdentityVerificationResult::Verified) {
             // The Hop itself is authenticated and this origin failure is definitive. Consume the replay position so an
             // authenticated malicious neighbour cannot force repeated asymmetric verification of the same invalid frame.
-            if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+            if (!CommitAuthenticatedHop(hopSession, hop, times.MonotonicMilliseconds)) {
                 result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
                 return result;
             }
             result.Disposition = MeshV1BroadcastDisposition::AuthenticationFailed;
             return result;
         }
-        if (!CommitAuthenticatedHop(hopSession, hop, nowMilliseconds)) {
+        if (!CommitAuthenticatedHop(hopSession, hop, times.MonotonicMilliseconds)) {
             result.Disposition = MeshV1BroadcastDisposition::ReplayRejected;
             return result;
         }
