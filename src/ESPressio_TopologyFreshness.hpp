@@ -21,8 +21,11 @@ namespace ESPressio::Mesh {
  * ESPressio Memory Audit
  * Members:
  * - Snapshot (TopologySnapshot<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - LocalAgeMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - ExpectedCadenceMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - AuthorityReachability (ReachabilityState): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 24 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>
@@ -36,9 +39,9 @@ struct TopologyFreshnessEvidence final {
 /// <summary>Injectable policy deriving local freshness independently from authoritative TopologyGeneration.</summary>
 /**
  * ESPressio Memory Audit
- * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>
@@ -66,8 +69,10 @@ public:
  * Members:
  * - _snapshot (TopologySnapshot<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
  * - _policy (ITopologyFreshnessPolicy<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - _lastReceiptMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - _state (TopologyFreshnessState): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 20 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>

@@ -11,9 +11,11 @@ namespace ESPressio::Mesh {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Slot (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct ForwardingRadioCorrelationHandle final {
@@ -27,9 +29,10 @@ struct ForwardingRadioCorrelationHandle final {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Terminal (Radio::LogicalTransferTerminalEvidence): 32 bytes [0 bytes dynamic allocation]
+ * Total Memory: 32 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct ForwardingRadioTerminalObservation final { Radio::LogicalTransferTerminalEvidence Terminal{}; };
@@ -42,10 +45,11 @@ struct ForwardingRadioTerminalObservation final { Radio::LogicalTransferTerminal
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(Radio::ILogicalTransferTerminalObserver) [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: sizeof(Radio::ILogicalTransferTerminalObserver) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _records (std::array<Record, Capacity>): Capacity * (44 bytes) [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known/aligned storage + Capacity * (44 bytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
@@ -56,9 +60,15 @@ class ForwardingRadioTerminalCorrelation final : public Radio::ILogicalTransferT
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Used (bool): 1 bytes [0 bytes dynamic allocation]
+ * - Bound (bool): 1 bytes [0 bytes dynamic allocation]
+ * - TerminalAvailable (bool): 1 bytes [0 bytes dynamic allocation]
+ * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * - Deferred (Radio::DeferredLogicalTransferHandle): 4 bytes [0 bytes dynamic allocation]
+ * - Terminal (Radio::LogicalTransferTerminalEvidence): 32 bytes [0 bytes dynamic allocation]
+ * Total Memory: 44 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct Record final {

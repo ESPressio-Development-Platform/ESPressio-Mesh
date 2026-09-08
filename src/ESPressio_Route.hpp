@@ -22,9 +22,14 @@ namespace ESPressio::Mesh {
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - _source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _destination (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _hops (std::array<TopologyLinkIdentity, HopCapacity>): HopCapacity * (34 bytes) [0 bytes dynamic allocation]
+ * - _hopCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 36 bytes known/aligned storage + HopCapacity * (34 bytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<std::size_t HopCapacity = Limits::MaxRouteHops>

@@ -22,18 +22,10 @@ namespace ESPressio::Mesh {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class MeshV1ProtectedApplicationSubmissionDisposition : std::uint8_t {
     Submitted, RetryCurrentRoute, ReplanDistinctRoute, DeadlineExpired, PermanentFailure,
     UnknownTransmission, UnknownRecipient, RecipientTerminal, RouteMismatch,
@@ -43,9 +35,11 @@ class MeshV1ProtectedApplicationSubmissionDisposition : std::uint8_t {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Disposition (MeshV1ProtectedApplicationSubmissionDisposition): 1 bytes [0 bytes dynamic allocation]
+ * - Radio (ApplicationRadioSubmissionResult): 68 bytes [0 bytes dynamic allocation]
+ * Total Memory: 72 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct MeshV1ProtectedApplicationSubmissionResult final {
@@ -63,18 +57,10 @@ struct MeshV1ProtectedApplicationSubmissionResult final {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class MeshV1ProtectedDestinationDisposition : std::uint8_t {
     Dispatched, Duplicate, TooOld, AlreadyInProgress, DeadlineExpired, ResourceUnavailable,
     UnsupportedFamily, UnsupportedVersion, RetryableReceiver, UnknownAuthenticatedSource,
@@ -84,9 +70,14 @@ class MeshV1ProtectedDestinationDisposition : std::uint8_t {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Disposition (MeshV1ProtectedDestinationDisposition): 1 bytes [0 bytes dynamic allocation]
+ * - Dispatch (PrimitiveDispatchResult): 1 bytes [0 bytes dynamic allocation]
+ * - ReceiverDisposition (PrimitiveReceiveDisposition): 1 bytes [0 bytes dynamic allocation]
+ * - Acknowledgement (DeliveryAcknowledgementIntent): 48 bytes [0 bytes dynamic allocation]
+ * - NextHopAcceptance (MeshV1NextHopAcceptanceIntent): 80 bytes [0 bytes dynamic allocation]
+ * Total Memory: 132 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct MeshV1ProtectedDestinationResult final {
@@ -107,12 +98,11 @@ struct MeshV1ProtectedDestinationResult final {
  * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
  * - _applicationSubmission (ApplicationSubmission&): 4 bytes [0 bytes dynamic allocation]
  * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 0 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): sizeof(System::DeviceIdentifier) [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 0 bytes [0 bytes dynamic allocation]
- * Total Memory: 24 bytes known members + sizeof(System::DeviceIdentifier) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * Total Memory: 72 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<std::size_t InnerWorkspaceBytes,
@@ -320,12 +310,11 @@ public:
  * - _inbound (InboundDeliveryCoordinator<MembershipCapacity, InProgressCapacity>&): 4 bytes [0 bytes dynamic allocation]
  * - _receivers (PrimitiveReceiverRegistry<ReceiverCapacity>&): 4 bytes [0 bytes dynamic allocation]
  * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 0 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): sizeof(System::DeviceIdentifier) [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 0 bytes [0 bytes dynamic allocation]
- * Total Memory: 24 bytes known members + sizeof(System::DeviceIdentifier) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * Total Memory: 72 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<std::size_t InnerWorkspaceBytes,

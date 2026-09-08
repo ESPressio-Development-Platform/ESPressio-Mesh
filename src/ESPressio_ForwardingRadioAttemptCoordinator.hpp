@@ -13,18 +13,10 @@ namespace ESPressio::Mesh {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class ForwardingRadioCorrelationDisposition : std::uint8_t {
     NotRequired,
     Reserved,
@@ -36,9 +28,13 @@ class ForwardingRadioCorrelationDisposition : std::uint8_t {
 /// <summary>Result of one forwarding submission coordinated with bounded Radio-terminal correlation.</summary>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Submission (ForwardingSubmissionResult): 60 bytes [0 bytes dynamic allocation]
+ * - Action (ForwardingAttemptAction): 1 bytes [0 bytes dynamic allocation]
+ * - Correlation (ForwardingRadioCorrelationHandle): 4 bytes [0 bytes dynamic allocation]
+ * - CorrelationDisposition (ForwardingRadioCorrelationDisposition): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 68 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct ForwardingRadioAttemptResult final {
@@ -70,7 +66,7 @@ struct ForwardingRadioAttemptResult final {
  * - _correlation (ForwardingRadioTerminalCorrelation<CorrelationCapacity>&): 4 bytes [0 bytes dynamic allocation]
  * - _attempts (RouteAttemptCoordinator&): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<

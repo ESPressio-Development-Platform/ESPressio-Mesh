@@ -15,9 +15,17 @@ namespace ESPressio::Mesh {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - Source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - SourceIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
+ * - AbsoluteDeadlineMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - PrimitiveFamily (Primitive::PrimitiveFamilyId): 2 bytes [0 bytes dynamic allocation]
+ * - PrimitiveVersion (Primitive::PrimitiveProtocolVersion): 2 bytes [0 bytes dynamic allocation]
+ * - PayloadBytes (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * Total Memory: 72 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct MeshV1BroadcastOriginHeader final {
@@ -41,9 +49,22 @@ struct MeshV1BroadcastOriginHeader final {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - Session (MeshSecuritySessionIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - Sequence (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - Sender (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - SenderIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * - NextHop (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - NextHopIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * - Source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - SourceIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
+ * - HopLimit (RemainingHopLimit): 1 bytes [0 bytes dynamic allocation]
+ * - InnerFrameBytes (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * Total Memory: 148 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 struct MeshV1BroadcastHopHeader final {
@@ -71,9 +92,15 @@ struct MeshV1BroadcastHopHeader final {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - SignedBytes (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
+ * - SignedByteCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - Payload (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
+ * - PayloadByteCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - Signature (MeshIdentitySignature): 64 bytes [0 bytes dynamic allocation]
+ * Total Memory: 80 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 struct MeshV1BroadcastOriginView final {
@@ -86,9 +113,15 @@ struct MeshV1BroadcastOriginView final {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - AuthenticatedHeader (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
+ * - AuthenticatedHeaderBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - Ciphertext (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
+ * - CiphertextBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - Tag (MeshAuthenticationTag): 16 bytes [0 bytes dynamic allocation]
+ * Total Memory: 32 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 struct MeshV1BroadcastHopView final {
@@ -108,9 +141,9 @@ struct MeshV1BroadcastHopView final {
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class MeshV1BroadcastFrameCodec final {

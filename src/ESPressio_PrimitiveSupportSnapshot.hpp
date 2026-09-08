@@ -14,9 +14,12 @@ namespace ESPressio::Mesh {
 /// <summary>Transport-independent semantic support advertised for one primitive family in NodeProfile data.</summary>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Family (Primitive::PrimitiveFamilyId): 2 bytes [0 bytes dynamic allocation]
+ * - Versions (Primitive::PrimitiveProtocolVersionRange): 4 bytes [0 bytes dynamic allocation]
+ * - Fingerprint (Primitive::ContractFingerprint): 32 bytes [0 bytes dynamic allocation]
+ * Total Memory: 38 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct PrimitiveSupportDescriptor final {
@@ -41,9 +44,12 @@ struct PrimitiveSupportDescriptor final {
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - _entries (std::array<PrimitiveSupportDescriptor, Capacity>): Capacity * (38 bytes) [0 bytes dynamic allocation]
+ * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known/aligned storage + Capacity * (38 bytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<std::size_t Capacity = Limits::MaxPrimitiveReceivers>

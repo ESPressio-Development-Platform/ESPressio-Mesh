@@ -15,9 +15,11 @@ namespace ESPressio::Mesh {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Slot (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct NeighbourCandidateHandle final {
@@ -31,18 +33,27 @@ struct NeighbourCandidateHandle final {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * Total Memory: 32 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct UntrustedMembershipClaim final { System::DeviceIdentifier Device{}; MembershipIncarnation Incarnation{}; };
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Handle (NeighbourCandidateHandle): 4 bytes [0 bytes dynamic allocation]
+ * - Radio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
+ * - Peer (Radio::RadioPeerHandle): 4 bytes [0 bytes dynamic allocation]
+ * - Claim (UntrustedMembershipClaim): 32 bytes [0 bytes dynamic allocation]
+ * - State (MembershipState): 1 bytes [0 bytes dynamic allocation]
+ * - FirstObservedMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - LastObservedMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 60 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct PendingNeighbourCandidate final {
@@ -59,25 +70,20 @@ struct PendingNeighbourCandidate final {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class PendingCandidateInsertResult : std::uint8_t { Inserted, Refreshed, ResourceUnavailable, Invalid };
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - _slots (std::array<Slot, Capacity>): Capacity * (64 bytes) [0 bytes dynamic allocation]
+ * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known/aligned storage + Capacity * (64 bytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<std::size_t Capacity = Limits::MaxPendingNeighbourCandidates>
@@ -86,9 +92,12 @@ class PendingNeighbourCandidateTable final {
     static_assert(Capacity < std::numeric_limits<std::uint16_t>::max(), "Candidate slot index must fit the generation-safe public handle.");
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Candidate (PendingNeighbourCandidate): 60 bytes [0 bytes dynamic allocation]
+ * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
+ * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 64 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct Slot final { PendingNeighbourCandidate Candidate{}; std::uint16_t Generation{0}; bool Occupied{false}; };
@@ -177,25 +186,20 @@ public:
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class InboundAuthenticationReservationResult : std::uint8_t { Reserved, AlreadyInProgress, ResourceUnavailable, Invalid };
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - _slots (std::array<Slot, Capacity>): Capacity * (6 bytes) [0 bytes dynamic allocation]
+ * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known/aligned storage + Capacity * (6 bytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<std::size_t Capacity = Limits::MaxActiveInboundAuthentications>
@@ -203,9 +207,11 @@ class InboundAuthenticationReservationTable final {
     static_assert(Capacity > 0, "Inbound authentication capacity must be non-zero.");
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Candidate (NeighbourCandidateHandle): 4 bytes [0 bytes dynamic allocation]
+ * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 6 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct Slot final { NeighbourCandidateHandle Candidate{}; bool Occupied{false}; };

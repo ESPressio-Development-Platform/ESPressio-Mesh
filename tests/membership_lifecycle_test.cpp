@@ -20,11 +20,16 @@ static Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(Observable::IObserver) + 4 bytes vptr [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: sizeof(Observable::IObserver) + 4 bytes vptr [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - Joining (std::uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - Authenticated (std::uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - Unavailable (std::uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - Lost (std::uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - Disconnected (std::uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - Last (Mesh::MeshNodeLifecycleNotification): 35 bytes [0 bytes dynamic allocation]
+ * Total Memory: 60 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class LifecycleObserver final : public Mesh::IMeshLifecycleObserver {

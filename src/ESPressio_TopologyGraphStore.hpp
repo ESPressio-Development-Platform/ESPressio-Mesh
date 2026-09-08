@@ -23,9 +23,14 @@ namespace ESPressio::Mesh {
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - _links (std::array<Link, LinkCapacity>): LinkCapacity * (34 bytes known/aligned storage + sizeof(TCharacteristics)) [0 bytes dynamic allocation]
+ * - _linkCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _authorities (std::array<AuthorityRecord, AuthorityCapacity>): AuthorityCapacity * (44 bytes) [0 bytes dynamic allocation]
+ * - _authorityCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes known/aligned storage + LinkCapacity * (34 bytes known/aligned storage + sizeof(TCharacteristics)) + AuthorityCapacity * (44 bytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<
@@ -42,9 +47,13 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * - Generation (TopologyGeneration): 8 bytes [0 bytes dynamic allocation]
+ * - LinkCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 44 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct AuthorityRecord final {

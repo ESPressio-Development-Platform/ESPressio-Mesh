@@ -16,18 +16,10 @@ namespace ESPressio::Mesh {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class TopologyFreshnessState : std::uint8_t {
     Fresh,
     Degraded,
@@ -46,9 +38,13 @@ class TopologyFreshnessState : std::uint8_t {
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Advertiser (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - LocalRadio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
+ * - Neighbour (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - NeighbourRadio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 34 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct TopologyLinkIdentity final {
@@ -85,9 +81,12 @@ struct TopologyLinkIdentity final {
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - Identity (TopologyLinkIdentity): 34 bytes [0 bytes dynamic allocation]
+ * - Characteristics (TCharacteristics): sizeof(TCharacteristics) [0 bytes dynamic allocation]
+ * Total Memory: 34 bytes known/aligned storage + sizeof(TCharacteristics) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<typename TCharacteristics>
@@ -106,18 +105,10 @@ struct DirectedTopologyLink final {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class TopologySnapshotApplyResult : std::uint8_t {
     Applied,
     RefreshedSameGeneration,
@@ -146,9 +137,15 @@ class TopologySnapshotApplyResult : std::uint8_t {
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - _authority (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * - _generation (TopologyGeneration): 8 bytes [0 bytes dynamic allocation]
+ * - _links (std::array<Link, Capacity>): Capacity * (34 bytes known/aligned storage + sizeof(TCharacteristics)) [0 bytes dynamic allocation]
+ * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 44 bytes known/aligned storage + Capacity * (34 bytes known/aligned storage + sizeof(TCharacteristics)) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<typename TCharacteristics, std::size_t Capacity = Limits::MaxTopologyLinks>

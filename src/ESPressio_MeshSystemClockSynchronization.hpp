@@ -15,18 +15,10 @@ namespace ESPressio::Mesh {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class MeshSystemClockRole : std::uint8_t {
     Disabled,
     Reference,
@@ -37,18 +29,10 @@ class MeshSystemClockRole : std::uint8_t {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class MeshSystemClockConvergenceDisposition : std::uint8_t {
     Unchanged,
     Disabled,
@@ -62,9 +46,9 @@ class MeshSystemClockConvergenceDisposition : std::uint8_t {
 /// <summary>Transport boundary used by Mesh to apply an elected direct synchronization relationship.</summary>
 /**
  * ESPressio Memory Audit
- * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class IMeshSystemClockSynchronizationTransport {
@@ -96,8 +80,9 @@ public:
  * - _synchronizer (Radio::RadioClockSynchronizer&): 4 bytes [0 bytes dynamic allocation]
  * - _transport (Radio::RadioTransport&): 4 bytes [0 bytes dynamic allocation]
  * - _radio (Radio::IRadio&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - _baseConfiguration (Radio::RadioClockSynchronizationConfig): 20 bytes [0 bytes dynamic allocation]
+ * Total Memory: 36 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class RadioMeshSystemClockSynchronizationTransport final :
@@ -159,8 +144,13 @@ public:
  * Members:
  * - _clock (Timing::IClockSynchronizationTarget<Timing::ClockTick>&): 4 bytes [0 bytes dynamic allocation]
  * - _transport (IMeshSystemClockSynchronizationTransport&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _role (MeshSystemClockRole): 1 bytes [0 bytes dynamic allocation]
+ * - _selection (ClockCoordinationSelection): 50 bytes [0 bytes dynamic allocation]
+ * - _localRadio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
+ * - _deadlineClockEstablished (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 80 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class MeshSystemClockSynchronizationCoordinator final {

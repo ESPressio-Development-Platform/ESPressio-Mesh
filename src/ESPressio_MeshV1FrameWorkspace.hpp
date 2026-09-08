@@ -14,9 +14,12 @@ namespace ESPressio::Mesh {
 /// </remarks>
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members:
+ * - _inner (std::array<std::uint8_t, InnerCapacityBytes>): InnerCapacityBytes * (1 bytes) [0 bytes dynamic allocation]
+ * - _packet (std::array<std::uint8_t, PacketCapacityBytes>): PacketCapacityBytes * (1 bytes) [0 bytes dynamic allocation]
+ * Total Memory: InnerCapacityBytes * (1 bytes) + PacketCapacityBytes * (1 bytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<std::size_t InnerCapacityBytes, std::size_t PacketCapacityBytes>
@@ -53,7 +56,7 @@ public:
  * Members:
  * - _workspace (TWorkspace&): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<typename TWorkspace>

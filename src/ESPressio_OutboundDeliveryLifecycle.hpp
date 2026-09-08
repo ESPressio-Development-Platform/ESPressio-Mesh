@@ -14,52 +14,28 @@ namespace ESPressio::Mesh {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class OutboundDeliveryBeginResult : std::uint8_t { Begun, AlreadyActive, ResourceUnavailable, DeadlineExpired, Invalid };
 /**
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class OutboundForwardingAction : std::uint8_t { AwaitingNextHopAcceptance, RetryCurrentRoute, ReplanDistinctRoute, StopDeadlineExpired, StopPermanentFailure, StopAttemptLimit, Invalid };
 /**
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class OutboundDeliveryAcknowledgementAction : std::uint8_t { DeliveryConfirmed, IgnoreUnrelatedAcknowledgement, StopDeadlineExpired, Invalid };
 
 /// <summary>
@@ -82,8 +58,15 @@ class OutboundDeliveryAcknowledgementAction : std::uint8_t { DeliveryConfirmed, 
  * Members:
  * - _attempts (RouteAttemptCoordinator&): 4 bytes [0 bytes dynamic allocation]
  * - _acknowledgements (DeliveryAcknowledgementCoordinator<AcknowledgementCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - _forwarding (ForwardingTransitionCoordinator): 48 bytes [0 bytes dynamic allocation]
+ * - _destination (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
+ * - _destinationIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
+ * - _messageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
+ * - _absoluteDeadlineMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - _acknowledgementReserved (bool): 1 bytes [0 bytes dynamic allocation]
+ * - _active (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 108 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<std::size_t AcknowledgementCapacity>
