@@ -9,7 +9,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Outcome of beginning one authenticated inbound Mesh delivery.</summary>
-enum class InboundDeliveryBeginResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class InboundDeliveryBeginResult : std::uint8_t {
     Reserved,
     Duplicate,
     TooOld,
@@ -20,7 +36,23 @@ enum class InboundDeliveryBeginResult : std::uint8_t {
 };
 
 /// <summary>Outcome of definitively committing one previously reserved delivery.</summary>
-enum class InboundDeliveryCommitResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class InboundDeliveryCommitResult : std::uint8_t {
     Committed,
     AlreadyCommitted,
     TooOld,
@@ -30,7 +62,23 @@ enum class InboundDeliveryCommitResult : std::uint8_t {
 };
 
 /// <summary>Whether a committed duplicate previously reached destination-framework acceptance.</summary>
-enum class InboundDeliveryAcceptanceResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class InboundDeliveryAcceptanceResult : std::uint8_t {
     Accepted,
     NotAccepted,
     TooOld,
@@ -52,6 +100,15 @@ enum class InboundDeliveryAcceptanceResult : std::uint8_t {
 /// local receiver reports TemporarilyUnavailable/ResourceUnavailable. This preserves legitimate later
 /// retry while preventing concurrent duplicate upper-layer delivery.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _memberships (MembershipTable&): 4 bytes [0 bytes dynamic allocation]
+ * - _reservations (ReservationTable&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t InProgressCapacity = Limits::MaxActiveInboundDeliveries

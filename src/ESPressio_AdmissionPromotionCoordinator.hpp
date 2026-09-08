@@ -10,7 +10,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of completing one externally authenticated/admitted neighbour candidate.</summary>
-enum class AdmissionPromotionResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class AdmissionPromotionResult : std::uint8_t {
     PromotedToValidating,
     ConflictingIncarnation,
     MembershipResourceUnavailable,
@@ -21,6 +37,16 @@ enum class AdmissionPromotionResult : std::uint8_t {
 };
 
 /// <summary>Narrow boundary that promotes externally authenticated identity into bounded Mesh membership.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _authentications (InboundAuthenticationReservationTable<AuthenticationCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
          std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes>

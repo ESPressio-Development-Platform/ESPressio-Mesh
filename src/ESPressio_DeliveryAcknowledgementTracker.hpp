@@ -16,6 +16,13 @@ namespace ESPressio::Mesh {
 /// retained as well so an acknowledgement from a later participation incarnation cannot complete older delivery work.
 /// This is sender-local bookkeeping only and is not a wire envelope.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct PendingDeliveryAcknowledgementIdentity final {
     System::DeviceIdentifier Destination{};
     MembershipIncarnation DestinationIncarnation{};
@@ -35,6 +42,13 @@ struct PendingDeliveryAcknowledgementIdentity final {
 };
 
 /// <summary>One sender-local pending destination acknowledgement record.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct PendingDeliveryAcknowledgement final {
     PendingDeliveryAcknowledgementIdentity Identity{};
     std::uint64_t AbsoluteDeadlineMilliseconds{0};
@@ -45,7 +59,23 @@ struct PendingDeliveryAcknowledgement final {
 };
 
 /// <summary>Result of reserving finite sender-local acknowledgement tracking capacity.</summary>
-enum class DeliveryAcknowledgementReserveResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class DeliveryAcknowledgementReserveResult : std::uint8_t {
     Reserved,
     AlreadyPending,
     ResourceUnavailable,
@@ -54,7 +84,23 @@ enum class DeliveryAcknowledgementReserveResult : std::uint8_t {
 };
 
 /// <summary>Result of applying one already-authenticated destination delivery acknowledgement.</summary>
-enum class DeliveryAcknowledgementApplyResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class DeliveryAcknowledgementApplyResult : std::uint8_t {
     Acknowledged,
     NotPending,
     DeadlineExpired,
@@ -77,11 +123,25 @@ enum class DeliveryAcknowledgementApplyResult : std::uint8_t {
 /// Mutation is intended for the serialized Mesh execution domain. The tracker owns no payload, route, retry state,
 /// scheduler, Radio work or authentication context.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity>
 class DeliveryAcknowledgementTracker final {
     static_assert(Capacity > 0U, "Delivery acknowledgement capacity must be non-zero.");
 
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         PendingDeliveryAcknowledgement Record{};
         bool Occupied{false};
     };

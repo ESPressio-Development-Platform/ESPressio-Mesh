@@ -10,9 +10,57 @@
 
 namespace ESPressio::Mesh {
 
-enum class OutboundDeliveryBeginResult : std::uint8_t { Begun, AlreadyActive, ResourceUnavailable, DeadlineExpired, Invalid };
-enum class OutboundForwardingAction : std::uint8_t { AwaitingNextHopAcceptance, RetryCurrentRoute, ReplanDistinctRoute, StopDeadlineExpired, StopPermanentFailure, StopAttemptLimit, Invalid };
-enum class OutboundDeliveryAcknowledgementAction : std::uint8_t { DeliveryConfirmed, IgnoreUnrelatedAcknowledgement, StopDeadlineExpired, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class OutboundDeliveryBeginResult : std::uint8_t { Begun, AlreadyActive, ResourceUnavailable, DeadlineExpired, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class OutboundForwardingAction : std::uint8_t { AwaitingNextHopAcceptance, RetryCurrentRoute, ReplanDistinctRoute, StopDeadlineExpired, StopPermanentFailure, StopAttemptLimit, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class OutboundDeliveryAcknowledgementAction : std::uint8_t { DeliveryConfirmed, IgnoreUnrelatedAcknowledgement, StopDeadlineExpired, Invalid };
 
 /// <summary>
 /// Per-delivery wire-neutral composition of bounded route attempts, exact next-hop acceptance and optional end-to-end
@@ -29,6 +77,15 @@ enum class OutboundDeliveryAcknowledgementAction : std::uint8_t { DeliveryConfir
 /// An ACK for another active delivery therefore cannot consume that delivery's tracker entry or alter this lifecycle's
 /// local reservation state, even when multiple lifecycles share one bounded DeliveryAcknowledgementTracker.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _attempts (RouteAttemptCoordinator&): 4 bytes [0 bytes dynamic allocation]
+ * - _acknowledgements (DeliveryAcknowledgementCoordinator<AcknowledgementCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t AcknowledgementCapacity>
 class OutboundDeliveryLifecycle final {
     RouteAttemptCoordinator& _attempts;

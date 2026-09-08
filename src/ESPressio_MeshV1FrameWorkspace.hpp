@@ -12,6 +12,13 @@ namespace ESPressio::Mesh {
 /// in Mesh: the composition selects both sizes and includes this concrete object in its whole-device memory budget.
 /// One workspace may be reused when the Mesh mutation domain guarantees that protect/open calls do not overlap.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t InnerCapacityBytes, std::size_t PacketCapacityBytes>
 class MeshV1FrameWorkspace final {
     static_assert(InnerCapacityBytes > 0U && PacketCapacityBytes > 0U,
@@ -41,6 +48,14 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _workspace (TWorkspace&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TWorkspace>
 class MeshV1WorkspaceResetGuard final {
     TWorkspace& _workspace;

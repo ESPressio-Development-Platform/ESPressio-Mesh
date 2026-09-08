@@ -12,7 +12,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Outcome of one local route-planning request.</summary>
-enum class RoutePlanningDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class RoutePlanningDisposition : std::uint8_t {
     Planned,
     LocalDestination,
     Unreachable,
@@ -30,6 +46,14 @@ enum class RoutePlanningDisposition : std::uint8_t {
 /// policy/context rather than collapsed here into a universal scalar route cost. The strategy must treat Expired or
 /// otherwise unusable topology as unavailable according to the composition that supplies it.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Topology (TopologyGraphStore<TCharacteristics, LinkCapacity, AuthorityCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     typename TCharacteristics,
     std::size_t LinkCapacity = Limits::MaxTopologyLinks,
@@ -51,6 +75,13 @@ struct RoutingEvidence final {
 /// policy/state. The returned route is a disposable local planning artifact, not a source-routing wire contract. Mesh
 /// forwarding remains adaptive hop-by-hop and every forwarding node may plan a different next hop.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     typename TCharacteristics,
     std::size_t LinkCapacity = Limits::MaxTopologyLinks,

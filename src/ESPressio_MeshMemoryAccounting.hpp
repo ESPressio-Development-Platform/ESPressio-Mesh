@@ -38,6 +38,13 @@ namespace ESPressio::Mesh {
 /// whole-device budget. ApplicationTransmissionBytes accounts only for frozen recipient/outcome metadata; immutable shared
 /// payload backing remains a separate variable-capacity term.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TTopologyCharacteristics>
 struct MeshFixedMemoryAccounting final {
     static constexpr std::size_t AuthenticatedMembershipBytes = sizeof(AuthenticatedMembershipTable<>);
@@ -93,6 +100,13 @@ struct MeshFixedMemoryAccounting final {
 /// RadioTransportBytes includes its fixed reassembly arrays and all other retained Radio transport state. Task stacks
 /// and composition-owned storage not represented by concrete types remain explicit profile terms.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     typename TTopologyCharacteristics,
     typename TClockQuality,

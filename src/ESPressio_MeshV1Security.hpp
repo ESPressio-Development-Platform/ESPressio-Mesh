@@ -18,6 +18,13 @@ namespace ESPressio::Mesh {
 /// uses ECDH P-256 with uncompressed SEC1 points. Session material uses HKDF-SHA-256; traffic protection uses
 /// AES-256-GCM with a 96-bit nonce and 128-bit tag. Implementations belong in ESPressio-Security/platform composition.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1SecuritySuite final {
     static constexpr std::uint16_t Identifier = 0x0001U;
     static constexpr std::size_t DigestBytes = 32U;
@@ -40,6 +47,13 @@ struct MeshV1SecuritySuite final {
     inline static constexpr char SessionLabel[] = "ESPressio-Mesh-v1 session";
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Size>
 struct MeshSecurityBytes final {
     std::array<std::uint8_t, Size> Value{};
@@ -60,7 +74,23 @@ using MeshAuthenticationTag = MeshSecurityBytes<MeshV1SecuritySuite::Authenticat
 using MeshSecuritySessionIdentifier = MeshSecurityBytes<MeshV1SecuritySuite::SessionIdentifierBytes>;
 using MeshSecurityChannelBinding = MeshSecurityBytes<MeshV1SecuritySuite::ChannelBindingBytes>;
 
-enum class MeshV1SecurityMessageType : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1SecurityMessageType : std::uint8_t {
     InitiatorHello = 1U,
     ResponderHello = 2U,
     InitiatorFinish = 3U,
@@ -70,6 +100,13 @@ enum class MeshV1SecurityMessageType : std::uint8_t {
     BroadcastHopFrame = 7U
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1InitiatorHello final {
     MeshIdentifier Mesh{};
     System::DeviceIdentifier Device{};
@@ -85,6 +122,13 @@ struct MeshV1InitiatorHello final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1ResponderHello final {
     MeshIdentifier Mesh{};
     System::DeviceIdentifier Device{};
@@ -102,6 +146,13 @@ struct MeshV1ResponderHello final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1InitiatorFinish final {
     MeshSecurityDigest HandshakeTranscriptDigest{};
     MeshAuthenticationTag ConfirmationTag{};
@@ -117,6 +168,13 @@ struct MeshV1InitiatorFinish final {
 /// over SHA-256 of both signed hellos (excluding the responder confirmation tag, which is produced from that digest).
 /// Decoding accepts only an exact packet length; trailing bytes, unknown types, suite changes and malformed points fail.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshV1SecurityHandshakeCodec final {
     static constexpr std::array<std::uint8_t, 4> Magic{{0x45U, 0x53U, 0x4DU, 0x31U}}; // ESM1
     static constexpr std::uint8_t Version = 1U;
@@ -326,6 +384,13 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshEphemeralKeyHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -334,6 +399,13 @@ struct MeshEphemeralKeyHandle final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshSecuritySessionHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -342,7 +414,23 @@ struct MeshSecuritySessionHandle final {
     }
 };
 
-enum class MeshIdentityVerificationResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshIdentityVerificationResult : std::uint8_t {
     Verified,
     Unregistered,
     InvalidSignature,
@@ -350,8 +438,40 @@ enum class MeshIdentityVerificationResult : std::uint8_t {
     Invalid
 };
 
-enum class MeshSecuritySessionRole : std::uint8_t { Initiator, Responder };
-enum class MeshSecurityTrafficPurpose : std::uint8_t { Hop, EndToEnd, KeyConfirmation };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshSecuritySessionRole : std::uint8_t { Initiator, Responder };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshSecurityTrafficPurpose : std::uint8_t { Hop, EndToEnd, KeyConfirmation };
 
 /// <summary>Injected bounded implementation of the frozen Mesh v1 suite.</summary>
 /// <remarks>
@@ -372,6 +492,13 @@ enum class MeshSecurityTrafficPurpose : std::uint8_t { Hop, EndToEnd, KeyConfirm
 /// points and canonical low-S raw ECDSA signatures. Release methods
 /// synchronously erase provider-owned secret material and make handles stale.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IMeshV1CryptographicProvider {
 public:
     virtual ~IMeshV1CryptographicProvider() = default;

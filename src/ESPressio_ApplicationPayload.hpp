@@ -6,6 +6,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Borrowed immutable bytes whose storage remains stable for the complete accepted transmission lifetime.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct BorrowedStablePayload final {
     const std::uint8_t* Data{nullptr};
     std::size_t Size{0};
@@ -22,6 +29,13 @@ struct BorrowedStablePayload final {
 /// logical payload for the complete transmission lifetime. Mesh does not own the source object and never assumes that
 /// repeated serialization of mutable application state is stable.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IRepeatableSerializedPayloadSource {
 public:
     virtual ~IRepeatableSerializedPayloadSource() = default;
@@ -30,6 +44,13 @@ public:
 };
 
 /// <summary>Non-owning reference to one repeatable serialized payload source.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct RepeatableSerializedPayload final {
     const IRepeatableSerializedPayloadSource* Source{nullptr};
     std::size_t Size{0};
@@ -49,9 +70,32 @@ struct RepeatableSerializedPayload final {
 /// terminal. A future bounded-owned backing may satisfy the same aggregate contract once an explicit byte capacity is
 /// approved; no such capacity is invented here.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class ApplicationPayload final {
 public:
-    enum class Kind : std::uint8_t { None, BorrowedStable, RepeatableSerialized };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class Kind : std::uint8_t { None, BorrowedStable, RepeatableSerialized };
 
 private:
     Kind _kind{Kind::None};

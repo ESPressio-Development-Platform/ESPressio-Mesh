@@ -13,6 +13,13 @@
 
 namespace ESPressio::Mesh {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1BroadcastOriginHeader final {
     MeshIdentifier Mesh{};
     System::DeviceIdentifier Source{};
@@ -32,6 +39,13 @@ struct MeshV1BroadcastOriginHeader final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1BroadcastHopHeader final {
     MeshIdentifier Mesh{};
     MeshSecuritySessionIdentifier Session{};
@@ -55,6 +69,13 @@ struct MeshV1BroadcastHopHeader final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1BroadcastOriginView final {
     const std::uint8_t* SignedBytes{nullptr};
     std::size_t SignedByteCount{0U};
@@ -63,6 +84,13 @@ struct MeshV1BroadcastOriginView final {
     MeshIdentitySignature Signature{};
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1BroadcastHopView final {
     const std::uint8_t* AuthenticatedHeader{nullptr};
     std::size_t AuthenticatedHeaderBytes{0U};
@@ -78,6 +106,13 @@ struct MeshV1BroadcastHopView final {
 /// encrypts/authenticates that complete origin frame for one direct neighbour using the existing Hop session purpose.
 /// Broadcast has no destination identity, end-to-end session, acknowledgement or shared delivery-success claim.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshV1BroadcastFrameCodec final {
     static constexpr std::array<std::uint8_t, 4> Magic{{0x45U, 0x53U, 0x4DU, 0x31U}};
     static constexpr std::uint8_t Version = 1U;

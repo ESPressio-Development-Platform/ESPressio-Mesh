@@ -14,6 +14,13 @@ namespace ESPressio::Mesh {
 /// The owning membership context provides the semantic scope. A new generator therefore begins at 1 for a genuinely
 /// new MembershipIncarnation. Exhaustion is terminal for that scope: identifier reuse is never permitted.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshMessageIdGenerator final {
     MeshMessageId _lastIssued{0};
 

@@ -9,7 +9,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of one non-blocking pass through candidate authentication and admission.</summary>
-enum class AdmissionLifecycleResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class AdmissionLifecycleResult : std::uint8_t {
     /// <summary>Authenticated identity passed admission and entered Validating membership.</summary>
     PromotedToValidating,
     /// <summary>Security work remains active while retaining its bounded authentication reservation.</summary>
@@ -50,6 +66,19 @@ enum class AdmissionLifecycleResult : std::uint8_t {
 /// produced the candidate. Retaining that binding in `AuthenticatedDirectPeerBindingTable` is deliberately a separate
 /// local-execution concern rather than part of this membership transaction.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _authentications (InboundAuthenticationReservationTable<AuthenticationCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _promotion (AdmissionPromotionCoordinator<CandidateCapacity, AuthenticationCapacity, MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _security (IMeshSecurityAuthority&): 4 bytes [0 bytes dynamic allocation]
+ * - _admission (IMeshAdmissionPolicy&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 24 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
          std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes>

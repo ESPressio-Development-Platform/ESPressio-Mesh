@@ -9,12 +9,35 @@
 
 namespace ESPressio::Mesh {
 
-enum class MeshV1ControlMessageType : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1ControlMessageType : std::uint8_t {
     Invalid = 0U,
     NextHopAcceptance = 1U,
     DestinationDeliveryAcknowledgement = 2U
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1AcknowledgedDelivery final {
     System::DeviceIdentifier Source{};
     MembershipIncarnation SourceIncarnation{};
@@ -28,6 +51,13 @@ struct MeshV1AcknowledgedDelivery final {
     constexpr explicit operator bool() const noexcept { return IsValid(); }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1NextHopAcceptanceIntent final {
     System::DeviceIdentifier Recipient{};
     MembershipIncarnation RecipientIncarnation{};
@@ -41,6 +71,13 @@ struct MeshV1NextHopAcceptanceIntent final {
 };
 
 /// <summary>Canonical fixed Mesh Control acknowledgement payload.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshV1ControlCodec final {
     inline static constexpr std::array<std::uint8_t, 4> Magic{{0x45U, 0x53U, 0x4DU, 0x43U}};
 public:

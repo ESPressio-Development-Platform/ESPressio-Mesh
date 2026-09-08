@@ -10,6 +10,13 @@
 
 namespace ESPressio::Mesh {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct FrozenMeshRecipient final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -19,7 +26,23 @@ struct FrozenMeshRecipient final {
     }
 };
 
-enum class MeshDestinationResolutionDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshDestinationResolutionDisposition : std::uint8_t {
     Resolved,
     NoRecipients,
     ResourceUnavailable,
@@ -27,6 +50,13 @@ enum class MeshDestinationResolutionDisposition : std::uint8_t {
 };
 
 /// <summary>Fixed immutable-by-convention recipient snapshot produced by Group or CapabilitySelector resolution.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxRecipientsPerTransmission>
 class FrozenMeshRecipientSet final {
     static_assert(Capacity > 0U, "Frozen recipient capacity must be non-zero.");
@@ -72,6 +102,14 @@ public:
 /// and outcomes. Reachability is deliberately not a membership filter: an Active member remains a recipient while route
 /// planning independently determines whether and when it can be reached before the immutable deadline.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission>
 class MeshDestinationResolver final {

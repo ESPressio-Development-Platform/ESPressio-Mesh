@@ -15,6 +15,13 @@
 
 namespace ESPressio::Mesh {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1RelayHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0U};
@@ -24,12 +31,35 @@ struct MeshV1RelayHandle final {
     constexpr explicit operator bool() const noexcept { return IsValid(); }
 };
 
-enum class MeshV1RelayReceiveDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1RelayReceiveDisposition : std::uint8_t {
     AcceptedResponsibility, AlreadyAccepted, DeadlineExpired, HopLimitExhausted,
     ResourceUnavailable, TrafficCapacityUnavailable, UnknownAuthenticatedSender, HopSessionUnavailable,
     ReplayRejected, AuthenticationFailed, NotForRelay, Invalid
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1RelayReceiveResult final {
     MeshV1RelayReceiveDisposition Disposition{MeshV1RelayReceiveDisposition::Invalid};
     MeshV1RelayHandle Relay{};
@@ -44,18 +74,57 @@ struct MeshV1RelayReceiveResult final {
     }
 };
 
-enum class MeshV1RelaySubmissionDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1RelaySubmissionDisposition : std::uint8_t {
     Submitted, AlreadySubmitted, DeadlineExpired, RouteMismatch, NextHopSessionUnavailable,
     WorkspaceCapacityExceeded, SequenceExhausted, ProtectionFailed, ForwardingFailed,
     UnknownRelay, Invalid
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1RelaySubmissionResult final {
     MeshV1RelaySubmissionDisposition Disposition{MeshV1RelaySubmissionDisposition::Invalid};
     ForwardingSubmissionResult Submission{};
 };
 
-enum class MeshV1RelayAcceptanceDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1RelayAcceptanceDisposition : std::uint8_t {
     ResponsibilityTransferred, Unrelated, DeadlineExpired, UnknownRelay, Invalid
 };
 
@@ -66,6 +135,23 @@ enum class MeshV1RelayAcceptanceDisposition : std::uint8_t {
 /// relay never opens EndToEnd protection. It retains responsibility across Radio retry and downstream waiting, and
 /// releases the frame only after exact authenticated next-hop acceptance, immutable deadline expiry or controlled reset.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
+ * - _traffic (IMeshTrafficGovernor&): 4 bytes [0 bytes dynamic allocation]
+ * - _forwarding (ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
+ * - _mesh (MeshIdentifier): 0 bytes [0 bytes dynamic allocation]
+ * - _localDevice (System::DeviceIdentifier): sizeof(System::DeviceIdentifier) [0 bytes dynamic allocation]
+ * - _localIncarnation (MembershipIncarnation): 0 bytes [0 bytes dynamic allocation]
+ * Total Memory: 24 bytes known members + sizeof(System::DeviceIdentifier) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t RelayCapacity,
          std::size_t RetainedInnerBytes,
          std::size_t InnerWorkspaceBytes,
@@ -79,7 +165,14 @@ class MeshV1RelayCoordinator final {
                   "Relay capacity must fit the generation-safe handle.");
     static_assert(RetainedInnerBytes > 0U, "Relay retained-frame bytes must be explicit and non-zero.");
 
-    struct State final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct State final {
         bool Used{false};
         std::uint16_t Generation{0U};
         System::DeviceIdentifier Source{};

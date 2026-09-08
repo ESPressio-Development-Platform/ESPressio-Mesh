@@ -15,6 +15,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Borrowed immutable primitive-family payload delivered synchronously at the Mesh receiver boundary.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct PrimitivePayloadView final {
     const std::uint8_t* Data{nullptr};
     std::size_t Size{0};
@@ -23,6 +30,13 @@ struct PrimitivePayloadView final {
 };
 
 /// <summary>Authenticated Mesh-specific provenance accompanying one primitive-family delivery.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshReceiveContext final {
     System::DeviceIdentifier Source{};
     MembershipIncarnation SourceIncarnation{};
@@ -41,7 +55,23 @@ struct MeshReceiveContext final {
 /// Only TemporarilyUnavailable and ResourceUnavailable are retryable by the inbound-delivery coordinator; every
 /// other disposition is definitive for duplicate-suppression purposes.
 /// </remarks>
-enum class PrimitiveReceiveDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class PrimitiveReceiveDisposition : std::uint8_t {
     Accepted,
     UnsupportedVersion,
     Malformed,
@@ -51,12 +81,35 @@ enum class PrimitiveReceiveDisposition : std::uint8_t {
 };
 
 /// <summary>Whether a registered family implementation is advertised in the authenticated NodeProfile.</summary>
-enum class PrimitiveReceiverExposure : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class PrimitiveReceiverExposure : std::uint8_t {
     Hidden,
     Advertised
 };
 
 /// <summary>Bounded semantic support descriptor owned by one registered external primitive receiver.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct PrimitiveReceiverDescriptor final {
     Primitive::PrimitiveFamilyId Family{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersionRange Versions{};
@@ -69,6 +122,13 @@ struct PrimitiveReceiverDescriptor final {
 };
 
 /// <summary>Receives one short bounded external primitive-family handoff from Mesh.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IPrimitiveReceiver {
 public:
     virtual ~IPrimitiveReceiver() = default;
@@ -84,6 +144,13 @@ public:
 };
 
 /// <summary>Generation-safe registration handle for one external primitive-family receiver.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct PrimitiveReceiverHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -95,7 +162,23 @@ struct PrimitiveReceiverHandle final {
 };
 
 /// <summary>Result of bounded external primitive receiver registration.</summary>
-enum class PrimitiveReceiverRegistrationResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class PrimitiveReceiverRegistrationResult : std::uint8_t {
     Registered,
     FamilyAlreadyRegistered,
     ResourceUnavailable,
@@ -103,7 +186,23 @@ enum class PrimitiveReceiverRegistrationResult : std::uint8_t {
 };
 
 /// <summary>Result of dispatching one external primitive family at the destination Mesh endpoint.</summary>
-enum class PrimitiveDispatchResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class PrimitiveDispatchResult : std::uint8_t {
     Dispatched,
     UnsupportedFamily,
     UnsupportedVersion,
@@ -118,13 +217,27 @@ enum class PrimitiveDispatchResult : std::uint8_t {
 /// generation handle. MeshControl is owned internally by Mesh and cannot be registered through this external receiver
 /// boundary. Command, Event, State and application/private families may be registered by their owning integration.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxPrimitiveReceivers>
 class PrimitiveReceiverRegistry final {
     static_assert(Capacity > 0, "Primitive receiver capacity must be non-zero.");
     static_assert(Capacity < std::numeric_limits<std::uint16_t>::max(),
                   "Primitive receiver slots must fit the generation-safe handle.");
 
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         PrimitiveReceiverDescriptor Descriptor{};
         IPrimitiveReceiver* Receiver{nullptr};
         std::uint16_t Generation{0};

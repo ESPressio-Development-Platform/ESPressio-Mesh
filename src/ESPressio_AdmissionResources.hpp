@@ -13,6 +13,13 @@
 
 namespace ESPressio::Mesh {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct NeighbourCandidateHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -22,8 +29,22 @@ struct NeighbourCandidateHandle final {
     constexpr bool operator!=(const NeighbourCandidateHandle& other) const noexcept { return !(*this == other); }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct UntrustedMembershipClaim final { System::DeviceIdentifier Device{}; MembershipIncarnation Incarnation{}; };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct PendingNeighbourCandidate final {
     NeighbourCandidateHandle Handle{};
     RadioIdentifier Radio{0};
@@ -34,13 +55,43 @@ struct PendingNeighbourCandidate final {
     std::uint64_t LastObservedMilliseconds{0};
 };
 
-enum class PendingCandidateInsertResult : std::uint8_t { Inserted, Refreshed, ResourceUnavailable, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class PendingCandidateInsertResult : std::uint8_t { Inserted, Refreshed, ResourceUnavailable, Invalid };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxPendingNeighbourCandidates>
 class PendingNeighbourCandidateTable final {
     static_assert(Capacity > 0, "Pending neighbour capacity must be non-zero.");
     static_assert(Capacity < std::numeric_limits<std::uint16_t>::max(), "Candidate slot index must fit the generation-safe public handle.");
-    struct Slot final { PendingNeighbourCandidate Candidate{}; std::uint16_t Generation{0}; bool Occupied{false}; };
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final { PendingNeighbourCandidate Candidate{}; std::uint16_t Generation{0}; bool Occupied{false}; };
     std::array<Slot, Capacity> _slots{};
     std::size_t _size{0};
     static std::uint16_t NextGeneration(std::uint16_t current) noexcept { ++current; if (current == 0U) ++current; return current; }
@@ -122,12 +173,42 @@ public:
     }
 };
 
-enum class InboundAuthenticationReservationResult : std::uint8_t { Reserved, AlreadyInProgress, ResourceUnavailable, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class InboundAuthenticationReservationResult : std::uint8_t { Reserved, AlreadyInProgress, ResourceUnavailable, Invalid };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxActiveInboundAuthentications>
 class InboundAuthenticationReservationTable final {
     static_assert(Capacity > 0, "Inbound authentication capacity must be non-zero.");
-    struct Slot final { NeighbourCandidateHandle Candidate{}; bool Occupied{false}; };
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final { NeighbourCandidateHandle Candidate{}; bool Occupied{false}; };
     std::array<Slot, Capacity> _slots{};
     std::size_t _size{0};
 public:

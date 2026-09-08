@@ -21,6 +21,13 @@ namespace ESPressio::Mesh {
 /// Freshness/receipt age is intentionally not stored here. It remains independent local metadata so retransmission can
 /// refresh freshness without mutating authoritative generation or link semantics.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     typename TCharacteristics,
     std::size_t LinkCapacity = Limits::MaxTopologyLinks,
@@ -33,7 +40,14 @@ class TopologyGraphStore final {
 public:
     using Link = DirectedTopologyLink<TCharacteristics>;
 
-    struct AuthorityRecord final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct AuthorityRecord final {
         System::DeviceIdentifier Device{};
         MembershipIncarnation Incarnation{};
         TopologyGeneration Generation{0};

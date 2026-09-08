@@ -10,16 +10,64 @@
 
 namespace ESPressio::Mesh {
 
-enum class MeshV1ResponderBeginResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1ResponderBeginResult : std::uint8_t {
     Started, AlreadyStarted, AuthenticationResourceUnavailable, StateResourceUnavailable,
     CandidateNotFound, Invalid
 };
 
-enum class MeshV1ResponderHelloResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1ResponderHelloResult : std::uint8_t {
     ResponderReady, AlreadyReady, ResourceUnavailable, Rejected, CandidateNotFound, Invalid
 };
 
-enum class MeshV1ResponderFinishResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1ResponderFinishResult : std::uint8_t {
     Authenticated, AlreadyAuthenticated, ResourceUnavailable, Rejected, CandidateNotFound, Invalid
 };
 
@@ -31,16 +79,60 @@ enum class MeshV1ResponderFinishResult : std::uint8_t {
 /// membership and session capacity are preflighted in the serialized Mesh domain, the session is installed, and only
 /// then is the exact authenticated identity promoted. No untrusted claim mutates membership or session state.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _authentications (InboundAuthenticationReservationTable<AuthenticationCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _promotion (AdmissionPromotionCoordinator<CandidateCapacity, AuthenticationCapacity, MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
+ * - _admission (IMeshAdmissionPolicy&): 4 bytes [0 bytes dynamic allocation]
+ * - _mesh (MeshIdentifier): 0 bytes [0 bytes dynamic allocation]
+ * - _channelBinding (MeshSecurityChannelBinding): sizeof(MeshSecurityChannelBinding) [0 bytes dynamic allocation]
+ * - _localDevice (System::DeviceIdentifier): sizeof(System::DeviceIdentifier) [0 bytes dynamic allocation]
+ * - _localIncarnation (MembershipIncarnation): 0 bytes [0 bytes dynamic allocation]
+ * - _timeoutMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + 36 bytes known members + sizeof(MeshSecurityChannelBinding) + sizeof(System::DeviceIdentifier) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
          std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t SessionCapacity = Limits::MaxMeshNodes>
 class MeshV1ResponderAdmissionCoordinator final : public IMeshPendingAuthenticationReset {
-    enum class Stage : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class Stage : std::uint8_t {
         Empty, AwaitingInitiatorHello, ResponderReady, Authenticated, CleanupRequired
     };
 
-    struct State final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct State final {
         MeshSecurityCandidateContext Candidate{};
         AuthenticatedMeshIdentity Identity{};
         MeshEphemeralKeyHandle Ephemeral{};

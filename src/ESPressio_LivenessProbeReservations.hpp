@@ -13,6 +13,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Generation-safe reservation for one active liveness probe.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct LivenessProbeReservation final {
     std::uint8_t Slot{std::numeric_limits<std::uint8_t>::max()};
     std::uint16_t Generation{0};
@@ -24,7 +31,23 @@ struct LivenessProbeReservation final {
 };
 
 /// <summary>Result of attempting to start one bounded active liveness probe.</summary>
-enum class LivenessProbeReservationResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class LivenessProbeReservationResult : std::uint8_t {
     Reserved,
     AlreadyInProgress,
     ResourceUnavailable,
@@ -37,13 +60,27 @@ enum class LivenessProbeReservationResult : std::uint8_t {
 /// authenticated DeviceIdentifier + MembershipIncarnation and enforces the locked finite active-probe bound. It stores
 /// no reachability result and cannot change MembershipState or authenticated authority.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxActiveLivenessProbes>
 class LivenessProbeReservationTable final {
     static_assert(Capacity > 0, "Active liveness probe capacity must be non-zero.");
     static_assert(Capacity < std::numeric_limits<std::uint8_t>::max(),
                   "Liveness probe slots must fit the compact reservation handle.");
 
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         System::DeviceIdentifier Device{};
         MembershipIncarnation Incarnation{};
         std::uint16_t Generation{0};

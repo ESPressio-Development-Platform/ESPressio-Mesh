@@ -9,13 +9,36 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Origin of one currently usable local route plan.</summary>
-enum class RoutePlanOrigin : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class RoutePlanOrigin : std::uint8_t {
     Cache,
     Strategy,
     LocalDestination
 };
 
 /// <summary>Complete local route-planning result after cache revalidation or strategy execution.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t HopCapacity = Limits::MaxRouteHops>
 struct RoutePlan final {
     ResolvedRoute<HopCapacity> Route{};
@@ -27,6 +50,13 @@ struct RoutePlan final {
 /// Implementations re-check every condition that can invalidate a route, including current authenticated membership,
 /// topology freshness, link usability and composition-specific routing policy. The cache is never authoritative.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks,
          std::size_t AuthorityCapacity = Limits::MaxMeshNodes, std::size_t HopCapacity = Limits::MaxRouteHops>
 class IRouteRevalidationPolicy {
@@ -44,6 +74,16 @@ public:
 /// routes must pass the same current-evidence policy, preventing strategy output from bypassing present membership/link/
 /// freshness requirements. Cache saturation cannot prevent successful forwarding because storage remains optional.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _cache (Cache&): 4 bytes [0 bytes dynamic allocation]
+ * - _strategy (Strategy&): 4 bytes [0 bytes dynamic allocation]
+ * - _revalidation (Revalidation&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks,
          std::size_t AuthorityCapacity = Limits::MaxMeshNodes, std::size_t CacheCapacity = Limits::MaxRouteCacheEntries,
          std::size_t HopCapacity = Limits::MaxRouteHops>

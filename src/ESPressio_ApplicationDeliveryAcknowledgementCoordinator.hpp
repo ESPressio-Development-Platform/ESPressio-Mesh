@@ -8,7 +8,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of applying one authenticated destination acknowledgement to an application recipient lifecycle.</summary>
-enum class ApplicationDeliveryAcknowledgementResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ApplicationDeliveryAcknowledgementResult : std::uint8_t {
     Delivered,
     DeadlineExpired,
     Unrelated,
@@ -32,6 +48,14 @@ enum class ApplicationDeliveryAcknowledgementResult : std::uint8_t {
 /// completion. Radio/link evidence and next-hop acceptance remain unrelated. Existing aggregate terminal outcomes win
 /// races: a late ACK cannot overwrite DeadlineExpired or another terminal result.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _recipients (ApplicationRecipientLifecycleCoordinator<AcknowledgementCapacity, TransmissionCapacity, RecipientCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,

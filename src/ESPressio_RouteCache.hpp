@@ -10,6 +10,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Generation-safe local handle identifying one current route-cache entry.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct RouteCacheHandle final {
     std::uint16_t Slot{0xFFFFU};
     std::uint16_t Generation{0};
@@ -23,7 +30,23 @@ struct RouteCacheHandle final {
 };
 
 /// <summary>Result of inserting or replacing one local cached route.</summary>
-enum class RouteCacheStoreResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class RouteCacheStoreResult : std::uint8_t {
     Stored,
     Replaced,
     ResourceUnavailable,
@@ -37,6 +60,13 @@ enum class RouteCacheStoreResult : std::uint8_t {
 /// an existing source+destination entry is replaced in place; otherwise a free slot is used. No unrelated destination
 /// is implicitly evicted because eviction policy is independently variable behavior.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t EntryCapacity = Limits::MaxRouteCacheEntries, std::size_t HopCapacity = Limits::MaxRouteHops>
 class RouteCache final {
     static_assert(EntryCapacity > 0, "Route-cache capacity must be non-zero.");
@@ -46,7 +76,14 @@ public:
     using Route = ResolvedRoute<HopCapacity>;
 
 private:
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         Route Value{};
         std::uint16_t Generation{0};
         bool Occupied{false};

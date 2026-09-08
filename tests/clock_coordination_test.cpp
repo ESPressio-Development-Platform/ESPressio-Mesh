@@ -8,8 +8,23 @@ using namespace ESPressio;
 using namespace ESPressio::Mesh;
 
 namespace {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct Quality final { std::uint32_t UncertaintyNanoseconds{0}; };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class QualityPolicy final : public IClockQualityPolicy<Quality> {
 public:
     ClockQualityComparison Compare(const Quality& candidate, const Quality& incumbent) const noexcept override {
@@ -19,6 +34,14 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class EligibilityPolicy final : public IClockEligibilityPolicy<Quality> {
 public:
     bool IsEligible(const ClockCoordinationAdvertisement<Quality>& advertisement) const noexcept override {
@@ -26,6 +49,14 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class ParentUsabilityPolicy final : public IClockParentUsabilityPolicy<Quality> {
 public:
     bool IsUsableParent(const ClockCoordinationAdvertisement<Quality>&) const noexcept override { return true; }

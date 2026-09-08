@@ -13,6 +13,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Authenticated liveness evidence retained for one current membership incarnation.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct AuthenticatedLivenessEvidence final {
     std::uint64_t LastEvidenceMilliseconds{0};
     std::uint64_t UnreachableSinceMilliseconds{0};
@@ -22,6 +29,13 @@ struct AuthenticatedLivenessEvidence final {
 };
 
 /// <summary>Policy contract that classifies elapsed time since the last authenticated Mesh evidence.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IMeshLivenessPolicy {
 public:
     virtual ~IMeshLivenessPolicy() = default;
@@ -39,6 +53,16 @@ public:
 /// The thresholds are policy configuration, not membership-storage constants. Applications may inject a
 /// different policy without changing membership representation or distributed identity semantics.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _suspectAfterMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - _unreachableAfterMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 20 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class DefaultMeshLivenessPolicy final : public IMeshLivenessPolicy {
     std::uint64_t _suspectAfterMilliseconds;
     std::uint64_t _unreachableAfterMilliseconds;
@@ -75,9 +99,25 @@ public:
 /// Valid authenticated evidence restores Reachable immediately. Time-based degradation is local evidence only
 /// and never changes MembershipState or authoritatively removes a member.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _members (AuthenticatedMembershipTable<Capacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _policy (IMeshLivenessPolicy&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxMeshNodes>
 class MembershipLivenessTracker final {
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         System::DeviceIdentifier Device{};
         MembershipIncarnation Incarnation{};
         AuthenticatedLivenessEvidence Evidence{};

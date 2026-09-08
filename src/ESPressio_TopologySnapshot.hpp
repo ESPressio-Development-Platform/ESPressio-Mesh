@@ -12,7 +12,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Local freshness classification for one authenticated remote topology authority.</summary>
-enum class TopologyFreshnessState : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class TopologyFreshnessState : std::uint8_t {
     Fresh,
     Degraded,
     Stale,
@@ -28,6 +44,13 @@ enum class TopologyFreshnessState : std::uint8_t {
 /// RadioIdentifier/link endpoint is not knowable; 0xFF remains reserved and is invalid. No RadioAddress or
 /// RadioPeerHandle is retained as distributed topology identity.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct TopologyLinkIdentity final {
     System::DeviceIdentifier Advertiser{};
     RadioIdentifier LocalRadio{0};
@@ -60,6 +83,13 @@ struct TopologyLinkIdentity final {
 /// TCharacteristics deliberately remains a separate bounded value type. The architecture does not define a universal
 /// scalar RouteCost: Radio/Mesh observations are normalized independently and interpreted by IRoutingStrategy.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics>
 struct DirectedTopologyLink final {
     TopologyLinkIdentity Identity{};
@@ -72,7 +102,23 @@ struct DirectedTopologyLink final {
 };
 
 /// <summary>Result of applying one complete authenticated outbound-topology generation.</summary>
-enum class TopologySnapshotApplyResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class TopologySnapshotApplyResult : std::uint8_t {
     Applied,
     RefreshedSameGeneration,
     StaleGeneration,
@@ -98,6 +144,13 @@ enum class TopologySnapshotApplyResult : std::uint8_t {
 /// local receipt age/freshness is retained separately so authenticated retransmission can refresh freshness without
 /// mutating TopologyGeneration.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t Capacity = Limits::MaxTopologyLinks>
 class TopologySnapshot final {
     static_assert(Capacity > 0, "Topology link capacity must be non-zero.");

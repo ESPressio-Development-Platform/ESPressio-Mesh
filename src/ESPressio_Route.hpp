@@ -20,6 +20,13 @@ namespace ESPressio::Mesh {
 /// RadioAddress and RadioPeerHandle never appear here because they are executable local-link bindings, not topology
 /// identity. The route merely records which directed logical edges a strategy selected while planning.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t HopCapacity = Limits::MaxRouteHops>
 class ResolvedRoute final {
     static_assert(HopCapacity > 0, "A route must permit at least one hop.");

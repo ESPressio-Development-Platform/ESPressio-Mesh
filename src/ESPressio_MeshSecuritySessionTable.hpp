@@ -10,6 +10,13 @@
 
 namespace ESPressio::Mesh {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshSecuritySessionRecordHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -19,6 +26,13 @@ struct MeshSecuritySessionRecordHandle final {
 };
 
 /// <summary>64-position replay window committed only after successful authentication.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshSecurityReplayWindow final {
     std::uint64_t _highest{0};
     std::uint64_t _seen{0};
@@ -58,12 +72,26 @@ public:
 /// and inbound replay domains, matching the provider's independently derived keys/base IVs. Callers preflight replay,
 /// authenticate with IMeshV1CryptographicProvider::Open, then commit; unauthenticated input can never advance a window.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxMeshNodes>
 class MeshSecuritySessionTable final {
     static_assert(Capacity > 0U && Capacity < std::numeric_limits<std::uint16_t>::max(),
                   "Mesh security session capacity must be explicit and fit its handle slot.");
 
-    struct Record final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Record final {
         System::DeviceIdentifier Device{};
         MembershipIncarnation Incarnation{};
         MeshSecuritySessionIdentifier Identifier{};

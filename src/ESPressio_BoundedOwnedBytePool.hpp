@@ -9,6 +9,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Generation-safe handle to one allocation in a fixed owned-byte pool.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct OwnedBytePoolHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -19,12 +26,26 @@ struct OwnedBytePoolHandle final {
     constexpr explicit operator bool() const noexcept { return IsValid(); }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MutableOwnedByteView final {
     std::uint8_t* Data{nullptr};
     std::size_t Size{0};
     constexpr explicit operator bool() const noexcept { return Data != nullptr && Size != 0U; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct OwnedByteView final {
     const std::uint8_t* Data{nullptr};
     std::size_t Size{0};
@@ -36,6 +57,13 @@ struct OwnedByteView final {
 /// The pool is suitable for composition-owned inbound packets, control frames or bounded application payload backing.
 /// Allocation failure is explicit. Release and controlled reset clear retained bytes and make every old handle stale.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t SlotCapacity, std::size_t BytesPerSlot>
 class BoundedOwnedBytePool final {
     static_assert(SlotCapacity > 0U, "Owned-byte slot capacity must be non-zero.");
@@ -43,7 +71,14 @@ class BoundedOwnedBytePool final {
                   "Owned-byte slot capacity must fit the handle slot.");
     static_assert(BytesPerSlot > 0U, "Owned bytes per slot must be non-zero.");
 
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         std::array<std::uint8_t, BytesPerSlot> Bytes{};
         std::size_t Size{0};
         std::uint16_t Generation{0};

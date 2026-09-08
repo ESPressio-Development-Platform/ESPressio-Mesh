@@ -17,6 +17,14 @@ namespace ESPressio::Mesh {
 /// The complete topology snapshot is available so a policy may inspect technology-independent link characteristics
 /// without this layer inventing a universal confidence, latency or scalar routing-cost representation.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Snapshot (TopologySnapshot<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>
 struct TopologyFreshnessEvidence final {
     const TopologySnapshot<TCharacteristics, LinkCapacity>& Snapshot;
@@ -26,6 +34,13 @@ struct TopologyFreshnessEvidence final {
 };
 
 /// <summary>Injectable policy deriving local freshness independently from authoritative TopologyGeneration.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>
 class ITopologyFreshnessPolicy {
 public:
@@ -46,6 +61,15 @@ public:
 /// generation may likewise mark receipt after successful application. An old incarnation or mismatched generation can
 /// never refresh the current snapshot. Freshness classification is entirely delegated to ITopologyFreshnessPolicy.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _snapshot (TopologySnapshot<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _policy (ITopologyFreshnessPolicy<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>
 class TopologyFreshnessTracker final {
     TopologySnapshot<TCharacteristics, LinkCapacity>& _snapshot;

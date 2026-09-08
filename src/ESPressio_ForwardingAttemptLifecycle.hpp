@@ -10,7 +10,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Immediate lifecycle action after one local forwarding submission attempt.</summary>
-enum class ForwardingAttemptAction : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ForwardingAttemptAction : std::uint8_t {
     AwaitingNextHopAcceptance,
     RetryCurrentRoute,
     ReplanDistinctRoute,
@@ -20,7 +36,23 @@ enum class ForwardingAttemptAction : std::uint8_t {
 };
 
 /// <summary>Lifecycle action after already-authenticated next-hop acceptance evidence is evaluated.</summary>
-enum class ForwardingAcceptanceAction : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ForwardingAcceptanceAction : std::uint8_t {
     ForwardingComplete,
     IgnoreUnrelatedEvidence,
     StopDeadlineExpired,
@@ -43,6 +75,13 @@ enum class ForwardingAcceptanceAction : std::uint8_t {
 ///
 /// This helper defines no queue, task, timer, wire message, security scheme or PrimitiveFamilyId.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class ForwardingAttemptLifecycle final {
     static ForwardingAttemptAction MapAction(RouteAttemptAction action) noexcept {
         switch (action) {

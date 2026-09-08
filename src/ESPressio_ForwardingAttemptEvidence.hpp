@@ -10,7 +10,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Actionable state established for one Mesh next-hop attempt from Radio-layer evidence.</summary>
-enum class ForwardingAttemptEvidenceDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ForwardingAttemptEvidenceDisposition : std::uint8_t {
     AwaitingNextHopAcceptance,
     RetryableRouteFailure,
     ResourceUnavailable,

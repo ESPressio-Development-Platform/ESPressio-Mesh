@@ -12,7 +12,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Semantic reason accompanying a Mesh node lifecycle notification.</summary>
-enum class MeshNodeLifecycleReason : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshNodeLifecycleReason : std::uint8_t {
     None = 0,
     AuthenticationRejected,
     AdmissionRejected,
@@ -26,6 +42,13 @@ enum class MeshNodeLifecycleReason : std::uint8_t {
 };
 
 /// <summary>Immutable identity/state snapshot delivered to Mesh lifecycle observers.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshNodeLifecycleNotification final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -47,6 +70,15 @@ struct MeshNodeLifecycleNotification final {
 /// "Unavailable" means the authenticated membership is retained but Reachability is Unreachable. "Lost" means local
 /// retention expired and the full membership was retired. "Disconnected" is reserved for authenticated graceful Leave.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Observable::IObserver) [0 bytes dynamic allocation]
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: sizeof(Observable::IObserver) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class IMeshLifecycleObserver : public Observable::IObserver {
 public:
     ~IMeshLifecycleObserver() override = default;
@@ -60,10 +92,26 @@ public:
 };
 
 /// <summary>Shared Observable-backed source for Mesh lifecycle callbacks.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshLifecycleNotifications final {
     static constexpr auto ExternalPreferred = System::Memory::MemoryPolicy::ExternalPreferred;
 
-    class Source final : public Observable::ThreadSafeObservable {
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Observable::ThreadSafeObservable) [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: sizeof(Observable::ThreadSafeObservable) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+class Source final : public Observable::ThreadSafeObservable {
         template<typename TCallback>
         void Notify(TCallback&& callback) noexcept {
             try {

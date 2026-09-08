@@ -9,7 +9,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>State of optional deferred Radio-terminal correlation for one forwarding submission.</summary>
-enum class ForwardingRadioCorrelationDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ForwardingRadioCorrelationDisposition : std::uint8_t {
     NotRequired,
     Reserved,
     Bound,
@@ -18,6 +34,13 @@ enum class ForwardingRadioCorrelationDisposition : std::uint8_t {
 };
 
 /// <summary>Result of one forwarding submission coordinated with bounded Radio-terminal correlation.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct ForwardingRadioAttemptResult final {
     ForwardingSubmissionResult Submission{};
     ForwardingAttemptAction Action{ForwardingAttemptAction::StopPermanentFailure};
@@ -40,6 +63,16 @@ struct ForwardingRadioAttemptResult final {
 /// This coordinator owns no payload, route, timer, retry counter, HopLimit or acceptance state. The owning serialized Mesh
 /// execution domain is responsible for invoking Submit/TryConsumeTerminal and for releasing abandoned correlations.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _submission (ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _correlation (ForwardingRadioTerminalCorrelation<CorrelationCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _attempts (RouteAttemptCoordinator&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     std::size_t CorrelationCapacity,
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,

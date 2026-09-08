@@ -14,6 +14,13 @@ namespace ESPressio::Mesh {
 /// invalid because control work must never remain queued indefinitely. Application traffic owns its own immutable
 /// delivery deadline and is therefore deliberately outside this control-work policy.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IControlWorkLifetimePolicy {
 public:
     virtual ~IControlWorkLifetimePolicy() = default;
@@ -30,6 +37,14 @@ public:
 /// topology, radio technology and execution budgets. Construction is valid only when every protected control class
 /// has a non-zero lifetime. Application class queries return zero because application deliveries use their own deadline.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class FixedControlWorkLifetimePolicy final : public IControlWorkLifetimePolicy {
     std::uint64_t _infrastructureMilliseconds{0};
     std::uint64_t _clockMilliseconds{0};

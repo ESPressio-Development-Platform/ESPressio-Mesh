@@ -12,6 +12,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Identity of one authenticated ordinary Mesh delivery while semantic handoff is in progress.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct InboundDeliveryIdentity final {
     System::DeviceIdentifier Source{};
     MembershipIncarnation Incarnation{};
@@ -38,7 +45,23 @@ struct InboundDeliveryIdentity final {
 };
 
 /// <summary>Immediate result of attempting to reserve one authenticated inbound delivery for semantic handoff.</summary>
-enum class InboundDeliveryReservationResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class InboundDeliveryReservationResult : std::uint8_t {
     /// <summary>The delivery now exclusively owns one bounded InProgress reservation.</summary>
     Reserved,
     /// <summary>An equivalent authenticated delivery copy is already being processed.</summary>
@@ -61,11 +84,25 @@ enum class InboundDeliveryReservationResult : std::uint8_t {
 /// The default Mesh execution model serializes mutation of this table; the table deliberately owns no mutex or
 /// task because execution-domain synchronization is a separate responsibility.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxActiveInboundDeliveries>
 class InboundDeliveryReservationTable final {
     static_assert(Capacity > 0, "Inbound delivery reservation capacity must be non-zero.");
 
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         InboundDeliveryIdentity Identity{};
         bool Occupied{false};
     };

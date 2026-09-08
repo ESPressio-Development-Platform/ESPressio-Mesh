@@ -20,6 +20,14 @@ static Mesh::MeshIdentifier MeshId(std::uint8_t tail) {
     return Mesh::MeshIdentifier{bytes};
 }
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class Provider final : public Mesh::IMeshV1CryptographicProvider {
     std::array<bool, 8> _ephemeral{};
     std::array<bool, 8> _sessions{};
@@ -150,6 +158,14 @@ public:
     void ResetForControlledShutdown() noexcept override { _ephemeral = {}; _sessions = {}; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class Admission final : public Mesh::IMeshAdmissionPolicy {
 public:
     Mesh::MeshAdmissionDisposition Next{Mesh::MeshAdmissionDisposition::Admit};

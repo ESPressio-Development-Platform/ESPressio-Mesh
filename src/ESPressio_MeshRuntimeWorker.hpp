@@ -15,12 +15,26 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result returned by one bounded Mesh ingress service pass.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshRuntimeServiceResult final {
     std::size_t WorkItemsProcessed{0U};
     bool WorkRemaining{false};
 };
 
 /// <summary>Receives a non-blocking signal that serialized Mesh runtime work is available.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IMeshRuntimeWorkSignal {
 public:
     virtual ~IMeshRuntimeWorkSignal() = default;
@@ -28,6 +42,13 @@ public:
 };
 
 /// <summary>Runtime scheduling policy for one serialized Mesh execution context.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshRuntimeWorkerConfiguration final {
     /// <summary>Maximum idle interval between monotonic Mesh maintenance passes.</summary>
     std::uint32_t MaintenancePeriodMilliseconds{10U};
@@ -46,6 +67,13 @@ struct MeshRuntimeWorkerConfiguration final {
 };
 
 /// <summary>Cumulative execution diagnostics for MeshRuntimeWorker.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshRuntimeWorkerStatistics final {
     std::uint64_t WorkSignals{0U};
     std::uint64_t IngressPasses{0U};
@@ -74,6 +102,16 @@ struct MeshRuntimeWorkerStatistics final {
 /// ingress wake. In addition, every work wake checks the monotonic maintenance deadline so sustained ingress cannot starve
 /// lifecycle work merely by continuously requesting asynchronous service.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Threads::PrecisionThread<Units::NanoSeconds<std::uint64_t>, Threads::PrecisionThreadTraits<Units::NanoSeconds<std::uint64_t>>>) [0 bytes dynamic allocation]
+ * Requires Stack/Heap Preallocation
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes known bases + sizeof(Threads::PrecisionThread<Units::NanoSeconds<std::uint64_t>, Threads::PrecisionThreadTraits<Units::NanoSeconds<std::uint64_t>>>) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class MeshRuntimeWorker final
     : public Threads::PrecisionThread<
           Units::NanoSeconds<std::uint64_t>,

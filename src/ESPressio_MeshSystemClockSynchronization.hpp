@@ -11,13 +11,45 @@
 
 namespace ESPressio::Mesh {
 
-enum class MeshSystemClockRole : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshSystemClockRole : std::uint8_t {
     Disabled,
     Reference,
     ClientAndReference
 };
 
-enum class MeshSystemClockConvergenceDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshSystemClockConvergenceDisposition : std::uint8_t {
     Unchanged,
     Disabled,
     ReferenceConfigured,
@@ -28,6 +60,13 @@ enum class MeshSystemClockConvergenceDisposition : std::uint8_t {
 };
 
 /// <summary>Transport boundary used by Mesh to apply an elected direct synchronization relationship.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IMeshSystemClockSynchronizationTransport {
 public:
     virtual ~IMeshSystemClockSynchronizationTransport() = default;
@@ -50,6 +89,17 @@ public:
 /// Radio retains the T1/T2/T3/T4 packet exchange, independent control-worker lifecycle and timestamp boundary. This
 /// adapter only resolves the generation-safe binding selected by Mesh and configures the resulting opaque Radio address.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _synchronizer (Radio::RadioClockSynchronizer&): 4 bytes [0 bytes dynamic allocation]
+ * - _transport (Radio::RadioTransport&): 4 bytes [0 bytes dynamic allocation]
+ * - _radio (Radio::IRadio&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class RadioMeshSystemClockSynchronizationTransport final :
     public IMeshSystemClockSynchronizationTransport {
     Radio::RadioClockSynchronizer& _synchronizer;
@@ -104,6 +154,15 @@ public:
 /// synchronization state. Deadline-driven Mesh traffic should use NowMilliseconds() only when
 /// IsDeadlineClockReady() is true.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _clock (Timing::IClockSynchronizationTarget<Timing::ClockTick>&): 4 bytes [0 bytes dynamic allocation]
+ * - _transport (IMeshSystemClockSynchronizationTransport&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshSystemClockSynchronizationCoordinator final {
     Timing::IClockSynchronizationTarget<Timing::ClockTick>& _clock;
     IMeshSystemClockSynchronizationTransport& _transport;

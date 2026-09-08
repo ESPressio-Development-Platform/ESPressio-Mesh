@@ -9,6 +9,16 @@ using namespace ESPressio::Mesh;
 namespace {
 ESPressio::System::DeviceIdentifier Device(std::uint8_t value) { ESPressio::System::DeviceIdentifier::Storage bytes{}; bytes[15] = value; return ESPressio::System::DeviceIdentifier(bytes); }
 MembershipIncarnation Incarnation(std::uint8_t value) { MembershipIncarnation::Storage bytes{}; bytes[15] = value; return MembershipIncarnation(bytes); }
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _data (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
+ * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class Repeatable final : public IRepeatableSerializedPayloadSource {
     const std::uint8_t* _data; std::size_t _size;
 public:

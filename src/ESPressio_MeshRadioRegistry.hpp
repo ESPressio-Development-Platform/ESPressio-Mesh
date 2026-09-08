@@ -12,7 +12,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of registering one Radio interface into the current Mesh membership incarnation.</summary>
-enum class MeshRadioRegistrationResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshRadioRegistrationResult : std::uint8_t {
     Registered,
     AlreadyRegistered,
     ResourceUnavailable,
@@ -31,12 +47,26 @@ enum class MeshRadioRegistrationResult : std::uint8_t {
 /// This registry does not own or start Radio interfaces and does not own RadioPeerHandle state; those remain
 /// responsibilities of ESPressio-Radio/RadioTransport. Mutation is intended for the serialized Mesh domain.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxRadiosPerNode>
 class MeshRadioRegistry final {
     static_assert(Capacity > 0, "Mesh radio capacity must be non-zero.");
     static_assert(Capacity <= 254, "A membership incarnation has at most 254 usable RadioIdentifier values.");
 
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         Radio::IRadio* Interface{nullptr};
         RadioIdentifier Identifier{0};
         bool Occupied{false};

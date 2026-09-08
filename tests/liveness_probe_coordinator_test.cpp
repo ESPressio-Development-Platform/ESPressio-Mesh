@@ -18,6 +18,14 @@ static Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
     return Mesh::MembershipIncarnation{bytes};
 }
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class TestProbePolicy final : public Mesh::IMeshLivenessProbePolicy {
 public:
     bool ShouldProbe(const Mesh::LivenessProbeAssessment& assessment) const noexcept override {
@@ -31,6 +39,14 @@ public:
     bool Eligible{false};
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class TestProbeInitiator final : public Mesh::ILivenessProbeInitiator {
 public:
     Mesh::LivenessProbeStartDisposition TryStartProbe(

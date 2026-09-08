@@ -23,6 +23,18 @@ namespace ESPressio::Mesh {
 /// The coordinator is intended for the serialized Mesh execution domain. Cleanup is bounded by CandidateCapacity
 /// and uses a fixed local handle array rather than allocating a snapshot.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Radio::IRadioTransportPeerObserver) [0 bytes dynamic allocation]
+ * Members:
+ * - _radios (MeshRadioRegistry<RadioCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _authentications (InboundAuthenticationReservationTable<AuthenticationCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Radio::IRadioTransportPeerObserver) + 12 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<
     std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
     std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications,

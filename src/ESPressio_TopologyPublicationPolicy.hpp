@@ -9,6 +9,14 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Read-only local evidence supplied when deciding whether an observed complete link set is material enough to publish.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Published (TopologySnapshot<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>
 struct TopologyPublicationEvidence final {
     using Link = DirectedTopologyLink<TCharacteristics>;
@@ -24,6 +32,13 @@ struct TopologyPublicationEvidence final {
 };
 
 /// <summary>Injectable materiality policy separating local link observation from authoritative topology publication.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>
 class ITopologyPublicationPolicy {
 public:
@@ -42,7 +57,23 @@ public:
 };
 
 /// <summary>Outcome of considering one complete normalized local outbound-link observation for publication.</summary>
-enum class TopologyPublicationResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class TopologyPublicationResult : std::uint8_t {
     Published,
     Unchanged,
     SuppressedByPolicy,
@@ -62,6 +93,15 @@ enum class TopologyPublicationResult : std::uint8_t {
 /// This coordinator does not estimate link characteristics and does not choose materiality thresholds. Observation and
 /// normalization belong below this boundary; dissemination/retransmission scheduling belongs above it.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _published (TopologySnapshot<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _policy (ITopologyPublicationPolicy<TCharacteristics, LinkCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TCharacteristics, std::size_t LinkCapacity = Limits::MaxTopologyLinks>
 class TopologyPublicationCoordinator final {
 public:

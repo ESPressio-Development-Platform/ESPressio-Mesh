@@ -11,7 +11,23 @@
 
 namespace ESPressio::Mesh {
 
-enum class ForwardingSubmissionDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ForwardingSubmissionDisposition : std::uint8_t {
     Accepted,
     DeadlineExpired,
     HopLimitExhausted,
@@ -23,13 +39,36 @@ enum class ForwardingSubmissionDisposition : std::uint8_t {
     Invalid
 };
 
-enum class ForwardingDirectLinkEvidence : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ForwardingDirectLinkEvidence : std::uint8_t {
     None,
     SubmissionAccepted,
     TransmissionCompleted,
     PeerAcknowledged
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct ForwardingSubmissionResult final {
     ForwardingSubmissionDisposition Disposition{ForwardingSubmissionDisposition::Invalid};
     Radio::RadioTransportSendResult RadioResult{};
@@ -60,6 +99,16 @@ struct ForwardingSubmissionResult final {
 /// authenticated membership identity used to resolve the executable peer binding; callers must use those values rather
 /// than reconstructing acceptance authority from route or discovery state.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _bindings (AuthenticatedDirectPeerBindingTable<BindingCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _transport (Radio::RadioTransport&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t BindingCapacity = Limits::MaxTopologyLinks,
          std::size_t HopCapacity = Limits::MaxRouteHops>

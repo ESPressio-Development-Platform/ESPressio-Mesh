@@ -10,13 +10,61 @@
 
 namespace ESPressio::Mesh {
 
-enum class ApplicationTransmissionAdmissionResult : std::uint8_t { Begun, ResourceUnavailable, DeadlineExpired, DuplicateRecipient, DuplicateMessageId, Invalid };
-enum class ApplicationRecipientBeginResult : std::uint8_t { Begun, AlreadyTerminal, ResourceUnavailable, DeadlineExpired, UnknownRecipient, UnknownTransmission, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ApplicationTransmissionAdmissionResult : std::uint8_t { Begun, ResourceUnavailable, DeadlineExpired, DuplicateRecipient, DuplicateMessageId, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ApplicationRecipientBeginResult : std::uint8_t { Begun, AlreadyTerminal, ResourceUnavailable, DeadlineExpired, UnknownRecipient, UnknownTransmission, Invalid };
 
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _transmissions (ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _traffic (IMeshTrafficGovernor&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission>
 class ApplicationTransmissionCoordinator final {
-    struct ReservationBinding final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct ReservationBinding final {
         bool Used{false};
         std::uint16_t TransmissionGeneration{0};
         MeshTrafficReservation Reservation{};

@@ -10,7 +10,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Independent bounded work classes protected by Mesh traffic governance.</summary>
-enum class MeshTrafficClass : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshTrafficClass : std::uint8_t {
     InfrastructureResponse,
     ClockControl,
     GeneralControl,
@@ -18,6 +34,13 @@ enum class MeshTrafficClass : std::uint8_t {
 };
 
 /// <summary>Generation-safe reservation for one admitted unit of Mesh work.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshTrafficReservation final {
     MeshTrafficClass Class{MeshTrafficClass::Application};
     std::uint8_t Slot{std::numeric_limits<std::uint8_t>::max()};
@@ -30,13 +53,36 @@ struct MeshTrafficReservation final {
 };
 
 /// <summary>Result of attempting to reserve bounded capacity from one Mesh traffic class.</summary>
-enum class MeshTrafficAdmissionResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshTrafficAdmissionResult : std::uint8_t {
     Admitted,
     ResourceUnavailable,
     Invalid
 };
 
 /// <summary>Injectable local policy boundary governing admission into independently protected Mesh work classes.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IMeshTrafficGovernor {
 public:
     virtual ~IMeshTrafficGovernor() = default;
@@ -75,8 +121,23 @@ public:
 /// The governor controls admission only; it owns no queues, scheduling task or wire semantics. Alternative governors
 /// may be injected through IMeshTrafficGovernor provided they retain finite bounded behavior required by the application.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class DefaultMeshTrafficGovernor final : public IMeshTrafficGovernor {
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         std::uint16_t Generation{0};
         bool Occupied{false};
     };

@@ -16,12 +16,35 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Protected direct-neighbour liveness control message.</summary>
-enum class MeshV1LivenessMessageType : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1LivenessMessageType : std::uint8_t {
     Probe = 1U,
     Response = 2U,
     GracefulDisconnect = 3U
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1LivenessHeader final {
     MeshIdentifier Mesh{};
     MeshSecuritySessionIdentifier Session{};
@@ -42,6 +65,13 @@ struct MeshV1LivenessHeader final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1LivenessFrameView final {
     const std::uint8_t* AuthenticatedHeader{nullptr};
     std::size_t AuthenticatedHeaderBytes{0U};
@@ -58,6 +88,13 @@ struct MeshV1LivenessFrameView final {
 /// echoed by a response and has no authority beyond correlating the probe. No System Clock timestamp is required:
 /// liveness scheduling and evidence age remain monotonic-time concerns.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshV1LivenessFrameCodec final {
     inline static constexpr std::array<std::uint8_t, 4U> Magic{{0x45U, 0x53U, 0x4CU, 0x56U}}; // ESLV
     static constexpr std::uint8_t Version = 1U;
@@ -170,7 +207,23 @@ public:
     static std::uint64_t DecodeToken(const std::uint8_t* input) noexcept { return ReadU64(input); }
 };
 
-enum class MeshV1LivenessReceiveDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1LivenessReceiveDisposition : std::uint8_t {
     ProbeAuthenticated,
     ResponseAuthenticated,
     GracefulDisconnectAuthenticated,
@@ -183,6 +236,13 @@ enum class MeshV1LivenessReceiveDisposition : std::uint8_t {
     Invalid
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1LivenessReceiveResult final {
     MeshV1LivenessReceiveDisposition Disposition{MeshV1LivenessReceiveDisposition::Invalid};
     System::DeviceIdentifier Sender{};
@@ -204,6 +264,19 @@ struct MeshV1LivenessReceiveResult final {
 /// results to MembershipLivenessTracker only after this coordinator reports authenticated evidence. Probe scheduling
 /// remains owned by LivenessProbeCoordinator/IMeshLivenessProbePolicy.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _bindings (AuthenticatedDirectPeerBindingTable<BindingCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
+ * - _transport (Radio::RadioTransport&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 24 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t BindingCapacity = Limits::MaxTopologyLinks,
@@ -371,6 +444,14 @@ public:
 };
 
 /// <summary>Default policy keeping authenticated direct neighbours inside the liveness floor without application traffic.</summary>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class DefaultMeshLivenessProbePolicy final : public IMeshLivenessProbePolicy {
     std::uint64_t _probeIntervalMilliseconds{2000U};
 

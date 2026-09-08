@@ -16,6 +16,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Wire-neutral identity of the conceptual primitive family carried by an application transmission.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct ApplicationPrimitiveDescriptor final {
     Primitive::PrimitiveFamilyId Family{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersion Version{0};
@@ -27,6 +34,13 @@ struct ApplicationPrimitiveDescriptor final {
 };
 
 /// <summary>Generation-safe sender-local handle to one accepted application transmission aggregate.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct ApplicationTransmissionHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -36,6 +50,13 @@ struct ApplicationTransmissionHandle final {
 };
 
 /// <summary>One recipient frozen into a sender-local selective application transmission.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct ApplicationTransmissionRecipient final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -43,9 +64,57 @@ struct ApplicationTransmissionRecipient final {
     constexpr bool IsValid() const noexcept { return static_cast<bool>(Device) && static_cast<bool>(Incarnation) && MessageId != 0U; }
 };
 
-enum class ApplicationRecipientOutcome : std::uint8_t { Pending, Delivered, PermanentFailure, DeadlineExpired };
-enum class ApplicationTransmissionBeginResult : std::uint8_t { Begun, ResourceUnavailable, DeadlineExpired, DuplicateRecipient, DuplicateMessageId, Invalid };
-enum class ApplicationTransmissionUpdateResult : std::uint8_t { Updated, AlreadyTerminal, UnknownRecipient, UnknownTransmission, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ApplicationRecipientOutcome : std::uint8_t { Pending, Delivered, PermanentFailure, DeadlineExpired };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ApplicationTransmissionBeginResult : std::uint8_t { Begun, ResourceUnavailable, DeadlineExpired, DuplicateRecipient, DuplicateMessageId, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ApplicationTransmissionUpdateResult : std::uint8_t { Updated, AlreadyTerminal, UnknownRecipient, UnknownTransmission, Invalid };
 
 /// <summary>Fixed-capacity sender-local ownership of accepted application transmission aggregates and frozen recipients.</summary>
 /// <remarks>
@@ -54,6 +123,13 @@ enum class ApplicationTransmissionUpdateResult : std::uint8_t { Updated, Already
 /// caller-owned for the aggregate lifetime; the table owns no variable-capacity payload storage, routes, Radio state,
 /// acknowledgement tracker or selector identity. Broadcast is not represented here.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission>
 class ApplicationTransmissionTable final {
@@ -61,8 +137,22 @@ class ApplicationTransmissionTable final {
     static_assert(RecipientCapacity > 0U, "Application recipient capacity must be non-zero.");
     static_assert(TransmissionCapacity <= std::numeric_limits<std::uint16_t>::max(), "Transmission capacity must fit handle slot.");
 
-    struct RecipientRecord final { ApplicationTransmissionRecipient Recipient{}; ApplicationRecipientOutcome Outcome{ApplicationRecipientOutcome::Pending}; };
-    struct Record final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct RecipientRecord final { ApplicationTransmissionRecipient Recipient{}; ApplicationRecipientOutcome Outcome{ApplicationRecipientOutcome::Pending}; };
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Record final {
         bool Used{false};
         std::uint16_t Generation{0};
         std::uint8_t RecipientCount{0};

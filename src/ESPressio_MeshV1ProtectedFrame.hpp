@@ -13,6 +13,13 @@
 
 namespace ESPressio::Mesh {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1EndToEndFrameHeader final {
     MeshIdentifier Mesh{};
     MeshSecuritySessionIdentifier Session{};
@@ -36,6 +43,13 @@ struct MeshV1EndToEndFrameHeader final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1HopFrameHeader final {
     MeshIdentifier Mesh{};
     MeshSecuritySessionIdentifier Session{};
@@ -59,6 +73,13 @@ struct MeshV1HopFrameHeader final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshV1ProtectedFrameView final {
     const std::uint8_t* AuthenticatedHeader{nullptr};
     std::size_t AuthenticatedHeaderBytes{0};
@@ -76,6 +97,13 @@ struct MeshV1ProtectedFrameView final {
 /// or alter the EndToEnd frame. The final destination requires all duplicated destination/MessageId values to match.
 /// Radio receives the complete Hop frame as one opaque logical transfer and remains the sole fragmentation owner.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshV1ProtectedFrameCodec final {
     static constexpr std::array<std::uint8_t, 4> Magic{{0x45U, 0x53U, 0x4DU, 0x31U}};
     static constexpr std::uint8_t Version = 1U;

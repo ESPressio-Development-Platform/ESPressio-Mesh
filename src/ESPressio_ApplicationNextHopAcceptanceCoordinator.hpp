@@ -9,7 +9,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Application-level disposition after authenticated next-hop Mesh acceptance evidence is evaluated.</summary>
-enum class ApplicationNextHopAcceptanceDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ApplicationNextHopAcceptanceDisposition : std::uint8_t {
     ForwardingTransitionCommitted,
     UnrelatedEvidence,
     DeadlineExpired,
@@ -33,6 +49,14 @@ enum class ApplicationNextHopAcceptanceDisposition : std::uint8_t {
 /// that hop, but the aggregate recipient remains Pending: next-hop acceptance is not final destination acknowledgement.
 /// Deadline expiry commits DeadlineExpired. Hop-limit/internal definitive acceptance failure commits PermanentFailure.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _recipients (RecipientLifecycle&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t CorrelationCapacity,

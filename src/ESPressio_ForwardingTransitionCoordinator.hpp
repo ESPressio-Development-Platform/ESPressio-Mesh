@@ -14,6 +14,13 @@ namespace ESPressio::Mesh {
 /// This is sender-local bookkeeping only. It is not an acknowledgement wire envelope and does not allocate or imply a
 /// Mesh control PrimitiveFamilyId. The next-hop identity/incarnation must already have been authenticated when armed.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct PendingForwardingTransition final {
     System::DeviceIdentifier NextHop{};
     MembershipIncarnation NextHopIncarnation{};
@@ -31,7 +38,23 @@ struct PendingForwardingTransition final {
 };
 
 /// <summary>Result of arming one per-delivery pending forwarding transition.</summary>
-enum class ForwardingTransitionArmResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ForwardingTransitionArmResult : std::uint8_t {
     Armed,
     AlreadyPending,
     DeadlineExpired,
@@ -39,7 +62,23 @@ enum class ForwardingTransitionArmResult : std::uint8_t {
 };
 
 /// <summary>Result of applying authenticated next-hop Mesh acceptance evidence.</summary>
-enum class ForwardingAcceptanceResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ForwardingAcceptanceResult : std::uint8_t {
     Committed,
     NotPending,
     WrongNextHop,
@@ -71,6 +110,13 @@ enum class ForwardingAcceptanceResult : std::uint8_t {
 /// DeliveryAcknowledgementTracker: an intermediate next-hop acceptance transfers forwarding responsibility but does not
 /// say that the final destination framework has accepted the message.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class ForwardingTransitionCoordinator final {
     PendingForwardingTransition _pending{};
 

@@ -12,6 +12,13 @@ namespace ESPressio::Mesh {
 /// These values are authoritative only because the security authority established them. They must never be populated
 /// by copying the candidate's untrusted claim without authentication. DeviceIdentifier itself is not authentication.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct AuthenticatedMeshIdentity final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -28,6 +35,13 @@ struct AuthenticatedMeshIdentity final {
 /// Claim is explicitly untrusted input. Radio + Peer identify only the local direct-link observation through which the
 /// candidate is currently reachable. No field grants identity authority and no field defines a security wire format.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshSecurityCandidateContext final {
     NeighbourCandidateHandle Candidate{};
     RadioIdentifier Radio{0};
@@ -43,7 +57,23 @@ struct MeshSecurityCandidateContext final {
 };
 
 /// <summary>Outcome of one non-blocking security-authority evaluation of a pending neighbour candidate.</summary>
-enum class MeshAuthenticationDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshAuthenticationDisposition : std::uint8_t {
     /// <summary>Exact authenticated DeviceIdentifier + MembershipIncarnation were established.</summary>
     Authenticated,
     /// <summary>Security work remains active; caller retains the current bounded authentication reservation.</summary>
@@ -70,6 +100,13 @@ enum class MeshAuthenticationDisposition : std::uint8_t {
 /// On Authenticated, identity must be valid and is the only identity that may be passed to authenticated membership
 /// promotion. For every other disposition, the caller must ignore identity.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IMeshSecurityAuthority {
 public:
     virtual ~IMeshSecurityAuthority() = default;
@@ -82,6 +119,13 @@ public:
 };
 
 /// <summary>Optional controlled-reset participant for staged pre-membership cryptographic state.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IMeshPendingAuthenticationReset {
 public:
     virtual ~IMeshPendingAuthenticationReset() = default;
@@ -89,13 +133,36 @@ public:
     virtual void ClearPendingAuthenticationAfterProviderReset() noexcept = 0;
 };
 
-enum class MeshV1AdmissionResult : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshV1AdmissionResult : std::uint8_t {
     PromotedToValidating, AdmissionDeferred, Rejected, ConflictingIncarnation,
     MembershipResourceUnavailable, SessionResourceUnavailable, CleanupFailed,
     HandshakeNotAuthenticated, CandidateNotFound, Invalid
 };
 
 /// <summary>Input supplied to admission policy only after security established exact authenticated identity.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MeshAdmissionContext final {
     MeshSecurityCandidateContext Candidate{};
     AuthenticatedMeshIdentity Identity{};
@@ -109,7 +176,23 @@ struct MeshAdmissionContext final {
 };
 
 /// <summary>Outcome of applying local/distributed admission policy to an already-authenticated candidate.</summary>
-enum class MeshAdmissionDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class MeshAdmissionDisposition : std::uint8_t {
     Admit,
     Defer,
     Reject,
@@ -124,6 +207,13 @@ enum class MeshAdmissionDisposition : std::uint8_t {
 /// be captured by the concrete policy object rather than being embedded into Mesh. Compatibility/MeshSignature checks
 /// that are independently defined remain separate prerequisites and are not fabricated by this interface.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IMeshAdmissionPolicy {
 public:
     virtual ~IMeshAdmissionPolicy() = default;

@@ -10,7 +10,23 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of converging retained clock-election state with authenticated member reachability.</summary>
-enum class ClockReachabilityDisposition : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ClockReachabilityDisposition : std::uint8_t {
     Retained,
     Removed,
     MembershipUnavailable,
@@ -27,6 +43,15 @@ enum class ClockReachabilityDisposition : std::uint8_t {
 /// advertisements; only the exact current Unreachable incarnation is removed. A later authenticated observation may be
 /// retained again after liveness has restored that member to Reachable.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _membership (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * - _clock (ClockCoordinationTable<TQuality, ClockCapacity>&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<
     typename TQuality,
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,

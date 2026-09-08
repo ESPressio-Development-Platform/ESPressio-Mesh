@@ -18,6 +18,15 @@ static Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
     return Mesh::MembershipIncarnation{bytes};
 }
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Observable::IObserver) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: sizeof(Observable::IObserver) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class LifecycleObserver final : public Mesh::IMeshLifecycleObserver {
 public:
     std::uint32_t Joining{0};

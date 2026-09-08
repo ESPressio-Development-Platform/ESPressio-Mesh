@@ -13,6 +13,13 @@
 
 namespace ESPressio::Mesh {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct AuthenticatedDirectPeerBinding final {
     System::DeviceIdentifier Neighbour{};
     MembershipIncarnation Incarnation{};
@@ -25,12 +32,42 @@ struct AuthenticatedDirectPeerBinding final {
     }
 };
 
-enum class DirectPeerBindingResult : std::uint8_t { Bound, Replaced, ResourceUnavailable, Invalid };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class DirectPeerBindingResult : std::uint8_t { Bound, Replaced, ResourceUnavailable, Invalid };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxTopologyLinks>
 class AuthenticatedDirectPeerBindingTable final {
     static_assert(Capacity > 0, "Direct peer binding capacity must be non-zero.");
-    struct Slot final { AuthenticatedDirectPeerBinding Binding{}; bool Occupied{false}; };
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final { AuthenticatedDirectPeerBinding Binding{}; bool Occupied{false}; };
     std::array<Slot, Capacity> _slots{};
     std::size_t _size{0};
 

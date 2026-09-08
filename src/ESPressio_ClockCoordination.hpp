@@ -20,8 +20,31 @@ static constexpr ClockStratum ClockRootStratum = 0U;
 static constexpr ClockStratum InvalidClockStratum = std::numeric_limits<ClockStratum>::max();
 
 /// <summary>Relative quality comparison returned by an injected clock-quality policy.</summary>
-enum class ClockQualityComparison : std::uint8_t { Better, Equivalent, Worse };
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ClockQualityComparison : std::uint8_t { Better, Equivalent, Worse };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality>
 struct ClockCoordinationAdvertisement final {
     System::DeviceIdentifier Sender{};
@@ -38,6 +61,13 @@ struct ClockCoordinationAdvertisement final {
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality>
 class IClockQualityPolicy {
 public:
@@ -45,6 +75,13 @@ public:
     virtual ClockQualityComparison Compare(const TQuality& candidate, const TQuality& incumbent) const noexcept = 0;
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality>
 class IClockEligibilityPolicy {
 public:
@@ -60,6 +97,13 @@ public:
 /// Root eligibility and parent usability are intentionally distinct. A globally preferable root may be several Mesh
 /// hops away, while precision synchronization is performed only through a currently usable direct authenticated parent.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality>
 class IClockParentUsabilityPolicy {
 public:
@@ -67,6 +111,13 @@ public:
     virtual bool IsUsableParent(const ClockCoordinationAdvertisement<TQuality>& advertisement) const noexcept = 0;
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality>
 class IClockRootElectionPolicy {
 public:
@@ -78,6 +129,13 @@ public:
     ) const noexcept = 0;
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality>
 class IClockParentSelectionPolicy {
 public:
@@ -89,6 +147,14 @@ public:
     ) const noexcept = 0;
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality>
 class DefaultClockRootElectionPolicy final : public IClockRootElectionPolicy<TQuality> {
 public:
@@ -104,6 +170,14 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality>
 class DefaultClockParentSelectionPolicy final : public IClockParentSelectionPolicy<TQuality> {
 public:
@@ -121,6 +195,13 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct ClockCoordinationSelection final {
     System::DeviceIdentifier Root{};
     System::DeviceIdentifier Parent{};
@@ -131,11 +212,25 @@ struct ClockCoordinationSelection final {
     constexpr bool HasParent() const noexcept { return static_cast<bool>(Parent); }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<typename TQuality, std::size_t Capacity = Limits::MaxMeshNodes>
 class ClockCoordinationTable final {
     static_assert(Capacity > 0U, "Clock coordination capacity must be non-zero.");
 
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         ClockCoordinationAdvertisement<TQuality> Advertisement{};
         bool Occupied{false};
     };

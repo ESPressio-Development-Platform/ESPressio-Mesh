@@ -9,6 +9,13 @@
 
 namespace ESPressio::Mesh {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct ForwardingRadioCorrelationHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -18,6 +25,13 @@ struct ForwardingRadioCorrelationHandle final {
     constexpr bool operator!=(const ForwardingRadioCorrelationHandle& other) const noexcept { return !(*this == other); }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct ForwardingRadioTerminalObservation final { Radio::LogicalTransferTerminalEvidence Terminal{}; };
 
 /// <summary>Explicit-capacity correlation between one Mesh forwarding attempt and deferred Radio terminal evidence.</summary>
@@ -26,12 +40,28 @@ struct ForwardingRadioTerminalObservation final { Radio::LogicalTransferTerminal
 /// can be accepted. Bind() is called immediately after an Accepted Send returns a DeferredTransfer and before yielding the
 /// serialized Radio execution domain. This object owns no payload, route, timer, retry, HopLimit or Mesh acceptance state.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Radio::ILogicalTransferTerminalObserver) [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: sizeof(Radio::ILogicalTransferTerminalObserver) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity>
 class ForwardingRadioTerminalCorrelation final : public Radio::ILogicalTransferTerminalObserver {
     static_assert(Capacity > 0U, "Forwarding Radio terminal correlation capacity must be explicit and non-zero.");
     static_assert(Capacity <= std::numeric_limits<std::uint16_t>::max(), "Capacity must fit the local correlation handle.");
 
-    struct Record final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Record final {
         bool Used{false};
         bool Bound{false};
         bool TerminalAvailable{false};

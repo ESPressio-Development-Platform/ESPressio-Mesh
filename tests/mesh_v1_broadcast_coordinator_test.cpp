@@ -41,6 +41,14 @@ Mesh::MeshV1BroadcastReceiveTimes ReceiveTimes(
     return {deadlineClockMilliseconds, monotonicMilliseconds};
 }
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class Provider final : public Mesh::IMeshV1CryptographicProvider {
     std::array<bool, 8> _sessions{};
 
@@ -172,6 +180,16 @@ public:
     void ResetForControlledShutdown() noexcept override { _sessions = {}; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Radio::IRadio) [0 bytes dynamic allocation]
+ * Members:
+ * - _local (Radio::RadioAddress): sizeof(Radio::RadioAddress) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Radio::IRadio) + sizeof(Radio::RadioAddress) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class FakeRadio final : public Radio::IRadio {
     Radio::RadioObserverSubscriptions _observers{};
     Radio::RadioAddress _local;
@@ -209,6 +227,14 @@ public:
     Radio::RadioObserverSubscriptions& Observers() noexcept override { return _observers; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class Receiver final : public Mesh::IPrimitiveReceiver {
 public:
     Mesh::PrimitiveReceiveDisposition Next{Mesh::PrimitiveReceiveDisposition::Accepted};

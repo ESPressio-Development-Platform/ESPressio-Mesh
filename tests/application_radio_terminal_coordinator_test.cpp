@@ -19,6 +19,15 @@ Mesh::MembershipIncarnation Incarnation(std::uint8_t value) {
     return Mesh::MembershipIncarnation(bytes);
 }
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Radio::IRadio) [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: sizeof(Radio::IRadio) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class DeferredRadio final : public Radio::IRadio {
     Radio::RadioObserverSubscriptions _observers{};
     bool _started{false};
@@ -44,11 +53,27 @@ public:
     Radio::RadioObserverSubscriptions& Observers() noexcept override { return _observers; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class NoSameRouteRetry final : public Mesh::IRouteAttemptPolicy {
 public:
     bool ShouldRetryCurrentRoute(const Mesh::RouteAttemptEvidence&) const noexcept override { return false; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class NoDistinctRouteRetry final : public Mesh::IRetryPolicy {
 public:
     bool ShouldTryAnotherRoute(const Mesh::RouteAttemptEvidence&) const noexcept override { return false; }

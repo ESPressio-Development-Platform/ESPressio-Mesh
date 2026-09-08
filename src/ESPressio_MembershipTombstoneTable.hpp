@@ -13,6 +13,13 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Compact historical evidence for one previously represented Mesh membership incarnation.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct MembershipTombstone final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -38,11 +45,25 @@ struct MembershipTombstone final {
 /// only discard continuity history; it never weakens authentication or admission requirements.
 /// Time values are supplied by the caller from a monotonic clock.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 template<std::size_t Capacity = Limits::MaxMembershipTombstones>
 class MembershipTombstoneTable final {
     static_assert(Capacity > 0, "Membership tombstone capacity must be non-zero.");
 
-    struct Slot final {
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct Slot final {
         MembershipTombstone Value{};
         bool Occupied{false};
     };

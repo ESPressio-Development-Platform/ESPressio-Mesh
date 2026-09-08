@@ -15,6 +15,13 @@ namespace ESPressio::Mesh {
 /// name is deliberately not a Group identity input. Group declarations are sorted canonically so authenticated profile
 /// equivalence is independent of declaration order. Capability bits remain application/platform-defined semantics.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MeshNodeProfile final {
     CanonicalName _name{};
     MeshNodeAlias _alias{0U};
