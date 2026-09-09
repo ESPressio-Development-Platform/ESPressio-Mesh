@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Primitive
-          ref: structural_realignment_propagation_ESPressio-Mesh
+          ref: primitives_redesign
           path: ESPressio-Primitive
       - name: Build primitive support snapshot regression
         run: >-
