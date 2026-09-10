@@ -8,15 +8,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Result (MeshV1AdmissionResult): 1 bytes [0 bytes dynamic allocation]
- * - RetainHandshakeState (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 2 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1AdmissionTransactionOutcome final {
     MeshV1AdmissionResult Result{MeshV1AdmissionResult::Invalid};
     bool RetainHandshakeState{false};

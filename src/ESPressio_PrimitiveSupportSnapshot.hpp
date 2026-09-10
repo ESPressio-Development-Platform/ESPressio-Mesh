@@ -12,16 +12,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Transport-independent semantic support advertised for one primitive family in NodeProfile data.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Family (Primitive::PrimitiveFamilyId): 2 bytes [0 bytes dynamic allocation]
- * - Versions (Primitive::PrimitiveProtocolVersionRange): 4 bytes [0 bytes dynamic allocation]
- * - Fingerprint (Primitive::ContractFingerprint): 32 bytes [0 bytes dynamic allocation]
- * Total Memory: 38 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct PrimitiveSupportDescriptor final {
     Primitive::PrimitiveFamilyId Family{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersionRange Versions{};
@@ -42,16 +33,7 @@ struct PrimitiveSupportDescriptor final {
 /// registration order. The centrally allocated Mesh Control family remains internal protocol machinery and is not
 /// injected into the application-facing support snapshot.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _entries (std::array<PrimitiveSupportDescriptor, Capacity>): Capacity * (38 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (38 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxPrimitiveReceivers>
 class AdvertisedPrimitiveSupportSnapshot final {
     std::array<PrimitiveSupportDescriptor, Capacity> _entries{};

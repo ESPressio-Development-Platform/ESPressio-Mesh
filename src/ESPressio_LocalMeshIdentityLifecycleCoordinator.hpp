@@ -11,13 +11,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of changing or restoring the local authenticated membership-incarnation scope.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class LocalMeshIdentityLifecycleResult : std::uint8_t {
     StartedNewIncarnation,
@@ -39,16 +33,7 @@ class LocalMeshIdentityLifecycleResult : std::uint8_t {
 /// advance/equal the retained MessageId high-water value for the same active incarnation; regression is rejected so
 /// an older persistence snapshot cannot cause identifier reuse.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - _messageIds (MeshMessageIdGenerator&): 4 bytes [0 bytes dynamic allocation]
- * - _radios (MeshRadioRegistry<RadioCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 24 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t RadioCapacity = Limits::MaxRadiosPerNode>
 class LocalMeshIdentityLifecycleCoordinator final {
     MembershipIncarnation _incarnation{};

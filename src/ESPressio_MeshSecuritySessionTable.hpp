@@ -10,15 +10,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Slot (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshSecuritySessionRecordHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -28,15 +20,7 @@ struct MeshSecuritySessionRecordHandle final {
 };
 
 /// <summary>64-position replay window committed only after successful authentication.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _highest (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - _seen (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshSecurityReplayWindow final {
     std::uint64_t _highest{0};
     std::uint64_t _seen{0};
@@ -76,38 +60,13 @@ public:
 /// and inbound replay domains, matching the provider's independently derived keys/base IVs. Callers preflight replay,
 /// authenticate with IMeshV1CryptographicProvider::Open, then commit; unauthenticated input can never advance a window.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _records (std::array<Record, Capacity>): Capacity * (104 bytes) [0 bytes dynamic allocation]
- * Total Memory: Capacity * (104 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxMeshNodes>
 class MeshSecuritySessionTable final {
     static_assert(Capacity > 0U && Capacity < std::numeric_limits<std::uint16_t>::max(),
                   "Mesh security session capacity must be explicit and fit its handle slot.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Identifier (MeshSecuritySessionIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - ProviderSession (MeshSecuritySessionHandle): 4 bytes [0 bytes dynamic allocation]
- * - NextHopSequence (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - NextEndToEndSequence (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - HopReplay (MeshSecurityReplayWindow): 16 bytes [0 bytes dynamic allocation]
- * - EndToEndReplay (MeshSecurityReplayWindow): 16 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Used (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 104 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct Record final {
         System::DeviceIdentifier Device{};
         MembershipIncarnation Incarnation{};

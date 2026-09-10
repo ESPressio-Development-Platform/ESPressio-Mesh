@@ -18,19 +18,7 @@ static Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
     return Mesh::MembershipIncarnation{bytes};
 }
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - LastContext (Mesh::MeshReceiveContext): 44 bytes [0 bytes dynamic allocation]
- * - LastVersion (Primitive::PrimitiveProtocolVersion): 2 bytes [0 bytes dynamic allocation]
- * - LastSize (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Count (int): 4 bytes [0 bytes dynamic allocation]
- * - NextDisposition (Mesh::PrimitiveReceiveDisposition): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 64 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class Receiver final : public Mesh::IPrimitiveReceiver {
 public:
     Mesh::PrimitiveReceiveDisposition Receive(

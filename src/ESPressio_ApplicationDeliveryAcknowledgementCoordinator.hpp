@@ -8,13 +8,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of applying one authenticated destination acknowledgement to an application recipient lifecycle.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationDeliveryAcknowledgementResult : std::uint8_t {
     Delivered,
@@ -40,14 +34,7 @@ class ApplicationDeliveryAcknowledgementResult : std::uint8_t {
 /// completion. Radio/link evidence and next-hop acceptance remain unrelated. Existing aggregate terminal outcomes win
 /// races: a late ACK cannot overwrite DeadlineExpired or another terminal result.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _recipients (ApplicationRecipientLifecycleCoordinator<AcknowledgementCapacity, TransmissionCapacity, RecipientCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,

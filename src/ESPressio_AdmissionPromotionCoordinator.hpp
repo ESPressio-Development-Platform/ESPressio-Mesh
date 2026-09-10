@@ -10,13 +10,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of completing one externally authenticated/admitted neighbour candidate.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class AdmissionPromotionResult : std::uint8_t {
     PromotedToValidating,
@@ -29,16 +23,7 @@ class AdmissionPromotionResult : std::uint8_t {
 };
 
 /// <summary>Narrow boundary that promotes externally authenticated identity into bounded Mesh membership.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _authentications (InboundAuthenticationReservationTable<AuthenticationCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
          std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes>

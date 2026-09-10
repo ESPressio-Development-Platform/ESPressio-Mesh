@@ -9,40 +9,18 @@
 using namespace ESPressio::Mesh;
 
 namespace {
-/**
- * ESPressio Memory Audit
- * Members:
- * - SignalDbm (std::int16_t): 2 bytes [0 bytes dynamic allocation]
- * - CostHint (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct TestTopologyCharacteristics final {
     std::int16_t SignalDbm{0};
     std::uint16_t CostHint{0};
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - UncertaintyNanoseconds (std::uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct TestClockQuality final {
     std::uint32_t UncertaintyNanoseconds{0};
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Bytes (std::array<std::uint8_t, 512>): 512 bytes [0 bytes dynamic allocation]
- * Total Memory: 512 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct TestSecurityAuthorityStorage final {
     std::array<std::uint8_t, 512> Bytes{};
 };

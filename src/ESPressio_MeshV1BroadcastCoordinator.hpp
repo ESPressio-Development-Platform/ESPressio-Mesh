@@ -23,17 +23,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Neighbour (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - LocalRadio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
- * - Peer (Radio::RadioPeerHandle): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 38 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshBroadcastFanoutTarget final {
     System::DeviceIdentifier Neighbour{};
     MembershipIncarnation Incarnation{};
@@ -47,16 +37,7 @@ struct MeshBroadcastFanoutTarget final {
     constexpr explicit operator bool() const noexcept { return IsValid(); }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - _targets (std::array<MeshBroadcastFanoutTarget, Capacity>): Capacity * (38 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (38 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxMeshNodes>
 class MeshBroadcastFanoutPlan final {
     static_assert(Capacity > 0U, "Broadcast fan-out capacity must be non-zero.");
@@ -85,13 +66,7 @@ public:
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1BroadcastDisposition : std::uint8_t {
     Completed, Duplicate, TooOld, DeadlineExpired, ResourceUnavailable,
@@ -100,29 +75,11 @@ class MeshV1BroadcastDisposition : std::uint8_t {
     AuthenticationFailed, NotForLocalNode, Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshBroadcastLocalDispatch : std::uint8_t { Include, Exclude };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Disposition (MeshV1BroadcastDisposition): 1 bytes [0 bytes dynamic allocation]
- * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * - Dispatch (PrimitiveDispatchResult): 1 bytes [0 bytes dynamic allocation]
- * - ReceiverDisposition (PrimitiveReceiveDisposition): 1 bytes [0 bytes dynamic allocation]
- * - FanoutAttempted (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - FanoutAccepted (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1BroadcastResult final {
     MeshV1BroadcastDisposition Disposition{MeshV1BroadcastDisposition::Invalid};
     MeshMessageId MessageId{0U};
@@ -133,15 +90,7 @@ struct MeshV1BroadcastResult final {
 };
 
 /// <summary>Explicitly separates distributed deadline time from local liveness-evidence time.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - DeadlineClockMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - MonotonicMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1BroadcastReceiveTimes final {
     std::uint64_t DeadlineClockMilliseconds{0U};
     std::uint64_t MonotonicMilliseconds{0U};
@@ -151,15 +100,7 @@ struct MeshV1BroadcastReceiveTimes final {
     constexpr explicit operator bool() const noexcept { return IsValid(); }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - _traffic (IMeshTrafficGovernor&): 4 bytes [0 bytes dynamic allocation]
- * - _reservation (MeshTrafficReservation): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshBroadcastTrafficReservationGuard final {
     IMeshTrafficGovernor& _traffic;
     MeshTrafficReservation _reservation{};
@@ -178,28 +119,7 @@ public:
 /// overload captures local monotonic time internally, making the ordinary API safe against synchronized-clock steps;
 /// the explicit-times overload remains available to deterministic tests and compositions owning a monotonic timestamp.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _livenessPolicy (DefaultMeshLivenessPolicy): 20 bytes [0 bytes dynamic allocation]
- * - _liveness (MembershipLivenessTracker<MembershipCapacity>): 8 bytes known/aligned storage + MembershipCapacity * (52 bytes) [0 bytes dynamic allocation]
- * - _bindings (AuthenticatedDirectPeerBindingTable<BindingCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _receivers (PrimitiveReceiverRegistry<ReceiverCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _transport (Radio::RadioTransport&): 4 bytes [0 bytes dynamic allocation]
- * - _traffic (IMeshTrafficGovernor&): 4 bytes [0 bytes dynamic allocation]
- * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
- * - _messageIds (MeshMessageIdGenerator&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 104 bytes known/aligned storage + 8 bytes known/aligned storage + MembershipCapacity * (52 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
          std::size_t FanoutCapacity = Limits::MaxMeshNodes,

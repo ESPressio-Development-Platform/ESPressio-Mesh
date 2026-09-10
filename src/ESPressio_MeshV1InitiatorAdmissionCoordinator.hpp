@@ -10,38 +10,20 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1InitiatorBeginResult : std::uint8_t {
     InitiatorReady, AlreadyStarted, AuthenticationResourceUnavailable, StateResourceUnavailable,
     ResourceUnavailable, CandidateNotFound, Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1InitiatorResponderResult : std::uint8_t {
     FinishReady, AlreadyReady, ResourceUnavailable, Rejected, CandidateNotFound, Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1InitiatorFinishSubmissionResult : std::uint8_t {
     Authenticated, AlreadyAuthenticated, FinishNotReady, CandidateNotFound, Invalid
@@ -55,64 +37,17 @@ class MeshV1InitiatorFinishSubmissionResult : std::uint8_t {
 /// admission may commit. A derived provider session remains staged until the same serialized membership/session
 /// preflight and promotion transaction used by the responder direction succeeds.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _authentications (InboundAuthenticationReservationTable<AuthenticationCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _promotion (AdmissionPromotionCoordinator<CandidateCapacity, AuthenticationCapacity, MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _admission (IMeshAdmissionPolicy&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _channelBinding (MeshSecurityChannelBinding): 32 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - _timeoutMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - _states (std::array<State, AuthenticationCapacity>): AuthenticationCapacity * (413 bytes known/aligned storage + MeshV1SecurityHandshakeCodec::InitiatorPacketBytes * (1 bytes) + MeshV1SecurityHandshakeCodec::FinishPacketBytes * (1 bytes)) [0 bytes dynamic allocation]
- * Total Memory: 120 bytes known/aligned storage + AuthenticationCapacity * (413 bytes known/aligned storage + MeshV1SecurityHandshakeCodec::InitiatorPacketBytes * (1 bytes) + MeshV1SecurityHandshakeCodec::FinishPacketBytes * (1 bytes)) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
          std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t SessionCapacity = Limits::MaxMeshNodes>
 class MeshV1InitiatorAdmissionCoordinator final : public IMeshPendingAuthenticationReset {
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class Stage : std::uint8_t { Empty, Building, InitiatorReady, FinishReady, Authenticated, CleanupRequired };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Candidate (MeshSecurityCandidateContext): 42 bytes [0 bytes dynamic allocation]
- * - Identity (AuthenticatedMeshIdentity): 32 bytes [0 bytes dynamic allocation]
- * - Ephemeral (MeshEphemeralKeyHandle): 4 bytes [0 bytes dynamic allocation]
- * - ProviderSession (MeshSecuritySessionHandle): 4 bytes [0 bytes dynamic allocation]
- * - SessionIdentifier (MeshSecuritySessionIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - InitiatorPacketDigest (MeshSecurityDigest): 32 bytes [0 bytes dynamic allocation]
- * - ResponderPacketDigest (MeshSecurityDigest): 32 bytes [0 bytes dynamic allocation]
- * - TranscriptDigest (MeshSecurityDigest): 32 bytes [0 bytes dynamic allocation]
- * - InitiatorPacket (std::array<std::uint8_t, MeshV1SecurityHandshakeCodec::InitiatorPacketBytes>): MeshV1SecurityHandshakeCodec::InitiatorPacketBytes * (1 bytes) [0 bytes dynamic allocation]
- * - FinishPacket (std::array<std::uint8_t, MeshV1SecurityHandshakeCodec::FinishPacketBytes>): MeshV1SecurityHandshakeCodec::FinishPacketBytes * (1 bytes) [0 bytes dynamic allocation]
- * - Initiator (MeshV1InitiatorHello): 209 bytes [0 bytes dynamic allocation]
- * - StartedAtMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Current (Stage): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 413 bytes known/aligned storage + MeshV1SecurityHandshakeCodec::InitiatorPacketBytes * (1 bytes) + MeshV1SecurityHandshakeCodec::FinishPacketBytes * (1 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct State final {
         MeshSecurityCandidateContext Candidate{};
         AuthenticatedMeshIdentity Identity{};

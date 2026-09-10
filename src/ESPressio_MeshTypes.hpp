@@ -16,14 +16,7 @@ using RemainingHopLimit = std::uint8_t;
 using CapabilityMask = std::uint64_t;
 
 /// <summary>Application-supplied opaque identity of one Mesh domain.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _bytes (Storage): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshIdentifier final {
 public:
     static constexpr std::size_t Size = 16;
@@ -60,14 +53,7 @@ public:
 /// The storage order is the canonical network representation: codecs copy Bytes()[0] through Bytes()[15] unchanged.
 /// The value is not a native integer and a display name is never an identity or encoding input.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _bytes (Storage): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class GroupIdentifier final {
 public:
     static constexpr std::size_t Size = 16;
@@ -100,14 +86,7 @@ public:
 };
 
 /// <summary>Non-zero 128-bit identity of one participation incarnation of a device in a Mesh.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _bytes (Storage): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MembershipIncarnation final {
 public:
     static constexpr std::size_t Size = 16;
@@ -140,15 +119,7 @@ public:
 };
 
 /// <summary>Bounded, exact-case human-readable name advertised by one Mesh member.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _length (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - _bytes (Storage): 32 bytes [0 bytes dynamic allocation]
- * Total Memory: 33 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class CanonicalName final {
 public:
     static constexpr std::size_t MaximumBytes = 32;
@@ -193,13 +164,7 @@ public:
 };
 
 /// <summary>Authoritative participation lifecycle state, distinct from reachability.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MembershipState : std::uint8_t {
     Unknown,
@@ -216,13 +181,7 @@ class MembershipState : std::uint8_t {
 /// any valid authenticated Mesh evidence may restore Reachable immediately. MembershipState is
 /// authoritative participation state and remains a separate concept.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ReachabilityState : std::uint8_t {
     Unknown,
@@ -232,13 +191,7 @@ class ReachabilityState : std::uint8_t {
 };
 
 /// <summary>Reason compact historical participation evidence is retained after active membership.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MembershipTombstoneDisposition : std::uint8_t {
     LocallyForgotten,

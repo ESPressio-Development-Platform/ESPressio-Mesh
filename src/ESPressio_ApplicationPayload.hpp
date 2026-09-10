@@ -6,15 +6,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Borrowed immutable bytes whose storage remains stable for the complete accepted transmission lifetime.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Data (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - Size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct BorrowedStablePayload final {
     const std::uint8_t* Data{nullptr};
     std::size_t Size{0};
@@ -31,13 +23,7 @@ struct BorrowedStablePayload final {
 /// logical payload for the complete transmission lifetime. Mesh does not own the source object and never assumes that
 /// repeated serialization of mutable application state is stable.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IRepeatableSerializedPayloadSource {
 public:
     virtual ~IRepeatableSerializedPayloadSource() = default;
@@ -46,15 +32,7 @@ public:
 };
 
 /// <summary>Non-owning reference to one repeatable serialized payload source.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Source (IRepeatableSerializedPayloadSource*): 4 bytes [0 bytes dynamic allocation]
- * - Size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct RepeatableSerializedPayload final {
     const IRepeatableSerializedPayloadSource* Source{nullptr};
     std::size_t Size{0};
@@ -74,25 +52,10 @@ struct RepeatableSerializedPayload final {
 /// terminal. A future bounded-owned backing may satisfy the same aggregate contract once an explicit byte capacity is
 /// approved; no such capacity is invented here.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _kind (Kind): 1 bytes [0 bytes dynamic allocation]
- * - _borrowed (BorrowedStablePayload): 8 bytes [0 bytes dynamic allocation]
- * - _repeatable (RepeatableSerializedPayload): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 20 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class ApplicationPayload final {
 public:
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class Kind : std::uint8_t { None, BorrowedStable, RepeatableSerialized };
 

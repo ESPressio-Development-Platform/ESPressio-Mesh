@@ -16,13 +16,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1ControlSubmissionDisposition : std::uint8_t {
     Submitted, DeadlineExpired, RouteMismatch, DestinationSessionUnavailable,
@@ -30,15 +24,7 @@ class MeshV1ControlSubmissionDisposition : std::uint8_t {
     ProtectionFailed, ForwardingFailed, Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - _traffic (IMeshTrafficGovernor&): 4 bytes [0 bytes dynamic allocation]
- * - _reservation (MeshTrafficReservation): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshV1ControlTrafficReservationGuard final {
     IMeshTrafficGovernor& _traffic;
     MeshTrafficReservation _reservation{};
@@ -53,27 +39,13 @@ public:
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Disposition (MeshV1ControlSubmissionDisposition): 1 bytes [0 bytes dynamic allocation]
- * - Submission (ForwardingSubmissionResult): 60 bytes [0 bytes dynamic allocation]
- * Total Memory: 64 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1ControlSubmissionResult final {
     MeshV1ControlSubmissionDisposition Disposition{MeshV1ControlSubmissionDisposition::Invalid};
     ForwardingSubmissionResult Submission{};
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1AuthenticatedControlDisposition : std::uint8_t {
     NextHopAcceptance, DestinationDeliveryAcknowledgement, DeadlineExpired,
@@ -81,19 +53,7 @@ class MeshV1AuthenticatedControlDisposition : std::uint8_t {
     ReplayRejected, AuthenticationFailed, NotForLocalNode, Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Disposition (MeshV1AuthenticatedControlDisposition): 1 bytes [0 bytes dynamic allocation]
- * - AuthenticatedSource (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - AuthenticatedSourceIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Acknowledged (MeshV1AcknowledgedDelivery): 48 bytes [0 bytes dynamic allocation]
- * - ControlMessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * - NextHopAcceptance (MeshV1NextHopAcceptanceIntent): 80 bytes [0 bytes dynamic allocation]
- * Total Memory: 172 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1AuthenticatedControlResult final {
     MeshV1AuthenticatedControlDisposition Disposition{MeshV1AuthenticatedControlDisposition::Invalid};
     System::DeviceIdentifier AuthenticatedSource{};
@@ -104,22 +64,7 @@ struct MeshV1AuthenticatedControlResult final {
 };
 
 /// <summary>Emits one direct-hop responsibility acceptance under the exact neighbour session.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _traffic (IMeshTrafficGovernor&): 4 bytes [0 bytes dynamic allocation]
- * - _forwarding (ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 72 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes,
@@ -216,22 +161,7 @@ public:
 };
 
 /// <summary>Emits final framework-delivery acknowledgement under EndToEnd and current Hop protection.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _traffic (IMeshTrafficGovernor&): 4 bytes [0 bytes dynamic allocation]
- * - _forwarding (ForwardingSubmissionCoordinator<MembershipCapacity, BindingCapacity, HopCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 72 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes,
@@ -360,20 +290,7 @@ public:
 };
 
 /// <summary>Authenticates concrete one-hop acceptance or end-to-end destination-ACK control evidence.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 64 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes,

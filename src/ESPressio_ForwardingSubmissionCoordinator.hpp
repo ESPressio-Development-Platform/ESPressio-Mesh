@@ -11,13 +11,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ForwardingSubmissionDisposition : std::uint8_t {
     Accepted,
@@ -31,13 +25,7 @@ class ForwardingSubmissionDisposition : std::uint8_t {
     Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ForwardingDirectLinkEvidence : std::uint8_t {
     None,
@@ -46,17 +34,7 @@ class ForwardingDirectLinkEvidence : std::uint8_t {
     PeerAcknowledged
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Disposition (ForwardingSubmissionDisposition): 1 bytes [0 bytes dynamic allocation]
- * - RadioResult (Radio::RadioTransportSendResult): 24 bytes [0 bytes dynamic allocation]
- * - NextHop (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - NextHopIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 60 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ForwardingSubmissionResult final {
     ForwardingSubmissionDisposition Disposition{ForwardingSubmissionDisposition::Invalid};
     Radio::RadioTransportSendResult RadioResult{};
@@ -87,16 +65,7 @@ struct ForwardingSubmissionResult final {
 /// authenticated membership identity used to resolve the executable peer binding; callers must use those values rather
 /// than reconstructing acceptance authority from route or discovery state.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _bindings (AuthenticatedDirectPeerBindingTable<BindingCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _transport (Radio::RadioTransport&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t BindingCapacity = Limits::MaxTopologyLinks,
          std::size_t HopCapacity = Limits::MaxRouteHops>

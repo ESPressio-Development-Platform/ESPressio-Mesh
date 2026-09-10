@@ -13,21 +13,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - SourceIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * - AbsoluteDeadlineMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - PrimitiveFamily (Primitive::PrimitiveFamilyId): 2 bytes [0 bytes dynamic allocation]
- * - PrimitiveVersion (Primitive::PrimitiveProtocolVersion): 2 bytes [0 bytes dynamic allocation]
- * - PayloadBytes (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 72 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1BroadcastOriginHeader final {
     MeshIdentifier Mesh{};
     System::DeviceIdentifier Source{};
@@ -47,26 +33,7 @@ struct MeshV1BroadcastOriginHeader final {
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Session (MeshSecuritySessionIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Sequence (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Sender (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - SenderIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - NextHop (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - NextHopIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - SourceIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * - HopLimit (RemainingHopLimit): 1 bytes [0 bytes dynamic allocation]
- * - InnerFrameBytes (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 148 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1BroadcastHopHeader final {
     MeshIdentifier Mesh{};
     MeshSecuritySessionIdentifier Session{};
@@ -90,19 +57,7 @@ struct MeshV1BroadcastHopHeader final {
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - SignedBytes (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - SignedByteCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Payload (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - PayloadByteCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Signature (MeshIdentitySignature): 64 bytes [0 bytes dynamic allocation]
- * Total Memory: 80 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1BroadcastOriginView final {
     const std::uint8_t* SignedBytes{nullptr};
     std::size_t SignedByteCount{0U};
@@ -111,19 +66,7 @@ struct MeshV1BroadcastOriginView final {
     MeshIdentitySignature Signature{};
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - AuthenticatedHeader (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - AuthenticatedHeaderBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Ciphertext (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - CiphertextBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Tag (MeshAuthenticationTag): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1BroadcastHopView final {
     const std::uint8_t* AuthenticatedHeader{nullptr};
     std::size_t AuthenticatedHeaderBytes{0U};
@@ -139,13 +82,7 @@ struct MeshV1BroadcastHopView final {
 /// encrypts/authenticates that complete origin frame for one direct neighbour using the existing Hop session purpose.
 /// Broadcast has no destination identity, end-to-end session, acknowledgement or shared delivery-success claim.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshV1BroadcastFrameCodec final {
     static constexpr std::array<std::uint8_t, 4> Magic{{0x45U, 0x53U, 0x4DU, 0x31U}};
     static constexpr std::uint8_t Version = 1U;

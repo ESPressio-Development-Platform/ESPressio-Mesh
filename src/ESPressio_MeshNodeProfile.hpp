@@ -15,19 +15,7 @@ namespace ESPressio::Mesh {
 /// name is deliberately not a Group identity input. Group declarations are sorted canonically so authenticated profile
 /// equivalence is independent of declaration order. Capability bits remain application/platform-defined semantics.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _name (CanonicalName): 33 bytes [0 bytes dynamic allocation]
- * - _alias (MeshNodeAlias): 2 bytes [0 bytes dynamic allocation]
- * - _capabilities (CapabilityMask): 8 bytes [0 bytes dynamic allocation]
- * - _generation (ProfileGeneration): 8 bytes [0 bytes dynamic allocation]
- * - _groups (std::array<GroupIdentifier, Limits::MaxGroupsPerNode>): 128 bytes [0 bytes dynamic allocation]
- * - _groupCount (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 184 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshNodeProfile final {
     CanonicalName _name{};
     MeshNodeAlias _alias{0U};

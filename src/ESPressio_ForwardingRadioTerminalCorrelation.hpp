@@ -9,15 +9,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Slot (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ForwardingRadioCorrelationHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -27,14 +19,7 @@ struct ForwardingRadioCorrelationHandle final {
     constexpr bool operator!=(const ForwardingRadioCorrelationHandle& other) const noexcept { return !(*this == other); }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Terminal (Radio::LogicalTransferTerminalEvidence): 32 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ForwardingRadioTerminalObservation final { Radio::LogicalTransferTerminalEvidence Terminal{}; };
 
 /// <summary>Explicit-capacity correlation between one Mesh forwarding attempt and deferred Radio terminal evidence.</summary>
@@ -43,34 +28,13 @@ struct ForwardingRadioTerminalObservation final { Radio::LogicalTransferTerminal
 /// can be accepted. Bind() is called immediately after an Accepted Send returns a DeferredTransfer and before yielding the
 /// serialized Radio execution domain. This object owns no payload, route, timer, retry, HopLimit or Mesh acceptance state.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _records (std::array<Record, Capacity>): Capacity * (44 bytes) [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (44 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity>
 class ForwardingRadioTerminalCorrelation final : public Radio::ILogicalTransferTerminalObserver {
     static_assert(Capacity > 0U, "Forwarding Radio terminal correlation capacity must be explicit and non-zero.");
     static_assert(Capacity <= std::numeric_limits<std::uint16_t>::max(), "Capacity must fit the local correlation handle.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Used (bool): 1 bytes [0 bytes dynamic allocation]
- * - Bound (bool): 1 bytes [0 bytes dynamic allocation]
- * - TerminalAvailable (bool): 1 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Deferred (Radio::DeferredLogicalTransferHandle): 4 bytes [0 bytes dynamic allocation]
- * - Terminal (Radio::LogicalTransferTerminalEvidence): 32 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Record final {
         bool Used{false};
         bool Bound{false};

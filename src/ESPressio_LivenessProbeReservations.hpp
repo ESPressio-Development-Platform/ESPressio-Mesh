@@ -13,15 +13,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Generation-safe reservation for one active liveness probe.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Slot (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct LivenessProbeReservation final {
     std::uint8_t Slot{std::numeric_limits<std::uint8_t>::max()};
     std::uint16_t Generation{0};
@@ -33,13 +25,7 @@ struct LivenessProbeReservation final {
 };
 
 /// <summary>Result of attempting to start one bounded active liveness probe.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class LivenessProbeReservationResult : std::uint8_t {
     Reserved,
@@ -54,33 +40,14 @@ class LivenessProbeReservationResult : std::uint8_t {
 /// authenticated DeviceIdentifier + MembershipIncarnation and enforces the locked finite active-probe bound. It stores
 /// no reachability result and cannot change MembershipState or authenticated authority.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, Capacity>): Capacity * (36 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (36 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxActiveLivenessProbes>
 class LivenessProbeReservationTable final {
     static_assert(Capacity > 0, "Active liveness probe capacity must be non-zero.");
     static_assert(Capacity < std::numeric_limits<std::uint8_t>::max(),
                   "Liveness probe slots must fit the compact reservation handle.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 36 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         System::DeviceIdentifier Device{};
         MembershipIncarnation Incarnation{};

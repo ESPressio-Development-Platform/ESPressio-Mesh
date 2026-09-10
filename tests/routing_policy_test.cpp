@@ -7,14 +7,7 @@
 using namespace ESPressio::Mesh;
 
 namespace {
-/**
- * ESPressio Memory Audit
- * Members:
- * - Value (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 2 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Characteristics final {
     std::uint16_t Value{0};
     constexpr bool operator==(const Characteristics& other) const noexcept { return Value == other.Value; }
@@ -32,14 +25,7 @@ MembershipIncarnation Incarnation(std::uint8_t value) {
     return MembershipIncarnation(bytes);
 }
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class FirstContiguousStrategy final : public IRoutingStrategy<Characteristics> {
 public:
     RoutePlanningDisposition Plan(const Evidence& evidence, Route& route) const noexcept override {

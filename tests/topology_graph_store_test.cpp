@@ -6,14 +6,7 @@
 
 using namespace ESPressio;
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Metric (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 2 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Characteristics final {
     std::uint16_t Metric{0};
     constexpr bool operator==(const Characteristics& other) const noexcept { return Metric == other.Metric; }

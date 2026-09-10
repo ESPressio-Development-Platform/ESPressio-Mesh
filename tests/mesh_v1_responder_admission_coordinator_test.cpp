@@ -20,20 +20,7 @@ static Mesh::MeshIdentifier MeshId(std::uint8_t tail) {
     return Mesh::MeshIdentifier{bytes};
 }
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _ephemeral (std::array<bool, 8>): 8 bytes [0 bytes dynamic allocation]
- * - _sessions (std::array<bool, 8>): 8 bytes [0 bytes dynamic allocation]
- * - _nextEphemeral (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - _nextSession (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - ReleasedSessions (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - VerifySignatures (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class Provider final : public Mesh::IMeshV1CryptographicProvider {
     std::array<bool, 8> _ephemeral{};
     std::array<bool, 8> _sessions{};
@@ -164,15 +151,7 @@ public:
     void ResetForControlledShutdown() noexcept override { _ephemeral = {}; _sessions = {}; }
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - Next (Mesh::MeshAdmissionDisposition): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class Admission final : public Mesh::IMeshAdmissionPolicy {
 public:
     Mesh::MeshAdmissionDisposition Next{Mesh::MeshAdmissionDisposition::Admit};

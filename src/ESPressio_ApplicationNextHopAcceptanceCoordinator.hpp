@@ -9,13 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Application-level disposition after authenticated next-hop Mesh acceptance evidence is evaluated.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationNextHopAcceptanceDisposition : std::uint8_t {
     ForwardingTransitionCommitted,
@@ -41,14 +35,7 @@ class ApplicationNextHopAcceptanceDisposition : std::uint8_t {
 /// that hop, but the aggregate recipient remains Pending: next-hop acceptance is not final destination acknowledgement.
 /// Deadline expiry commits DeadlineExpired. Hop-limit/internal definitive acceptance failure commits PermanentFailure.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _recipients (RecipientLifecycle&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t CorrelationCapacity,

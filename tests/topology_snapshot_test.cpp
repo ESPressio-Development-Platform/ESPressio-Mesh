@@ -6,15 +6,7 @@
 
 using namespace ESPressio;
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - ReliabilityPermille (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - TypicalLatencyMilliseconds (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Characteristics final {
     std::uint16_t ReliabilityPermille{0};
     std::uint16_t TypicalLatencyMilliseconds{0};

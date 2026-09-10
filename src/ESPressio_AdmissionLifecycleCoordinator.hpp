@@ -9,13 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of one non-blocking pass through candidate authentication and admission.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class AdmissionLifecycleResult : std::uint8_t {
     /// <summary>Authenticated identity passed admission and entered Validating membership.</summary>
@@ -58,19 +52,7 @@ class AdmissionLifecycleResult : std::uint8_t {
 /// produced the candidate. Retaining that binding in `AuthenticatedDirectPeerBindingTable` is deliberately a separate
 /// local-execution concern rather than part of this membership transaction.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _authentications (InboundAuthenticationReservationTable<AuthenticationCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _promotion (AdmissionPromotionCoordinator<CandidateCapacity, AuthenticationCapacity, MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _security (IMeshSecurityAuthority&): 4 bytes [0 bytes dynamic allocation]
- * - _admission (IMeshAdmissionPolicy&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 24 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
          std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes>

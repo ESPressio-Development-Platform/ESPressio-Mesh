@@ -7,13 +7,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationRecipientTerminalizationResult : std::uint8_t {
     Terminalized,
@@ -23,13 +17,7 @@ class ApplicationRecipientTerminalizationResult : std::uint8_t {
     Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationRecipientRetirementResult : std::uint8_t {
     Retired,
@@ -39,13 +27,7 @@ class ApplicationRecipientRetirementResult : std::uint8_t {
     Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationRecipientInspectionResult : std::uint8_t {
     Pending,
@@ -55,17 +37,7 @@ class ApplicationRecipientInspectionResult : std::uint8_t {
     Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - ExpiredTransmissions (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - ExpiredRecipients (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - RetiredExternalLifecycles (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - ExternalLifecycleMismatches (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ApplicationDeadlineSweepResult final {
     std::size_t ExpiredTransmissions{0};
     std::size_t ExpiredRecipients{0};
@@ -74,17 +46,7 @@ struct ApplicationDeadlineSweepResult final {
 };
 
 /// <summary>Summary of one controlled local teardown of application aggregate and external recipient state.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - ReleasedTransmissions (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - RecipientRecordsVisited (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - RetiredExternalLifecycles (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - ExternalLifecycleMismatches (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ApplicationControlledResetResult final {
     std::size_t ReleasedTransmissions{0};
     std::size_t RecipientRecordsVisited{0};
@@ -92,14 +54,7 @@ struct ApplicationControlledResetResult final {
     std::size_t ExternalLifecycleMismatches{0};
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - _transmissions (ApplicationTransmissionCoordinator<TransmissionCapacity, RecipientCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,

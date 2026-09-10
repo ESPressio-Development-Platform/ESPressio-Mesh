@@ -10,13 +10,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Independent bounded work classes protected by Mesh traffic governance.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshTrafficClass : std::uint8_t {
     InfrastructureResponse,
@@ -26,16 +20,7 @@ class MeshTrafficClass : std::uint8_t {
 };
 
 /// <summary>Generation-safe reservation for one admitted unit of Mesh work.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Class (MeshTrafficClass): 1 bytes [0 bytes dynamic allocation]
- * - Slot (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshTrafficReservation final {
     MeshTrafficClass Class{MeshTrafficClass::Application};
     std::uint8_t Slot{std::numeric_limits<std::uint8_t>::max()};
@@ -48,13 +33,7 @@ struct MeshTrafficReservation final {
 };
 
 /// <summary>Result of attempting to reserve bounded capacity from one Mesh traffic class.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshTrafficAdmissionResult : std::uint8_t {
     Admitted,
@@ -63,13 +42,7 @@ class MeshTrafficAdmissionResult : std::uint8_t {
 };
 
 /// <summary>Injectable local policy boundary governing admission into independently protected Mesh work classes.</summary>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IMeshTrafficGovernor {
 public:
     virtual ~IMeshTrafficGovernor() = default;
@@ -108,28 +81,9 @@ public:
 /// The governor controls admission only; it owns no queues, scheduling task or wire semantics. Alternative governors
 /// may be injected through IMeshTrafficGovernor provided they retain finite bounded behavior required by the application.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _infrastructure (std::array<Slot, Limits::InfrastructureResponseCapacity>): 32 bytes [0 bytes dynamic allocation]
- * - _clock (std::array<Slot, Limits::ClockControlCapacity>): 16 bytes [0 bytes dynamic allocation]
- * - _general (std::array<Slot, Limits::GeneralControlCapacity>): 32 bytes [0 bytes dynamic allocation]
- * - _application (std::array<Slot, Limits::ApplicationTransmissionCapacity>): 32 bytes [0 bytes dynamic allocation]
- * Total Memory: 116 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class DefaultMeshTrafficGovernor final : public IMeshTrafficGovernor {
-/**
- * ESPressio Memory Audit
- * Members:
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         std::uint16_t Generation{0};
         bool Occupied{false};

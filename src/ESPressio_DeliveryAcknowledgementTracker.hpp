@@ -16,16 +16,7 @@ namespace ESPressio::Mesh {
 /// retained as well so an acknowledgement from a later participation incarnation cannot complete older delivery work.
 /// This is sender-local bookkeeping only and is not a wire envelope.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Destination (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - DestinationIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct PendingDeliveryAcknowledgementIdentity final {
     System::DeviceIdentifier Destination{};
     MembershipIncarnation DestinationIncarnation{};
@@ -45,15 +36,7 @@ struct PendingDeliveryAcknowledgementIdentity final {
 };
 
 /// <summary>One sender-local pending destination acknowledgement record.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Identity (PendingDeliveryAcknowledgementIdentity): 40 bytes [0 bytes dynamic allocation]
- * - AbsoluteDeadlineMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 48 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct PendingDeliveryAcknowledgement final {
     PendingDeliveryAcknowledgementIdentity Identity{};
     std::uint64_t AbsoluteDeadlineMilliseconds{0};
@@ -64,13 +47,7 @@ struct PendingDeliveryAcknowledgement final {
 };
 
 /// <summary>Result of reserving finite sender-local acknowledgement tracking capacity.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class DeliveryAcknowledgementReserveResult : std::uint8_t {
     Reserved,
@@ -81,13 +58,7 @@ class DeliveryAcknowledgementReserveResult : std::uint8_t {
 };
 
 /// <summary>Result of applying one already-authenticated destination delivery acknowledgement.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class DeliveryAcknowledgementApplyResult : std::uint8_t {
     Acknowledged,
@@ -112,29 +83,12 @@ class DeliveryAcknowledgementApplyResult : std::uint8_t {
 /// Mutation is intended for the serialized Mesh execution domain. The tracker owns no payload, route, retry state,
 /// scheduler, Radio work or authentication context.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, Capacity>): Capacity * (52 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (52 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity>
 class DeliveryAcknowledgementTracker final {
     static_assert(Capacity > 0U, "Delivery acknowledgement capacity must be non-zero.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Record (PendingDeliveryAcknowledgement): 48 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 52 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         PendingDeliveryAcknowledgement Record{};
         bool Occupied{false};

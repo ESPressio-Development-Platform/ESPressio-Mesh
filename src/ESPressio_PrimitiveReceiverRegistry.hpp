@@ -15,15 +15,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Borrowed immutable primitive-family payload delivered synchronously at the Mesh receiver boundary.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Data (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - Size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct PrimitivePayloadView final {
     const std::uint8_t* Data{nullptr};
     std::size_t Size{0};
@@ -32,18 +24,7 @@ struct PrimitivePayloadView final {
 };
 
 /// <summary>Authenticated Mesh-specific provenance accompanying one primitive-family delivery.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - SourceIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - DeliveryMessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * - RemainingHops (RemainingHopLimit): 1 bytes [0 bytes dynamic allocation]
- * - Broadcast (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshReceiveContext final {
     System::DeviceIdentifier Source{};
     MembershipIncarnation SourceIncarnation{};
@@ -62,13 +43,7 @@ struct MeshReceiveContext final {
 /// Only TemporarilyUnavailable and ResourceUnavailable are retryable by the inbound-delivery coordinator; every
 /// other disposition is definitive for duplicate-suppression purposes.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class PrimitiveReceiveDisposition : std::uint8_t {
     Accepted,
@@ -80,13 +55,7 @@ class PrimitiveReceiveDisposition : std::uint8_t {
 };
 
 /// <summary>Whether a registered family implementation is advertised in the authenticated NodeProfile.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class PrimitiveReceiverExposure : std::uint8_t {
     Hidden,
@@ -94,17 +63,7 @@ class PrimitiveReceiverExposure : std::uint8_t {
 };
 
 /// <summary>Bounded semantic support descriptor owned by one registered external primitive receiver.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Family (Primitive::PrimitiveFamilyId): 2 bytes [0 bytes dynamic allocation]
- * - Versions (Primitive::PrimitiveProtocolVersionRange): 4 bytes [0 bytes dynamic allocation]
- * - Fingerprint (Primitive::ContractFingerprint): 32 bytes [0 bytes dynamic allocation]
- * - Exposure (PrimitiveReceiverExposure): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct PrimitiveReceiverDescriptor final {
     Primitive::PrimitiveFamilyId Family{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersionRange Versions{};
@@ -117,13 +76,7 @@ struct PrimitiveReceiverDescriptor final {
 };
 
 /// <summary>Receives one short bounded external primitive-family handoff from Mesh.</summary>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IPrimitiveReceiver {
 public:
     virtual ~IPrimitiveReceiver() = default;
@@ -139,15 +92,7 @@ public:
 };
 
 /// <summary>Generation-safe registration handle for one external primitive-family receiver.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Slot (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct PrimitiveReceiverHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -159,13 +104,7 @@ struct PrimitiveReceiverHandle final {
 };
 
 /// <summary>Result of bounded external primitive receiver registration.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class PrimitiveReceiverRegistrationResult : std::uint8_t {
     Registered,
@@ -175,13 +114,7 @@ class PrimitiveReceiverRegistrationResult : std::uint8_t {
 };
 
 /// <summary>Result of dispatching one external primitive family at the destination Mesh endpoint.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class PrimitiveDispatchResult : std::uint8_t {
     Dispatched,
@@ -198,33 +131,14 @@ class PrimitiveDispatchResult : std::uint8_t {
 /// generation handle. MeshControl is owned internally by Mesh and cannot be registered through this external receiver
 /// boundary. Command, Event, State and application/private families may be registered by their owning integration.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, Capacity>): Capacity * (48 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (48 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxPrimitiveReceivers>
 class PrimitiveReceiverRegistry final {
     static_assert(Capacity > 0, "Primitive receiver capacity must be non-zero.");
     static_assert(Capacity < std::numeric_limits<std::uint16_t>::max(),
                   "Primitive receiver slots must fit the generation-safe handle.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Descriptor (PrimitiveReceiverDescriptor): 40 bytes [0 bytes dynamic allocation]
- * - Receiver (IPrimitiveReceiver*): 4 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 48 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         PrimitiveReceiverDescriptor Descriptor{};
         IPrimitiveReceiver* Receiver{nullptr};

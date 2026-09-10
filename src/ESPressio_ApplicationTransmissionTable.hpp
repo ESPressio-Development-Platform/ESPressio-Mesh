@@ -16,15 +16,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Wire-neutral identity of the conceptual primitive family carried by an application transmission.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Family (Primitive::PrimitiveFamilyId): 2 bytes [0 bytes dynamic allocation]
- * - Version (Primitive::PrimitiveProtocolVersion): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ApplicationPrimitiveDescriptor final {
     Primitive::PrimitiveFamilyId Family{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersion Version{0};
@@ -36,15 +28,7 @@ struct ApplicationPrimitiveDescriptor final {
 };
 
 /// <summary>Generation-safe sender-local handle to one accepted application transmission aggregate.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Slot (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ApplicationTransmissionHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -54,16 +38,7 @@ struct ApplicationTransmissionHandle final {
 };
 
 /// <summary>One recipient frozen into a sender-local selective application transmission.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ApplicationTransmissionRecipient final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -71,31 +46,13 @@ struct ApplicationTransmissionRecipient final {
     constexpr bool IsValid() const noexcept { return static_cast<bool>(Device) && static_cast<bool>(Incarnation) && MessageId != 0U; }
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationRecipientOutcome : std::uint8_t { Pending, Delivered, PermanentFailure, DeadlineExpired };
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationTransmissionBeginResult : std::uint8_t { Begun, ResourceUnavailable, DeadlineExpired, DuplicateRecipient, DuplicateMessageId, Invalid };
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationTransmissionUpdateResult : std::uint8_t { Updated, AlreadyTerminal, UnknownRecipient, UnknownTransmission, Invalid };
 
@@ -106,15 +63,7 @@ class ApplicationTransmissionUpdateResult : std::uint8_t { Updated, AlreadyTermi
 /// caller-owned for the aggregate lifetime; the table owns no variable-capacity payload storage, routes, Radio state,
 /// acknowledgement tracker or selector identity. Broadcast is not represented here.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _records (std::array<Record, TransmissionCapacity>): TransmissionCapacity * (40 bytes known/aligned storage + RecipientCapacity * (44 bytes)) [0 bytes dynamic allocation]
- * Total Memory: TransmissionCapacity * (40 bytes known/aligned storage + RecipientCapacity * (44 bytes)) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t TransmissionCapacity = Limits::MaxActiveApplicationTransmissions,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission>
 class ApplicationTransmissionTable final {
@@ -122,32 +71,9 @@ class ApplicationTransmissionTable final {
     static_assert(RecipientCapacity > 0U, "Application recipient capacity must be non-zero.");
     static_assert(TransmissionCapacity <= std::numeric_limits<std::uint16_t>::max(), "Transmission capacity must fit handle slot.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Recipient (ApplicationTransmissionRecipient): 40 bytes [0 bytes dynamic allocation]
- * - Outcome (ApplicationRecipientOutcome): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct RecipientRecord final { ApplicationTransmissionRecipient Recipient{}; ApplicationRecipientOutcome Outcome{ApplicationRecipientOutcome::Pending}; };
-/**
- * ESPressio Memory Audit
- * Members:
- * - Used (bool): 1 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - RecipientCount (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - TerminalCount (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - AbsoluteDeadlineMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Primitive (ApplicationPrimitiveDescriptor): 4 bytes [0 bytes dynamic allocation]
- * - Payload (ApplicationPayload): 20 bytes [0 bytes dynamic allocation]
- * - Recipients (std::array<RecipientRecord, RecipientCapacity>): RecipientCapacity * (44 bytes) [0 bytes dynamic allocation]
- * Total Memory: 40 bytes known/aligned storage + RecipientCapacity * (44 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct Record final {
         bool Used{false};
         std::uint16_t Generation{0};

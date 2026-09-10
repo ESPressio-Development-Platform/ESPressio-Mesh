@@ -18,17 +18,7 @@ static Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
     return Mesh::MembershipIncarnation{bytes};
 }
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - Last (Mesh::LivenessProbeAssessment): 12 bytes [0 bytes dynamic allocation]
- * - Calls (int): 4 bytes [0 bytes dynamic allocation]
- * - Eligible (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 24 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TestProbePolicy final : public Mesh::IMeshLivenessProbePolicy {
 public:
     bool ShouldProbe(const Mesh::LivenessProbeAssessment& assessment) const noexcept override {
@@ -42,19 +32,7 @@ public:
     bool Eligible{false};
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - Next (Mesh::LivenessProbeStartDisposition): 1 bytes [0 bytes dynamic allocation]
- * - LastDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - LastIncarnation (Mesh::MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - LastReservation (Mesh::LivenessProbeReservation): 4 bytes [0 bytes dynamic allocation]
- * - Calls (int): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 48 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TestProbeInitiator final : public Mesh::ILivenessProbeInitiator {
 public:
     Mesh::LivenessProbeStartDisposition TryStartProbe(

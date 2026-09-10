@@ -11,13 +11,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshSystemClockRole : std::uint8_t {
     Disabled,
@@ -25,13 +19,7 @@ class MeshSystemClockRole : std::uint8_t {
     ClientAndReference
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshSystemClockConvergenceDisposition : std::uint8_t {
     Unchanged,
@@ -44,13 +32,7 @@ class MeshSystemClockConvergenceDisposition : std::uint8_t {
 };
 
 /// <summary>Transport boundary used by Mesh to apply an elected direct synchronization relationship.</summary>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IMeshSystemClockSynchronizationTransport {
 public:
     virtual ~IMeshSystemClockSynchronizationTransport() = default;
@@ -73,18 +55,7 @@ public:
 /// Radio retains the T1/T2/T3/T4 packet exchange, independent control-worker lifecycle and timestamp boundary. This
 /// adapter only resolves the generation-safe binding selected by Mesh and configures the resulting opaque Radio address.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _synchronizer (Radio::RadioClockSynchronizer&): 4 bytes [0 bytes dynamic allocation]
- * - _transport (Radio::RadioTransport&): 4 bytes [0 bytes dynamic allocation]
- * - _radio (Radio::IRadio&): 4 bytes [0 bytes dynamic allocation]
- * - _baseConfiguration (Radio::RadioClockSynchronizationConfig): 20 bytes [0 bytes dynamic allocation]
- * Total Memory: 36 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class RadioMeshSystemClockSynchronizationTransport final :
     public IMeshSystemClockSynchronizationTransport {
     Radio::RadioClockSynchronizer& _synchronizer;
@@ -139,20 +110,7 @@ public:
 /// synchronization state. Deadline-driven Mesh traffic should use NowMilliseconds() only when
 /// IsDeadlineClockReady() is true.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _clock (Timing::IClockSynchronizationTarget<Timing::ClockTick>&): 4 bytes [0 bytes dynamic allocation]
- * - _transport (IMeshSystemClockSynchronizationTransport&): 4 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _role (MeshSystemClockRole): 1 bytes [0 bytes dynamic allocation]
- * - _selection (ClockCoordinationSelection): 50 bytes [0 bytes dynamic allocation]
- * - _localRadio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
- * - _deadlineClockEstablished (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 80 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshSystemClockSynchronizationCoordinator final {
     Timing::IClockSynchronizationTarget<Timing::ClockTick>& _clock;
     IMeshSystemClockSynchronizationTransport& _transport;

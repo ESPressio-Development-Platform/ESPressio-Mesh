@@ -9,13 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of retiring one full authenticated membership record into compact local history.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MembershipRetirementResult : std::uint8_t {
     Retired,
@@ -36,15 +30,7 @@ class MembershipRetirementResult : std::uint8_t {
 /// older lower-protection history according to the frozen policy, so retained history remains independent
 /// from active-member capacity and cannot weaken later authentication requirements.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (MembershipTable&): 4 bytes [0 bytes dynamic allocation]
- * - _tombstones (TombstoneTable&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t TombstoneCapacity = Limits::MaxMembershipTombstones

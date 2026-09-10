@@ -13,17 +13,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Neighbour (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - LocalRadio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
- * - Peer (Radio::RadioPeerHandle): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 38 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct AuthenticatedDirectPeerBinding final {
     System::DeviceIdentifier Neighbour{};
     MembershipIncarnation Incarnation{};
@@ -36,38 +26,15 @@ struct AuthenticatedDirectPeerBinding final {
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class DirectPeerBindingResult : std::uint8_t { Bound, Replaced, ResourceUnavailable, Invalid };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, Capacity>): Capacity * (40 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (40 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxTopologyLinks>
 class AuthenticatedDirectPeerBindingTable final {
     static_assert(Capacity > 0, "Direct peer binding capacity must be non-zero.");
-/**
- * ESPressio Memory Audit
- * Members:
- * - Binding (AuthenticatedDirectPeerBinding): 38 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final { AuthenticatedDirectPeerBinding Binding{}; bool Occupied{false}; };
     std::array<Slot, Capacity> _slots{};
     std::size_t _size{0};

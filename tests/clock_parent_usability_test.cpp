@@ -7,23 +7,9 @@ using namespace ESPressio;
 using namespace ESPressio::Mesh;
 
 namespace {
-/**
- * ESPressio Memory Audit
- * Members:
- * - Value (std::uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Quality { std::uint32_t Value{0}; };
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class QualityPolicy final : public IClockQualityPolicy<Quality> {
 public:
     ClockQualityComparison Compare(const Quality& a, const Quality& b) const noexcept override {
@@ -32,14 +18,7 @@ public:
         return ClockQualityComparison::Equivalent;
     }
 };
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class Eligible final : public IClockEligibilityPolicy<Quality> {
 public: bool IsEligible(const ClockCoordinationAdvertisement<Quality>&) const noexcept override { return true; }
 };

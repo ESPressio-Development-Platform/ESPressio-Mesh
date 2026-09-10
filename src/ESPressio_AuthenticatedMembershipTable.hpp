@@ -20,22 +20,7 @@ namespace ESPressio::Mesh {
 /// delivery regenerate a lost positive ACK without treating other definitive dispositions as accepted. Discovery and
 /// pre-authentication candidates do not belong in this table and therefore cannot reserve or advance either window.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - State (MembershipState): 1 bytes [0 bytes dynamic allocation]
- * - Reachability (ReachabilityState): 1 bytes [0 bytes dynamic allocation]
- * - DeliveryDeduplication (DeduplicationWindow<Limits::DeduplicationWindowBits>): 24 bytes [0 bytes dynamic allocation]
- * - AcceptedDeliveryDeduplication (DeduplicationWindow<Limits::DeduplicationWindowBits>): 24 bytes [0 bytes dynamic allocation]
- * - BroadcastDeduplication (DeduplicationWindow<Limits::DeduplicationWindowBits>): 24 bytes [0 bytes dynamic allocation]
- * - Profile (MeshNodeProfile): 184 bytes [0 bytes dynamic allocation]
- * Total Memory: 292 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct AuthenticatedMembershipRecord final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -57,13 +42,7 @@ struct AuthenticatedMembershipRecord final {
 };
 
 /// <summary>Immediate result of inserting one authenticated membership record.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class AuthenticatedMembershipInsertResult : std::uint8_t {
     Inserted,
@@ -73,13 +52,7 @@ class AuthenticatedMembershipInsertResult : std::uint8_t {
     Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class AuthenticatedProfileUpdateResult : std::uint8_t {
     Applied,
@@ -106,30 +79,12 @@ class AuthenticatedProfileUpdateResult : std::uint8_t {
 /// mutex. Full unreachable-record retention and policy-driven expiry are higher membership-service
 /// responsibilities and may retain these same records for the configured bounded interval.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, Capacity>): Capacity * (296 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (296 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxMeshNodes>
 class AuthenticatedMembershipTable final {
     static_assert(Capacity > 0, "Authenticated membership capacity must be non-zero.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Record (AuthenticatedMembershipRecord): 292 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 296 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         AuthenticatedMembershipRecord Record{};
         bool Occupied{false};

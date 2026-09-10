@@ -17,17 +17,7 @@ namespace ESPressio::Mesh {
 /// created only after the destination framework has made a definitive acceptance decision; intermediate Radio/link
 /// success and forwarding admission are insufficient.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Recipient (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - RecipientIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - AcknowledgedMessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * - AbsoluteDeadlineMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 48 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct DeliveryAcknowledgementIntent final {
     System::DeviceIdentifier Recipient{};
     MembershipIncarnation RecipientIncarnation{};
@@ -44,13 +34,7 @@ struct DeliveryAcknowledgementIntent final {
 };
 
 /// <summary>Result of creating one destination-side acknowledgement intent.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class DeliveryAcknowledgementIntentResult : std::uint8_t {
     Created,
@@ -69,14 +53,7 @@ class DeliveryAcknowledgementIntentResult : std::uint8_t {
 /// An applied ACK means only that the destination framework accepted the Mesh delivery. It never represents completion
 /// of an application Command or other requested operation.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _tracker (DeliveryAcknowledgementTracker<TrackerCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t TrackerCapacity>
 class DeliveryAcknowledgementCoordinator final {
     DeliveryAcknowledgementTracker<TrackerCapacity>& _tracker;

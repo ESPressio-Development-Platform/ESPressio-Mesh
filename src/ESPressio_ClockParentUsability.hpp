@@ -17,15 +17,7 @@ namespace ESPressio::Mesh {
 /// neighbour advertising that root. The binding table already represents post-authentication local executable peers;
 /// this policy performs no authentication and does not inspect Radio addresses.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _peers (AuthenticatedDirectPeerBindingTable<DirectPeerCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     typename TQuality,
     std::size_t DirectPeerCapacity = Limits::MaxTopologyLinks

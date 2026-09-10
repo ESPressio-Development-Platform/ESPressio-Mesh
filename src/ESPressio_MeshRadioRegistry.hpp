@@ -12,13 +12,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of registering one Radio interface into the current Mesh membership incarnation.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshRadioRegistrationResult : std::uint8_t {
     Registered,
@@ -39,32 +33,13 @@ class MeshRadioRegistrationResult : std::uint8_t {
 /// This registry does not own or start Radio interfaces and does not own RadioPeerHandle state; those remain
 /// responsibilities of ESPressio-Radio/RadioTransport. Mutation is intended for the serialized Mesh domain.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, Capacity>): Capacity * (8 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - _nextIdentifier (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 6 bytes known/aligned storage + Capacity * (8 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxRadiosPerNode>
 class MeshRadioRegistry final {
     static_assert(Capacity > 0, "Mesh radio capacity must be non-zero.");
     static_assert(Capacity <= 254, "A membership incarnation has at most 254 usable RadioIdentifier values.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Interface (Radio::IRadio*): 4 bytes [0 bytes dynamic allocation]
- * - Identifier (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         Radio::IRadio* Interface{nullptr};
         RadioIdentifier Identifier{0};

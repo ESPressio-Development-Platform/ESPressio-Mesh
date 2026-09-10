@@ -16,13 +16,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Protected direct-neighbour liveness control message.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1LivenessMessageType : std::uint8_t {
     Probe = 1U,
@@ -30,22 +24,7 @@ class MeshV1LivenessMessageType : std::uint8_t {
     GracefulDisconnect = 3U
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Session (MeshSecuritySessionIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Sequence (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Sender (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - SenderIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Recipient (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - RecipientIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Type (MeshV1LivenessMessageType): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 108 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1LivenessHeader final {
     MeshIdentifier Mesh{};
     MeshSecuritySessionIdentifier Session{};
@@ -66,19 +45,7 @@ struct MeshV1LivenessHeader final {
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - AuthenticatedHeader (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - AuthenticatedHeaderBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Ciphertext (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - CiphertextBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Tag (MeshAuthenticationTag): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1LivenessFrameView final {
     const std::uint8_t* AuthenticatedHeader{nullptr};
     std::size_t AuthenticatedHeaderBytes{0U};
@@ -95,13 +62,7 @@ struct MeshV1LivenessFrameView final {
 /// echoed by a response and has no authority beyond correlating the probe. No System Clock timestamp is required:
 /// liveness scheduling and evidence age remain monotonic-time concerns.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshV1LivenessFrameCodec final {
     inline static constexpr std::array<std::uint8_t, 4U> Magic{{0x45U, 0x53U, 0x4CU, 0x56U}}; // ESLV
     static constexpr std::uint8_t Version = 1U;
@@ -214,13 +175,7 @@ public:
     static std::uint64_t DecodeToken(const std::uint8_t* input) noexcept { return ReadU64(input); }
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1LivenessReceiveDisposition : std::uint8_t {
     ProbeAuthenticated,
@@ -235,17 +190,7 @@ class MeshV1LivenessReceiveDisposition : std::uint8_t {
     Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Disposition (MeshV1LivenessReceiveDisposition): 1 bytes [0 bytes dynamic allocation]
- * - Sender (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - SenderIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Token (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1LivenessReceiveResult final {
     MeshV1LivenessReceiveDisposition Disposition{MeshV1LivenessReceiveDisposition::Invalid};
     System::DeviceIdentifier Sender{};
@@ -267,23 +212,7 @@ struct MeshV1LivenessReceiveResult final {
 /// results to MembershipLivenessTracker only after this coordinator reports authenticated evidence. Probe scheduling
 /// remains owned by LivenessProbeCoordinator/IMeshLivenessProbePolicy.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _bindings (AuthenticatedDirectPeerBindingTable<BindingCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _transport (Radio::RadioTransport&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - _nextToken (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 80 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t BindingCapacity = Limits::MaxTopologyLinks,
@@ -451,15 +380,7 @@ public:
 };
 
 /// <summary>Default policy keeping authenticated direct neighbours inside the liveness floor without application traffic.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _probeIntervalMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class DefaultMeshLivenessProbePolicy final : public IMeshLivenessProbePolicy {
     std::uint64_t _probeIntervalMilliseconds{2000U};
 

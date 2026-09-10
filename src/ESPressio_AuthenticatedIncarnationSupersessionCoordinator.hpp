@@ -11,13 +11,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of retiring an older authenticated incarnation before committing its authenticated replacement.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class AuthenticatedIncarnationSupersessionResult : std::uint8_t {
     /// <summary>No older retained incarnation exists, or the retained incarnation is already the replacement.</summary>
@@ -50,18 +44,7 @@ class AuthenticatedIncarnationSupersessionResult : std::uint8_t {
 /// retirement has committed. Observers therefore cannot see a SupersededIncarnation notification while an executable
 /// old direct binding or old security session is still retained by these stores.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (MembershipTable&): 4 bytes [0 bytes dynamic allocation]
- * - _lifecycle (MembershipLifecycle&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (SessionTable&): 4 bytes [0 bytes dynamic allocation]
- * - _bindings (BindingTable&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 20 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t TombstoneCapacity = Limits::MaxMembershipTombstones,

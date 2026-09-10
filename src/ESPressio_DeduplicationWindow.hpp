@@ -10,13 +10,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Classification of one source/incarnation-scoped MeshMessageId against retained delivery history.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class DeduplicationDisposition : std::uint8_t {
     /// <summary>The sequence is non-zero and has not yet been committed inside the retained window.</summary>
@@ -39,16 +33,7 @@ class DeduplicationDisposition : std::uint8_t {
 /// any temporary InProgress reservation needed while a receiver validates/hands off work belongs to
 /// the bounded inbound-delivery execution state and must be resolved before Commit is called.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _highestObserved (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * - _seen (std::array<std::uint64_t, WordCount>): WordCount * (8 bytes) [0 bytes dynamic allocation]
- * Total Memory: 8 bytes known/aligned storage + WordCount * (8 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t WindowBits = Limits::DeduplicationWindowBits>
 class DeduplicationWindow final {
     static_assert(WindowBits >= 32, "Mesh deduplication windows must retain at least 32 sequence positions.");

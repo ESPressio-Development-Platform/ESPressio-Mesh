@@ -10,13 +10,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of one policy-driven membership lifecycle evaluation.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MembershipLifecycleResult : std::uint8_t {
     NoChange,
@@ -37,17 +31,7 @@ class MembershipLifecycleResult : std::uint8_t {
 /// MembershipRetentionCoordinator owns tombstone-before-release retirement. Observable notifications are advisory views
 /// of already-committed transitions and never grant authority or alter the result of a lifecycle operation.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (MembershipTable&): 4 bytes [0 bytes dynamic allocation]
- * - _liveness (LivenessTracker&): 4 bytes [0 bytes dynamic allocation]
- * - _retention (RetentionCoordinator&): 4 bytes [0 bytes dynamic allocation]
- * - _notifications (MeshLifecycleNotifications*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t TombstoneCapacity = Limits::MaxMembershipTombstones

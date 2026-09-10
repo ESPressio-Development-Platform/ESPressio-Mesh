@@ -12,16 +12,7 @@ namespace ESPressio::Mesh {
 /// in Mesh: the composition selects both sizes and includes this concrete object in its whole-device memory budget.
 /// One workspace may be reused when the Mesh mutation domain guarantees that protect/open calls do not overlap.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _inner (std::array<std::uint8_t, InnerCapacityBytes>): InnerCapacityBytes * (1 bytes) [0 bytes dynamic allocation]
- * - _packet (std::array<std::uint8_t, PacketCapacityBytes>): PacketCapacityBytes * (1 bytes) [0 bytes dynamic allocation]
- * Total Memory: InnerCapacityBytes * (1 bytes) + PacketCapacityBytes * (1 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t InnerCapacityBytes, std::size_t PacketCapacityBytes>
 class MeshV1FrameWorkspace final {
     static_assert(InnerCapacityBytes > 0U && PacketCapacityBytes > 0U,
@@ -51,14 +42,7 @@ public:
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - _workspace (TWorkspace&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<typename TWorkspace>
 class MeshV1WorkspaceResetGuard final {
     TWorkspace& _workspace;

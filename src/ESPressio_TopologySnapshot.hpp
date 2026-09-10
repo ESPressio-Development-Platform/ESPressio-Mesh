@@ -12,13 +12,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Local freshness classification for one authenticated remote topology authority.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class TopologyFreshnessState : std::uint8_t {
     Fresh,
@@ -36,17 +30,7 @@ class TopologyFreshnessState : std::uint8_t {
 /// RadioIdentifier/link endpoint is not knowable; 0xFF remains reserved and is invalid. No RadioAddress or
 /// RadioPeerHandle is retained as distributed topology identity.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Advertiser (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - LocalRadio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
- * - Neighbour (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - NeighbourRadio (RadioIdentifier): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 34 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct TopologyLinkIdentity final {
     System::DeviceIdentifier Advertiser{};
     RadioIdentifier LocalRadio{0};
@@ -79,16 +63,7 @@ struct TopologyLinkIdentity final {
 /// TCharacteristics deliberately remains a separate bounded value type. The architecture does not define a universal
 /// scalar RouteCost: Radio/Mesh observations are normalized independently and interpreted by IRoutingStrategy.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Identity (TopologyLinkIdentity): 34 bytes [0 bytes dynamic allocation]
- * - Characteristics (TCharacteristics): sizeof(TCharacteristics) [0 bytes dynamic allocation]
- * Total Memory: 34 bytes known/aligned storage + sizeof(TCharacteristics) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<typename TCharacteristics>
 struct DirectedTopologyLink final {
     TopologyLinkIdentity Identity{};
@@ -101,13 +76,7 @@ struct DirectedTopologyLink final {
 };
 
 /// <summary>Result of applying one complete authenticated outbound-topology generation.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class TopologySnapshotApplyResult : std::uint8_t {
     Applied,
@@ -135,19 +104,7 @@ class TopologySnapshotApplyResult : std::uint8_t {
 /// local receipt age/freshness is retained separately so authenticated retransmission can refresh freshness without
 /// mutating TopologyGeneration.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _authority (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - _generation (TopologyGeneration): 8 bytes [0 bytes dynamic allocation]
- * - _links (std::array<Link, Capacity>): Capacity * (34 bytes known/aligned storage + sizeof(TCharacteristics)) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes known/aligned storage + Capacity * (34 bytes known/aligned storage + sizeof(TCharacteristics)) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<typename TCharacteristics, std::size_t Capacity = Limits::MaxTopologyLinks>
 class TopologySnapshot final {
     static_assert(Capacity > 0, "Topology link capacity must be non-zero.");

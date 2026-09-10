@@ -9,13 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of admitting one clock advertisement through authenticated membership authority.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ClockObservationDisposition : std::uint8_t {
     Observed,
@@ -34,15 +28,7 @@ class ClockObservationDisposition : std::uint8_t {
 /// claims from entering the clock-election table and provides exact-incarnation cleanup when membership is retired.
 /// The caller remains responsible for establishing message authenticity before invoking ObserveAuthenticated().
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _membership (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _clock (ClockCoordinationTable<TQuality, ClockCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     typename TQuality,
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,

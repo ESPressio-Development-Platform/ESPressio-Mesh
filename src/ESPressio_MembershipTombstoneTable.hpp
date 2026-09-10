@@ -13,17 +13,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Compact historical evidence for one previously represented Mesh membership incarnation.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - RetentionDeadlineMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - Disposition (MembershipTombstoneDisposition): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MembershipTombstone final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -49,29 +39,12 @@ struct MembershipTombstone final {
 /// only discard continuity history; it never weakens authentication or admission requirements.
 /// Time values are supplied by the caller from a monotonic clock.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, Capacity>): Capacity * (48 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (48 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxMembershipTombstones>
 class MembershipTombstoneTable final {
     static_assert(Capacity > 0, "Membership tombstone capacity must be non-zero.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Value (MembershipTombstone): 44 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 48 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         MembershipTombstone Value{};
         bool Occupied{false};

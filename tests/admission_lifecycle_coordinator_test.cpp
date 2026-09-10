@@ -18,17 +18,7 @@ static MembershipIncarnation Incarnation(std::uint8_t tail) {
     return MembershipIncarnation{bytes};
 }
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - Next (MeshAuthenticationDisposition): 1 bytes [0 bytes dynamic allocation]
- * - Identity (AuthenticatedMeshIdentity): 32 bytes [0 bytes dynamic allocation]
- * - Calls (unsigned): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class SecurityAuthority final : public IMeshSecurityAuthority {
 public:
     MeshAuthenticationDisposition Next{MeshAuthenticationDisposition::Authenticated};
@@ -47,17 +37,7 @@ public:
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - Next (MeshAdmissionDisposition): 1 bytes [0 bytes dynamic allocation]
- * - Calls (unsigned): 4 bytes [0 bytes dynamic allocation]
- * - LastIdentity (AuthenticatedMeshIdentity): 32 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class AdmissionPolicy final : public IMeshAdmissionPolicy {
 public:
     MeshAdmissionDisposition Next{MeshAdmissionDisposition::Admit};

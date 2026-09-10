@@ -14,17 +14,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Read-only local evidence supplied to active-liveness-probe eligibility policy.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Membership (MembershipState): 1 bytes [0 bytes dynamic allocation]
- * - Reachability (ReachabilityState): 1 bytes [0 bytes dynamic allocation]
- * - HasAuthenticatedEvidence (bool): 1 bytes [0 bytes dynamic allocation]
- * - EvidenceAgeMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct LivenessProbeAssessment final {
     MembershipState Membership{MembershipState::Unknown};
     ReachabilityState Reachability{ReachabilityState::Unknown};
@@ -33,13 +23,7 @@ struct LivenessProbeAssessment final {
 };
 
 /// <summary>Injectable policy deciding whether passive/control evidence is insufficient and an active probe is useful.</summary>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IMeshLivenessProbePolicy {
 public:
     virtual ~IMeshLivenessProbePolicy() = default;
@@ -55,13 +39,7 @@ public:
 };
 
 /// <summary>Immediate admission result from the technology/control-plane implementation that starts a probe.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class LivenessProbeStartDisposition : std::uint8_t {
     Started,
@@ -78,13 +56,7 @@ class LivenessProbeStartDisposition : std::uint8_t {
 /// becomes liveness evidence only after the owning authentication path validates it and separately calls
 /// MembershipLivenessTracker::ObserveAuthenticatedEvidence.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class ILivenessProbeInitiator {
 public:
     virtual ~ILivenessProbeInitiator() = default;
@@ -96,13 +68,7 @@ public:
 };
 
 /// <summary>Result of asking the coordinator to consider one authenticated member for active probing.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class LivenessProbeCoordinatorResult : std::uint8_t {
     Started,
@@ -125,18 +91,7 @@ class LivenessProbeCoordinatorResult : std::uint8_t {
 /// immediately. Probe completion releases only execution capacity; authenticated probe responses must pass through the
 /// normal authenticated-evidence path rather than being trusted merely because a probe was outstanding.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _members (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _liveness (MembershipLivenessTracker<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _reservations (LivenessProbeReservationTable<ProbeCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _policy (IMeshLivenessProbePolicy&): 4 bytes [0 bytes dynamic allocation]
- * - _initiator (ILivenessProbeInitiator&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 20 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t ProbeCapacity = Limits::MaxActiveLivenessProbes

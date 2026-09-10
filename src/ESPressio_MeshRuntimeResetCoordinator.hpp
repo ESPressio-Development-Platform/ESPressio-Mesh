@@ -36,30 +36,7 @@ namespace ESPressio::Mesh {
 /// Starting or restoring a local membership incarnation remains a separate explicit identity-lifecycle operation,
 /// coordinated by LocalMeshIdentityLifecycleCoordinator after the required runtime/application/Radio teardown.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _liveness (MembershipLivenessTracker<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _tombstones (MembershipTombstoneTable<TombstoneCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _inboundDeliveries (InboundDeliveryReservationTable<InboundDeliveryCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _authentications (InboundAuthenticationReservationTable<AuthenticationCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _probes (LivenessProbeReservationTable<ProbeCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _directPeers (AuthenticatedDirectPeerBindingTable<BindingCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _topology (TopologyGraphStore<TTopologyCharacteristics, TopologyLinkCapacity, MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _routes (RouteCache<RouteCapacity, RouteHopCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _acknowledgements (DeliveryAcknowledgementTracker<AcknowledgementCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _radioCorrelations (ForwardingRadioTerminalCorrelation<CorrelationCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _securitySessions (MeshSecuritySessionTable<SecuritySessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _cryptography (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _clock (ClockCoordinationTable<TClockQuality, MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _traffic (IMeshTrafficGovernor&): 4 bytes [0 bytes dynamic allocation]
- * - _pendingAuthentication (IMeshPendingAuthenticationReset*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 68 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     typename TTopologyCharacteristics,
     typename TClockQuality,

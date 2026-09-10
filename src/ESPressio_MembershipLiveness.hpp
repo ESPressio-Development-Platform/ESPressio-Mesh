@@ -13,15 +13,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Authenticated liveness evidence retained for one current membership incarnation.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - LastEvidenceMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - UnreachableSinceMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct AuthenticatedLivenessEvidence final {
     std::uint64_t LastEvidenceMilliseconds{0};
     std::uint64_t UnreachableSinceMilliseconds{0};
@@ -31,13 +23,7 @@ struct AuthenticatedLivenessEvidence final {
 };
 
 /// <summary>Policy contract that classifies elapsed time since the last authenticated Mesh evidence.</summary>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IMeshLivenessPolicy {
 public:
     virtual ~IMeshLivenessPolicy() = default;
@@ -55,16 +41,7 @@ public:
 /// The thresholds are policy configuration, not membership-storage constants. Applications may inject a
 /// different policy without changing membership representation or distributed identity semantics.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _suspectAfterMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - _unreachableAfterMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 20 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class DefaultMeshLivenessPolicy final : public IMeshLivenessPolicy {
     std::uint64_t _suspectAfterMilliseconds;
     std::uint64_t _unreachableAfterMilliseconds;
@@ -101,30 +78,10 @@ public:
 /// Valid authenticated evidence restores Reachable immediately. Time-based degradation is local evidence only
 /// and never changes MembershipState or authoritatively removes a member.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _members (AuthenticatedMembershipTable<Capacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _policy (IMeshLivenessPolicy&): 4 bytes [0 bytes dynamic allocation]
- * - _slots (std::array<Slot, Capacity>): Capacity * (52 bytes) [0 bytes dynamic allocation]
- * Total Memory: 8 bytes known/aligned storage + Capacity * (52 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxMeshNodes>
 class MembershipLivenessTracker final {
-/**
- * ESPressio Memory Audit
- * Members:
- * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Evidence (AuthenticatedLivenessEvidence): 16 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 52 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         System::DeviceIdentifier Device{};
         MembershipIncarnation Incarnation{};

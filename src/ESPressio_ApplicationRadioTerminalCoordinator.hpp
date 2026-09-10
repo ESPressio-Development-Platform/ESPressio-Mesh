@@ -9,13 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Application-level interpretation of one deferred outbound Radio-terminal processing step.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ApplicationRadioTerminalDisposition : std::uint8_t {
     NoTerminalEvidence,
@@ -43,14 +37,7 @@ class ApplicationRadioTerminalDisposition : std::uint8_t {
 /// failure terminalizes the aggregate recipient. `StopAttemptLimit` is mapped to PermanentFailure because all policy-
 /// permitted attempts/routes for that delivery are exhausted; it does not imply any application operation completed.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _recipients (RecipientLifecycle&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t CorrelationCapacity,

@@ -9,15 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Generation-safe handle to one allocation in a fixed owned-byte pool.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Slot (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct OwnedBytePoolHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -28,30 +20,14 @@ struct OwnedBytePoolHandle final {
     constexpr explicit operator bool() const noexcept { return IsValid(); }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Data (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - Size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MutableOwnedByteView final {
     std::uint8_t* Data{nullptr};
     std::size_t Size{0};
     constexpr explicit operator bool() const noexcept { return Data != nullptr && Size != 0U; }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Data (std::uint8_t*): 4 bytes [0 bytes dynamic allocation]
- * - Size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct OwnedByteView final {
     const std::uint8_t* Data{nullptr};
     std::size_t Size{0};
@@ -63,15 +39,7 @@ struct OwnedByteView final {
 /// The pool is suitable for composition-owned inbound packets, control frames or bounded application payload backing.
 /// Allocation failure is explicit. Release and controlled reset clear retained bytes and make every old handle stale.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, SlotCapacity>): SlotCapacity * (7 bytes known/aligned storage + BytesPerSlot * (1 bytes)) [0 bytes dynamic allocation]
- * Total Memory: SlotCapacity * (7 bytes known/aligned storage + BytesPerSlot * (1 bytes)) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t SlotCapacity, std::size_t BytesPerSlot>
 class BoundedOwnedBytePool final {
     static_assert(SlotCapacity > 0U, "Owned-byte slot capacity must be non-zero.");
@@ -79,18 +47,7 @@ class BoundedOwnedBytePool final {
                   "Owned-byte slot capacity must fit the handle slot.");
     static_assert(BytesPerSlot > 0U, "Owned bytes per slot must be non-zero.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Bytes (std::array<std::uint8_t, BytesPerSlot>): BytesPerSlot * (1 bytes) [0 bytes dynamic allocation]
- * - Size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - Generation (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * - Used (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 7 bytes known/aligned storage + BytesPerSlot * (1 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         std::array<std::uint8_t, BytesPerSlot> Bytes{};
         std::size_t Size{0};

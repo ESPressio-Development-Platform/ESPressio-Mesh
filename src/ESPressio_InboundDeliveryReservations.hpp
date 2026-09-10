@@ -12,16 +12,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Identity of one authenticated ordinary Mesh delivery while semantic handoff is in progress.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct InboundDeliveryIdentity final {
     System::DeviceIdentifier Source{};
     MembershipIncarnation Incarnation{};
@@ -48,13 +39,7 @@ struct InboundDeliveryIdentity final {
 };
 
 /// <summary>Immediate result of attempting to reserve one authenticated inbound delivery for semantic handoff.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class InboundDeliveryReservationResult : std::uint8_t {
     /// <summary>The delivery now exclusively owns one bounded InProgress reservation.</summary>
@@ -79,29 +64,12 @@ class InboundDeliveryReservationResult : std::uint8_t {
 /// The default Mesh execution model serializes mutation of this table; the table deliberately owns no mutex or
 /// task because execution-domain synchronization is a separate responsibility.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _slots (std::array<Slot, Capacity>): Capacity * (44 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (44 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxActiveInboundDeliveries>
 class InboundDeliveryReservationTable final {
     static_assert(Capacity > 0, "Inbound delivery reservation capacity must be non-zero.");
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Identity (InboundDeliveryIdentity): 40 bytes [0 bytes dynamic allocation]
- * - Occupied (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 44 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Slot final {
         InboundDeliveryIdentity Identity{};
         bool Occupied{false};

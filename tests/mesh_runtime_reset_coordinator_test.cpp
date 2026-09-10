@@ -10,27 +10,13 @@
 using namespace ESPressio;
 
 namespace {
-/**
- * ESPressio Memory Audit
- * Members:
- * - Metric (std::uint16_t): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 2 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct Characteristics final {
     std::uint16_t Metric{0};
     constexpr bool operator==(const Characteristics& other) const noexcept { return Metric == other.Metric; }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - UncertaintyNanoseconds (std::uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ClockQuality final { std::uint32_t UncertaintyNanoseconds{0}; };
 
 System::DeviceIdentifier Device(std::uint8_t tail) {
@@ -45,19 +31,7 @@ Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
     return Mesh::MembershipIncarnation{bytes};
 }
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _cryptography (TestCryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - ReleasedBeforeProviderReset (bool): 1 bytes [0 bytes dynamic allocation]
- * - ClearedAfterProviderReset (bool): 1 bytes [0 bytes dynamic allocation]
- * - ReleaseCalls (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - ClearCalls (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 20 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class PendingAuthenticationReset final : public Mesh::IMeshPendingAuthenticationReset {
     TestCryptographicProvider& _cryptography;
 public:

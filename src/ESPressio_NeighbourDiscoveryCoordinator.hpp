@@ -11,13 +11,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of accepting one pre-authentication membership claim from a direct Radio peer.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class NeighbourDiscoveryResult : std::uint8_t {
     Inserted,
@@ -37,15 +31,7 @@ class NeighbourDiscoveryResult : std::uint8_t {
 /// handle and local RadioIdentifier establish only the link on which the claim was observed; the claimed
 /// DeviceIdentifier/MembershipIncarnation remain untrusted until external authentication succeeds.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _radios (MeshRadioRegistry<RadioCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _candidates (PendingNeighbourCandidateTable<CandidateCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t RadioCapacity = Limits::MaxRadiosPerNode,
     std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates

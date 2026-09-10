@@ -12,13 +12,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Outcome of one local route-planning request.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class RoutePlanningDisposition : std::uint8_t {
     Planned,
@@ -38,17 +32,7 @@ class RoutePlanningDisposition : std::uint8_t {
 /// policy/context rather than collapsed here into a universal scalar route cost. The strategy must treat Expired or
 /// otherwise unusable topology as unavailable according to the composition that supplies it.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Topology (TopologyGraphStore<TCharacteristics, LinkCapacity, AuthorityCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - Source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Destination (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - RemainingHops (RemainingHopLimit): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     typename TCharacteristics,
     std::size_t LinkCapacity = Limits::MaxTopologyLinks,
@@ -70,13 +54,7 @@ struct RoutingEvidence final {
 /// policy/state. The returned route is a disposable local planning artifact, not a source-routing wire contract. Mesh
 /// forwarding remains adaptive hop-by-hop and every forwarding node may plan a different next hop.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     typename TCharacteristics,
     std::size_t LinkCapacity = Limits::MaxTopologyLinks,

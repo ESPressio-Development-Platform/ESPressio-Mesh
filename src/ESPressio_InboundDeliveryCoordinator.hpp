@@ -9,13 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Outcome of beginning one authenticated inbound Mesh delivery.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class InboundDeliveryBeginResult : std::uint8_t {
     Reserved,
@@ -28,13 +22,7 @@ class InboundDeliveryBeginResult : std::uint8_t {
 };
 
 /// <summary>Outcome of definitively committing one previously reserved delivery.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class InboundDeliveryCommitResult : std::uint8_t {
     Committed,
@@ -46,13 +34,7 @@ class InboundDeliveryCommitResult : std::uint8_t {
 };
 
 /// <summary>Whether a committed duplicate previously reached destination-framework acceptance.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class InboundDeliveryAcceptanceResult : std::uint8_t {
     Accepted,
@@ -76,15 +58,7 @@ class InboundDeliveryAcceptanceResult : std::uint8_t {
 /// local receiver reports TemporarilyUnavailable/ResourceUnavailable. This preserves legitimate later
 /// retry while preventing concurrent duplicate upper-layer delivery.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (MembershipTable&): 4 bytes [0 bytes dynamic allocation]
- * - _reservations (ReservationTable&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t InProgressCapacity = Limits::MaxActiveInboundDeliveries

@@ -20,18 +20,7 @@ namespace ESPressio::Mesh {
 /// RadioAddress and RadioPeerHandle never appear here because they are executable local-link bindings, not topology
 /// identity. The route merely records which directed logical edges a strategy selected while planning.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _destination (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _hops (std::array<TopologyLinkIdentity, HopCapacity>): HopCapacity * (34 bytes) [0 bytes dynamic allocation]
- * - _hopCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 36 bytes known/aligned storage + HopCapacity * (34 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t HopCapacity = Limits::MaxRouteHops>
 class ResolvedRoute final {
     static_assert(HopCapacity > 0, "A route must permit at least one hop.");

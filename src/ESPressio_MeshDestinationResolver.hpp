@@ -10,15 +10,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Device (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - Incarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct FrozenMeshRecipient final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -28,13 +20,7 @@ struct FrozenMeshRecipient final {
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshDestinationResolutionDisposition : std::uint8_t {
     Resolved,
@@ -44,16 +30,7 @@ class MeshDestinationResolutionDisposition : std::uint8_t {
 };
 
 /// <summary>Fixed immutable-by-convention recipient snapshot produced by Group or CapabilitySelector resolution.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _recipients (std::array<FrozenMeshRecipient, Capacity>): Capacity * (32 bytes) [0 bytes dynamic allocation]
- * - _size (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known/aligned storage + Capacity * (32 bytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t Capacity = Limits::MaxRecipientsPerTransmission>
 class FrozenMeshRecipientSet final {
     static_assert(Capacity > 0U, "Frozen recipient capacity must be non-zero.");
@@ -99,14 +76,7 @@ public:
 /// and outcomes. Reachability is deliberately not a membership filter: an Active member remains a recipient while route
 /// planning independently determines whether and when it can be reached before the immutable deadline.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t MembershipCapacity = Limits::MaxMeshNodes,
          std::size_t RecipientCapacity = Limits::MaxRecipientsPerTransmission>
 class MeshDestinationResolver final {

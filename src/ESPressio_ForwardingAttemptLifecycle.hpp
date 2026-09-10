@@ -10,13 +10,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Immediate lifecycle action after one local forwarding submission attempt.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ForwardingAttemptAction : std::uint8_t {
     AwaitingNextHopAcceptance,
@@ -28,13 +22,7 @@ class ForwardingAttemptAction : std::uint8_t {
 };
 
 /// <summary>Lifecycle action after already-authenticated next-hop acceptance evidence is evaluated.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ForwardingAcceptanceAction : std::uint8_t {
     ForwardingComplete,
@@ -59,13 +47,7 @@ class ForwardingAcceptanceAction : std::uint8_t {
 ///
 /// This helper defines no queue, task, timer, wire message, security scheme or PrimitiveFamilyId.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class ForwardingAttemptLifecycle final {
     static ForwardingAttemptAction MapAction(RouteAttemptAction action) noexcept {
         switch (action) {

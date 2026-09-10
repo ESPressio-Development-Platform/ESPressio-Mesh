@@ -9,13 +9,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1ControlMessageType : std::uint8_t {
     Invalid = 0U,
@@ -23,17 +17,7 @@ class MeshV1ControlMessageType : std::uint8_t {
     DestinationDeliveryAcknowledgement = 2U
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Source (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - SourceIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - MessageId (MeshMessageId): 8 bytes [0 bytes dynamic allocation]
- * - AbsoluteDeadlineMilliseconds (std::uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 48 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1AcknowledgedDelivery final {
     System::DeviceIdentifier Source{};
     MembershipIncarnation SourceIncarnation{};
@@ -47,16 +31,7 @@ struct MeshV1AcknowledgedDelivery final {
     constexpr explicit operator bool() const noexcept { return IsValid(); }
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Recipient (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - RecipientIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * - Acknowledged (MeshV1AcknowledgedDelivery): 48 bytes [0 bytes dynamic allocation]
- * Total Memory: 80 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1NextHopAcceptanceIntent final {
     System::DeviceIdentifier Recipient{};
     MembershipIncarnation RecipientIncarnation{};
@@ -70,13 +45,7 @@ struct MeshV1NextHopAcceptanceIntent final {
 };
 
 /// <summary>Canonical fixed Mesh Control acknowledgement payload.</summary>
-/**
- * ESPressio Memory Audit
- * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MeshV1ControlCodec final {
     inline static constexpr std::array<std::uint8_t, 4> Magic{{0x45U, 0x53U, 0x4DU, 0x43U}};
 public:

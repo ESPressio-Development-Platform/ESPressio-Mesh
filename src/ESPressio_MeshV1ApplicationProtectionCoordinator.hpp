@@ -18,13 +18,7 @@
 
 namespace ESPressio::Mesh {
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1ProtectedApplicationSubmissionDisposition : std::uint8_t {
     Submitted, RetryCurrentRoute, ReplanDistinctRoute, DeadlineExpired, PermanentFailure,
@@ -33,15 +27,7 @@ class MeshV1ProtectedApplicationSubmissionDisposition : std::uint8_t {
     NextHopSessionUnavailable, SequenceExhausted, ProtectionFailed, Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Disposition (MeshV1ProtectedApplicationSubmissionDisposition): 1 bytes [0 bytes dynamic allocation]
- * - Radio (ApplicationRadioSubmissionResult): 68 bytes [0 bytes dynamic allocation]
- * Total Memory: 72 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1ProtectedApplicationSubmissionResult final {
     MeshV1ProtectedApplicationSubmissionDisposition Disposition{
         MeshV1ProtectedApplicationSubmissionDisposition::Invalid};
@@ -53,13 +39,7 @@ struct MeshV1ProtectedApplicationSubmissionResult final {
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class MeshV1ProtectedDestinationDisposition : std::uint8_t {
     Dispatched, Duplicate, TooOld, AlreadyInProgress, DeadlineExpired, ResourceUnavailable,
@@ -68,18 +48,7 @@ class MeshV1ProtectedDestinationDisposition : std::uint8_t {
     NotForLocalNode, Invalid
 };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Disposition (MeshV1ProtectedDestinationDisposition): 1 bytes [0 bytes dynamic allocation]
- * - Dispatch (PrimitiveDispatchResult): 1 bytes [0 bytes dynamic allocation]
- * - ReceiverDisposition (PrimitiveReceiveDisposition): 1 bytes [0 bytes dynamic allocation]
- * - Acknowledgement (DeliveryAcknowledgementIntent): 48 bytes [0 bytes dynamic allocation]
- * - NextHopAcceptance (MeshV1NextHopAcceptanceIntent): 80 bytes [0 bytes dynamic allocation]
- * Total Memory: 132 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct MeshV1ProtectedDestinationResult final {
     MeshV1ProtectedDestinationDisposition Disposition{MeshV1ProtectedDestinationDisposition::Invalid};
     PrimitiveDispatchResult Dispatch{PrimitiveDispatchResult::Invalid};
@@ -89,22 +58,7 @@ struct MeshV1ProtectedDestinationResult final {
 };
 
 /// <summary>Protects one frozen application recipient and submits the complete Hop frame to existing routing.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _transmissions (ApplicationTransmissionTable<TransmissionCapacity, RecipientCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _applicationSubmission (ApplicationSubmission&): 4 bytes [0 bytes dynamic allocation]
- * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 72 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
          std::size_t AcknowledgementCapacity,
@@ -301,22 +255,7 @@ public:
 };
 
 /// <summary>Authenticates and opens a final-destination Hop/EndToEnd frame before bounded primitive dispatch.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _memberships (AuthenticatedMembershipTable<MembershipCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _sessions (MeshSecuritySessionTable<SessionCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _provider (IMeshV1CryptographicProvider&): 4 bytes [0 bytes dynamic allocation]
- * - _inbound (InboundDeliveryCoordinator<MembershipCapacity, InProgressCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _receivers (PrimitiveReceiverRegistry<ReceiverCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _workspace (MeshV1FrameWorkspace<InnerWorkspaceBytes, PacketWorkspaceBytes>&): 4 bytes [0 bytes dynamic allocation]
- * - _mesh (MeshIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localDevice (System::DeviceIdentifier): 16 bytes [0 bytes dynamic allocation]
- * - _localIncarnation (MembershipIncarnation): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 72 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<std::size_t InnerWorkspaceBytes,
          std::size_t PacketWorkspaceBytes,
          std::size_t MembershipCapacity = Limits::MaxMeshNodes,

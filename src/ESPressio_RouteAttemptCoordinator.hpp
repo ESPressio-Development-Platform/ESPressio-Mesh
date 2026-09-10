@@ -7,13 +7,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Action selected after one route attempt outcome.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class RouteAttemptAction : std::uint8_t {
     Complete,
@@ -27,17 +21,7 @@ class RouteAttemptAction : std::uint8_t {
 /// <summary>
 /// Bounded per-delivery route-attempt state. It owns counters only; payload, route, Radio work and scheduling remain elsewhere.
 /// </summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _routePolicy (IRouteAttemptPolicy&): 4 bytes [0 bytes dynamic allocation]
- * - _retryPolicy (IRetryPolicy&): 4 bytes [0 bytes dynamic allocation]
- * - _attemptsOnCurrentRoute (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - _distinctRoutesAttempted (std::uint8_t): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class RouteAttemptCoordinator final {
     const IRouteAttemptPolicy& _routePolicy;
     const IRetryPolicy& _retryPolicy;

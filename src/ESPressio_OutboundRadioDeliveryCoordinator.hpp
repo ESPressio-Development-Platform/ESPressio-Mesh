@@ -9,16 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Outcome of one outbound Radio-backed forwarding submission.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Submission (ForwardingSubmissionResult): 60 bytes [0 bytes dynamic allocation]
- * - Action (OutboundForwardingAction): 1 bytes [0 bytes dynamic allocation]
- * - CorrelationDisposition (ForwardingRadioCorrelationDisposition): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 64 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct OutboundRadioForwardingResult final {
     ForwardingSubmissionResult Submission{};
     OutboundForwardingAction Action{OutboundForwardingAction::Invalid};
@@ -37,16 +28,7 @@ struct OutboundRadioForwardingResult final {
 /// Radio-terminal correlation. Radio terminal completion or peer ACK never commits HopLimit; only authenticated next-hop
 /// acceptance delegated to OutboundDeliveryLifecycle can do that.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - _delivery (OutboundDeliveryLifecycle<AcknowledgementCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _radioAttempts (ForwardingRadioAttemptCoordinator<CorrelationCapacity, MembershipCapacity, BindingCapacity, HopCapacity>&): 4 bytes [0 bytes dynamic allocation]
- * - _correlation (ForwardingRadioCorrelationHandle): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t CorrelationCapacity,
