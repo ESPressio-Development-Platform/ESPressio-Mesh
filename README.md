@@ -2,7 +2,7 @@
 
 Bounded, hardware-agnostic multi-radio membership, topology, routing and delivery orchestration for the ESPressio Development Platform.
 
-**Release target:** `1.0.0`
+**Release target:** ``
 
 ESPressio Mesh sits above `ESPressio-Radio`. Radio moves one opaque logical transfer across one direct link; Mesh decides membership, topology, next-hop routing, retries, end-to-end delivery semantics, controlled broadcast dissemination, selective multicast resolution, and distributed control-plane behavior. Mesh does not contain hardware-specific Radio implementations and does not depend on Command, Event or State semantics.
 
@@ -21,7 +21,7 @@ Every accepted application transmission retains a wire-neutral `ApplicationPrimi
 
 ## Current implementation tranche
 
-The `structural_realignment_propagation` branch is the coordinated implementation branch for the finalized 1.0.0 Mesh architecture. Its `TRANCHE_HANDOFF.MD` is the authoritative, self-contained frozen specification and chronological implementation record. The generic Mesh tranche is complete; shipping platform capacity profiles and application-specific composition remain explicit downstream work rather than hidden library defaults.
+The `structural_realignment_propagation` branch is the coordinated implementation branch for the finalized  Mesh architecture. Its `TRANCHE_HANDOFF.MD` is the authoritative, self-contained frozen specification and chronological implementation record. The generic Mesh tranche is complete; shipping platform capacity profiles and application-specific composition remain explicit downstream work rather than hidden library defaults.
 
 The current foundation now includes bounded authenticated-membership and tombstone storage, delivery deduplication and InProgress exclusion, policy-driven liveness/retention, separately bounded pre-authentication and authentication resources, authenticated admission promotion, generation-safe Radio peer bindings, incarnation-scoped `RadioIdentifier` allocation, peer-bound neighbour discovery, bounded primitive-family receiver registration, protected traffic-governor capacities, directed topology/routing foundations, authenticated forwarding/delivery lifecycle, aggregate-aware selective application delivery, and bounded clock root/parent coordination. All of these components remain narrow services intended to compose inside the serialized Mesh execution domain rather than becoming independent scheduling layers.
 
@@ -71,7 +71,7 @@ Mesh v1 Broadcast uses a different protected shape because a pairwise EndToEnd d
 
 ## Frozen default bounds
 
-The baseline 1.0.0 configuration is intentionally bounded. Among the locked defaults are 32 Mesh members, four Radios per member, eight Groups per member, eight primitive receivers, eight active application transmission aggregates, 96 topology links, 16 route hops, a 16-hop initial forwarding limit, 32 cached routes, 32 maximum recipients in one selective-multicast aggregate and 64 membership tombstones.
+The baseline  configuration is intentionally bounded. Among the locked defaults are 32 Mesh members, four Radios per member, eight Groups per member, eight primitive receivers, eight active application transmission aggregates, 96 topology links, 16 route hops, a 16-hop initial forwarding limit, 32 cached routes, 32 maximum recipients in one selective-multicast aggregate and 64 membership tombstones.
 
 Traffic governance protects four independent local capacities: eight Infrastructure Responses, four Clock Control items, eight General Control items and eight Application transmission aggregates. Application saturation cannot borrow from the control reserves. Control items additionally receive finite lifetimes through `IControlWorkLifetimePolicy`; no control queue is permitted to retain work indefinitely.
 
