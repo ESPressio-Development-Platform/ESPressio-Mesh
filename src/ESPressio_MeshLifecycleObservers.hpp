@@ -1,21 +1,16 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 
 #include <ESPressio_DeviceIdentifier.hpp>
-#include <ESPressio_Memory.hpp>
-#include <ESPressio_ThreadSafeObservable.hpp>
 
 #include "ESPressio_MeshTypes.hpp"
 
 namespace ESPressio::Mesh {
 
 /// <summary>Semantic reason accompanying a Mesh node lifecycle notification.</summary>
-
-enum
-class MeshNodeLifecycleReason : std::uint8_t {
-    None = 0,
+enum class MeshNodeLifecycleReason : std::uint8_t {
+    None=0,
     AuthenticationRejected,
     AdmissionRejected,
     ConflictingIncarnation,
@@ -27,8 +22,17 @@ class MeshNodeLifecycleReason : std::uint8_t {
     Invalid
 };
 
-/// <summary>Immutable identity/state snapshot delivered to Mesh lifecycle observers.</summary>
+/// <summary>Closed lifecycle event vocabulary delivered to one fixed infrastructure sink.</summary>
+enum class MeshNodeLifecycleEvent : std::uint8_t {
+    Joining=0,
+    Authenticated,
+    Rejected,
+    Unavailable,
+    Lost,
+    Disconnected
+};
 
+/// <summary>Immutable identity/state snapshot for one bounded lifecycle diagnostic notification.</summary>
 struct MeshNodeLifecycleNotification final {
     System::DeviceIdentifier Device{};
     MembershipIncarnation Incarnation{};
@@ -37,122 +41,59 @@ struct MeshNodeLifecycleNotification final {
     MeshNodeLifecycleReason Reason{MeshNodeLifecycleReason::None};
 
     constexpr bool HasIdentity() const noexcept {
-        return static_cast<bool>(Device) && static_cast<bool>(Incarnation);
+        return static_cast<bool>(Device)&&static_cast<bool>(Incarnation);
     }
 };
 
 /// <summary>
-/// Observer surface for critical Mesh membership/admission/reachability lifecycle transitions.
+/// Fixed optional infrastructure sink for Mesh lifecycle diagnostics. It is not an application callback registry.
 /// </summary>
 /// <remarks>
-/// Methods are intentionally independent so consumers can override only the transitions they care about. Notifications
-/// are synchronous and advisory; observer exceptions are isolated and can never change Mesh membership/security state.
-/// "Unavailable" means the authenticated membership is retained but Reachability is Unreachable. "Lost" means local
-/// retention expired and the full membership was retired. "Disconnected" is reserved for authenticated graceful Leave.
+/// Composition installs at most one borrowed sink before Running. The sink must be bounded/noexcept and must not call
+/// back into Mesh mutation paths. Missing sinks are a no-op; diagnostics never alter membership/security outcomes.
 /// </remarks>
-
-class IMeshLifecycleObserver : public Observable::IObserver {
+class IMeshLifecycleSink {
 public:
-    ~IMeshLifecycleObserver() override = default;
-
-    virtual void OnMeshNodeJoining(const MeshNodeLifecycleNotification&) {}
-    virtual void OnMeshNodeAuthenticated(const MeshNodeLifecycleNotification&) {}
-    virtual void OnMeshNodeRejected(const MeshNodeLifecycleNotification&) {}
-    virtual void OnMeshNodeUnavailable(const MeshNodeLifecycleNotification&) {}
-    virtual void OnMeshNodeLost(const MeshNodeLifecycleNotification&) {}
-    virtual void OnMeshNodeDisconnected(const MeshNodeLifecycleNotification&) {}
+    virtual ~IMeshLifecycleSink()=default;
+    virtual void MeshLifecycleChanged(MeshNodeLifecycleEvent event,
+                                      const MeshNodeLifecycleNotification& notification) noexcept=0;
 };
 
-/// <summary>Shared Observable-backed source for Mesh lifecycle callbacks.</summary>
-
+/// <summary>Allocation-free fixed lifecycle notification relay replacing the predecessor Observable fan-out.</summary>
 class MeshLifecycleNotifications final {
-    static constexpr auto ExternalPreferred = System::Memory::MemoryPolicy::ExternalPreferred;
+    IMeshLifecycleSink* _sink{nullptr};
 
-
-class Source final : public Observable::ThreadSafeObservable {
-        template<typename TCallback>
-        void Notify(TCallback&& callback) noexcept {
-            try {
-                ExecuteNotification([&](NotificationContext& notification) {
-                    notification.WithObservers<IMeshLifecycleObserver>(
-                        [&](IMeshLifecycleObserver* observer) {
-                            if (observer == nullptr) return;
-                            try { callback(*observer); } catch (...) {}
-                        });
-                });
-            } catch (...) {
-                // Lifecycle notification is advisory and must never perturb Mesh authority/state.
-            }
-        }
-
-    public:
-        void Joining(const MeshNodeLifecycleNotification& event) noexcept {
-            Notify([&](IMeshLifecycleObserver& observer) { observer.OnMeshNodeJoining(event); });
-        }
-        void Authenticated(const MeshNodeLifecycleNotification& event) noexcept {
-            Notify([&](IMeshLifecycleObserver& observer) { observer.OnMeshNodeAuthenticated(event); });
-        }
-        void Rejected(const MeshNodeLifecycleNotification& event) noexcept {
-            Notify([&](IMeshLifecycleObserver& observer) { observer.OnMeshNodeRejected(event); });
-        }
-        void Unavailable(const MeshNodeLifecycleNotification& event) noexcept {
-            Notify([&](IMeshLifecycleObserver& observer) { observer.OnMeshNodeUnavailable(event); });
-        }
-        void Lost(const MeshNodeLifecycleNotification& event) noexcept {
-            Notify([&](IMeshLifecycleObserver& observer) { observer.OnMeshNodeLost(event); });
-        }
-        void Disconnected(const MeshNodeLifecycleNotification& event) noexcept {
-            Notify([&](IMeshLifecycleObserver& observer) { observer.OnMeshNodeDisconnected(event); });
-        }
-    };
-
-    std::shared_ptr<Source> _source{};
-
-    std::shared_ptr<Source> EnsureSource() noexcept {
-        if (_source) return _source;
-        try {
-            _source = System::Memory::MakeShared<Source, ExternalPreferred>();
-        } catch (...) {
-            _source.reset();
-        }
-        return _source;
+    void Notify(MeshNodeLifecycleEvent event,const MeshNodeLifecycleNotification& notification) noexcept {
+        auto* sink=_sink;
+        if(sink!=nullptr) sink->MeshLifecycleChanged(event,notification);
     }
-
 public:
-    Observable::ObserverHandlePtr RegisterObserver(IMeshLifecycleObserver* observer) noexcept {
-        if (observer == nullptr) return {};
-        auto source = EnsureSource();
-        if (!source) return {};
-        try {
-            return source->RegisterObserverAs<IMeshLifecycleObserver>(observer);
-        } catch (...) {
-            return {};
-        }
-    }
+    constexpr MeshLifecycleNotifications() noexcept=default;
+    explicit constexpr MeshLifecycleNotifications(IMeshLifecycleSink* sink) noexcept:_sink(sink) {}
 
-    void UnregisterObserver(IMeshLifecycleObserver* observer) noexcept {
-        if (_source && observer != nullptr) {
-            try { _source->UnregisterObserver(observer); } catch (...) {}
-        }
+    bool SetSink(IMeshLifecycleSink* sink) noexcept {
+        if(_sink!=nullptr&&sink!=nullptr&&_sink!=sink) return false;
+        _sink=sink;return true;
     }
+    IMeshLifecycleSink* Sink() const noexcept { return _sink; }
 
     void NotifyJoining(const MeshNodeLifecycleNotification& event) noexcept {
-        if (_source) _source->Joining(event);
+        Notify(MeshNodeLifecycleEvent::Joining,event);
     }
     void NotifyAuthenticated(const MeshNodeLifecycleNotification& event) noexcept {
-        if (_source) _source->Authenticated(event);
+        Notify(MeshNodeLifecycleEvent::Authenticated,event);
     }
     void NotifyRejected(const MeshNodeLifecycleNotification& event) noexcept {
-        if (_source) _source->Rejected(event);
+        Notify(MeshNodeLifecycleEvent::Rejected,event);
     }
     void NotifyUnavailable(const MeshNodeLifecycleNotification& event) noexcept {
-        if (_source) _source->Unavailable(event);
+        Notify(MeshNodeLifecycleEvent::Unavailable,event);
     }
     void NotifyLost(const MeshNodeLifecycleNotification& event) noexcept {
-        if (_source) _source->Lost(event);
+        Notify(MeshNodeLifecycleEvent::Lost,event);
     }
     void NotifyDisconnected(const MeshNodeLifecycleNotification& event) noexcept {
-        if (_source) _source->Disconnected(event);
+        Notify(MeshNodeLifecycleEvent::Disconnected,event);
     }
 };
 
