@@ -47,3 +47,11 @@ jobs:
           -o mesh_relay_capacity_profile_test -pthread
       - name: Run Mesh relay membership capacity profile
         run: ./mesh_relay_capacity_profile_test
+      - name: Compile Mesh remaining-residence broadcast contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src
+          Mesh/tests/mesh_remaining_residence_test.cpp
+          -o mesh_remaining_residence_test -pthread
+      - name: Run Mesh remaining-residence broadcast contract
+        run: ./mesh_remaining_residence_test
