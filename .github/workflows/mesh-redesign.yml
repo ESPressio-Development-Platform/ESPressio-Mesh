@@ -86,9 +86,9 @@ jobs:
       - name: Compile family-neutral Mesh broadcast policy gate
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
-          -IMesh/src -IPrimitive/src
+          -IMesh/src -ISystem/src -IPrimitive/src
           Mesh/tests/mesh_broadcast_policy_test.cpp
-          -o mesh_broadcast_policy_test
+          -o mesh_broadcast_policy_test -pthread
       - name: Run family-neutral Mesh broadcast policy gate
         run: ./mesh_broadcast_policy_test
       - name: Compile managed Mesh-to-Radio submission mapping
