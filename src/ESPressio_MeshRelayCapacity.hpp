@@ -112,12 +112,16 @@ public:
     MeshRelayByteLease& operator=(const MeshRelayByteLease&)=delete;
     MeshRelayByteLease(MeshRelayByteLease&& other) noexcept { *this=std::move(other); }
     MeshRelayByteLease& operator=(MeshRelayByteLease&& other) noexcept {
-        if(this==&other)return *this;
+        if(this==&other) return *this;
         Reset();
-        _owner=std::exchange(other._owner,nullptr);_release=std::exchange(other._release,nullptr);
-        _data=std::exchange(other._data,nullptr);_capacity=std::exchange(other._capacity,0);
-        _length=std::exchange(other._length,0);_identity=std::exchange(other._identity,{});
-        _sealed=std::exchange(other._sealed,false);return *this;
+        _owner=std::exchange(other._owner,nullptr);
+        _release=std::exchange(other._release,nullptr);
+        _data=std::exchange(other._data,nullptr);
+        _capacity=std::exchange(other._capacity,0);
+        _length=std::exchange(other._length,0);
+        _identity=std::exchange(other._identity,{});
+        _sealed=std::exchange(other._sealed,false);
+        return *this;
     }
     ~MeshRelayByteLease(){Reset();}
     explicit operator bool() const noexcept{return _owner&&_release&&bool(_identity);}
@@ -127,14 +131,21 @@ public:
     MeshRelayMutableByteView MutableView()noexcept{return (!_sealed&&*this)?MeshRelayMutableByteView{_data,_capacity}:MeshRelayMutableByteView{};}
     MeshRelayByteView View()const noexcept{return (_sealed&&*this)?MeshRelayByteView{_data,_length}:MeshRelayByteView{};}
     MeshRelayResourceStatus Commit(std::size_t length)noexcept{
-        if(!*this)return MeshRelayResourceStatus::InvalidLease;
-        if(_sealed)return MeshRelayResourceStatus::AlreadyCommitted;
-        if(length>_capacity)return MeshRelayResourceStatus::InvalidLength;
-        _length=length;_sealed=true;return MeshRelayResourceStatus::Success;
+        if(!*this) return MeshRelayResourceStatus::InvalidLease;
+        if(_sealed) return MeshRelayResourceStatus::AlreadyCommitted;
+        if(length>_capacity) return MeshRelayResourceStatus::InvalidLength;
+        _length=length;
+        _sealed=true;
+        return MeshRelayResourceStatus::Success;
     }
     bool Reset()noexcept{
-        if(!_owner||!_release||!_identity){_owner=nullptr;_release=nullptr;_data=nullptr;_capacity=0;_length=0;_identity={};_sealed=false;return false;}
-        auto* owner=_owner;auto release=_release;auto identity=_identity;
+        if(!_owner||!_release||!_identity){
+            _owner=nullptr;_release=nullptr;_data=nullptr;_capacity=0;_length=0;_identity={};_sealed=false;
+            return false;
+        }
+        auto* owner=_owner;
+        auto release=_release;
+        auto identity=_identity;
         _owner=nullptr;_release=nullptr;_data=nullptr;_capacity=0;_length=0;_identity={};_sealed=false;
         return release(owner,identity);
     }
@@ -150,16 +161,30 @@ public:
     void Initialize()noexcept{std::lock_guard<System::Synchronization::Mutex> lock(_mutex);}
     MeshRelayResourceStatus TryAcquire(std::uint16_t classIndex,MeshRelayByteIdentity& identity,std::uint8_t*& data)noexcept{
         std::unique_lock<System::Synchronization::Mutex> lock(_mutex,std::try_to_lock);
-        if(!lock.owns_lock())return MeshRelayResourceStatus::Busy;
+        if(!lock.owns_lock()) return MeshRelayResourceStatus::Busy;
         bool generationBlocked=false;
-        for(std::size_t i=0;i<_slots.size();++i){auto& slot=_slots[i];if(slot.Occupied)continue;
-            if(slot.Generation==std::numeric_limits<std::uint64_t>::max()){generationBlocked=true;continue;}
-            ++slot.Generation;slot.Occupied=true;identity={classIndex,static_cast<std::uint16_t>(i),slot.Generation};data=slot.Bytes.data();return MeshRelayResourceStatus::Success;}
+        for(std::size_t i=0;i<_slots.size();++i){
+            auto& slot=_slots[i];
+            if(slot.Occupied) continue;
+            if(slot.Generation==std::numeric_limits<std::uint64_t>::max()){
+                generationBlocked=true;
+                continue;
+            }
+            ++slot.Generation;
+            slot.Occupied=true;
+            identity={classIndex,static_cast<std::uint16_t>(i),slot.Generation};
+            data=slot.Bytes.data();
+            return MeshRelayResourceStatus::Success;
+        }
         return generationBlocked?MeshRelayResourceStatus::GenerationExhausted:MeshRelayResourceStatus::Exhausted;
     }
     bool Release(std::uint16_t slot,std::uint64_t generation)noexcept{
-        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);if(slot>=_slots.size())return false;
-        auto& value=_slots[slot];if(!value.Occupied||value.Generation!=generation)return false;value.Occupied=false;return true;
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+        if(slot>=_slots.size()) return false;
+        auto& value=_slots[slot];
+        if(!value.Occupied||value.Generation!=generation) return false;
+        value.Occupied=false;
+        return true;
     }
 };
 template<class First,class...Rest>
@@ -174,19 +199,29 @@ class MeshRelayByteArena final {
     std::tuple<Detail::MeshRelayByteClassStorage<TClasses>...> _classes{};
     template<std::size_t Index>
     MeshRelayResourceStatus AcquireAt(std::size_t requested,MeshRelayByteLease& output,MeshRelayResourceStatus previous)noexcept{
-        if constexpr(Index==sizeof...(TClasses))return previous;
-        else {using C=std::tuple_element_t<Index,std::tuple<TClasses...>>;if(requested>C::SlotBytes)return AcquireAt<Index+1>(requested,output,previous);
-            auto& storage=std::get<Index>(_classes);MeshRelayByteIdentity identity{};std::uint8_t* data=nullptr;
+        if constexpr(Index==sizeof...(TClasses)) return previous;
+        else {
+            using C=std::tuple_element_t<Index,std::tuple<TClasses...>>;
+            if(requested>C::SlotBytes) return AcquireAt<Index+1>(requested,output,previous);
+            auto& storage=std::get<Index>(_classes);
+            MeshRelayByteIdentity identity{};
+            std::uint8_t* data=nullptr;
             const auto status=storage.TryAcquire(static_cast<std::uint16_t>(Index),identity,data);
-            if(status==MeshRelayResourceStatus::Success){output=MeshRelayByteLease(this,&ReleaseThunk,data,C::SlotBytes,identity);return status;}
-            if(status==MeshRelayResourceStatus::Busy)return status;
-            if(status==MeshRelayResourceStatus::GenerationExhausted)previous=status;
-            return AcquireAt<Index+1>(requested,output,previous);}
+            if(status==MeshRelayResourceStatus::Success){
+                output=MeshRelayByteLease(this,&ReleaseThunk,data,C::SlotBytes,identity);
+                return status;
+            }
+            if(status==MeshRelayResourceStatus::Busy) return status;
+            if(status==MeshRelayResourceStatus::GenerationExhausted) previous=status;
+            return AcquireAt<Index+1>(requested,output,previous);
+        }
     }
-    static bool ReleaseThunk(void* owner,MeshRelayByteIdentity identity)noexcept{return static_cast<MeshRelayByteArena*>(owner)->Release(identity);}
+    static bool ReleaseThunk(void* owner,MeshRelayByteIdentity identity)noexcept{
+        return static_cast<MeshRelayByteArena*>(owner)->Release(identity);
+    }
     template<std::size_t Index=0> bool ReleaseAt(MeshRelayByteIdentity identity)noexcept{
-        if constexpr(Index==sizeof...(TClasses))return false;
-        else if(Index==identity.ClassIndex)return std::get<Index>(_classes).Release(identity.SlotIndex,identity.Generation);
+        if constexpr(Index==sizeof...(TClasses)) return false;
+        else if(Index==identity.ClassIndex) return std::get<Index>(_classes).Release(identity.SlotIndex,identity.Generation);
         else return ReleaseAt<Index+1>(identity);
     }
 public:
@@ -195,11 +230,14 @@ public:
     static constexpr std::size_t LargestSlotBytes()noexcept{return std::tuple_element_t<sizeof...(TClasses)-1,std::tuple<TClasses...>>::SlotBytes;}
     static constexpr std::array<MeshRelayByteClassShape,ClassCount> Shapes()noexcept{return {{{TClasses::SlotBytes,TClasses::SlotCount}...}};}
     MeshRelayResourceStatus TryAcquire(std::size_t requested,MeshRelayByteLease& output)noexcept{
-        if(output)return MeshRelayResourceStatus::InvalidLease;if(requested==0)return MeshRelayResourceStatus::InvalidLength;
-        if(requested>LargestSlotBytes())return MeshRelayResourceStatus::TooLarge;
+        if(output) return MeshRelayResourceStatus::InvalidLease;
+        if(requested==0) return MeshRelayResourceStatus::InvalidLength;
+        if(requested>LargestSlotBytes()) return MeshRelayResourceStatus::TooLarge;
         return AcquireAt<0>(requested,output,MeshRelayResourceStatus::Exhausted);
     }
-    bool Release(MeshRelayByteIdentity identity)noexcept{return identity&&identity.ClassIndex<ClassCount?ReleaseAt(identity):false;}
+    bool Release(MeshRelayByteIdentity identity)noexcept{
+        return identity&&identity.ClassIndex<ClassCount?ReleaseAt(identity):false;
+    }
 };
 
 /// <summary>Move-only ownership of one complete relay record + bytes + workspace from one Q1 domain.</summary>
@@ -216,9 +254,15 @@ public:
     MeshRelayCapacityBundle& operator=(const MeshRelayCapacityBundle&)=delete;
     MeshRelayCapacityBundle(MeshRelayCapacityBundle&& other)noexcept{*this=std::move(other);}
     MeshRelayCapacityBundle& operator=(MeshRelayCapacityBundle&& other)noexcept{
-        if(this==&other)return *this;Reset();Bytes=std::move(other.Bytes);_owner=std::exchange(other._owner,nullptr);
-        _releaseRecord=std::exchange(other._releaseRecord,nullptr);_record=std::exchange(other._record,{});
-        _workspace=std::exchange(other._workspace,nullptr);_workspaceBytes=std::exchange(other._workspaceBytes,0);return *this;
+        if(this==&other) return *this;
+        Reset();
+        Bytes=std::move(other.Bytes);
+        _owner=std::exchange(other._owner,nullptr);
+        _releaseRecord=std::exchange(other._releaseRecord,nullptr);
+        _record=std::exchange(other._record,{});
+        _workspace=std::exchange(other._workspace,nullptr);
+        _workspaceBytes=std::exchange(other._workspaceBytes,0);
+        return *this;
     }
     ~MeshRelayCapacityBundle(){Reset();}
     explicit operator bool()const noexcept{return _owner&&_releaseRecord&&bool(_record)&&bool(Bytes);}
@@ -226,8 +270,11 @@ public:
     MeshRelayRecordIdentity Identity()const noexcept{return _record;}
     MeshRelayWorkspaceView Workspace()noexcept{return *this?MeshRelayWorkspaceView{_workspace,_workspaceBytes}:MeshRelayWorkspaceView{};}
     bool Reset()noexcept{
-        const bool had=static_cast<bool>(*this);Bytes.Reset();if(_owner&&_releaseRecord&&_record)_releaseRecord(_owner,_record);
-        _owner=nullptr;_releaseRecord=nullptr;_record={};_workspace=nullptr;_workspaceBytes=0;return had;
+        const bool had=static_cast<bool>(*this);
+        Bytes.Reset();
+        if(_owner&&_releaseRecord&&_record) _releaseRecord(_owner,_record);
+        _owner=nullptr;_releaseRecord=nullptr;_record={};_workspace=nullptr;_workspaceBytes=0;
+        return had;
     }
 private:
     template<std::size_t,std::size_t,class>friend class MeshRelayCapacityDomain;
@@ -240,42 +287,83 @@ template<std::size_t TRecordCount,std::size_t TWorkspaceBytes,class TByteArena>
 class MeshRelayCapacityDomain final {
     static_assert(TRecordCount>0&&TRecordCount<std::numeric_limits<std::uint16_t>::max(),"Mesh relay record count invalid");
     struct RecordSlot final {std::array<std::uint8_t,TWorkspaceBytes> Workspace{};std::uint64_t Generation{0};bool Occupied{false};};
-    std::array<RecordSlot,TRecordCount> _records{};TByteArena _bytes{};System::Synchronization::Mutex _mutex;
-    MeshRelayCapacityWakeTarget _wake{};std::uint64_t _releaseGeneration{0};
-    static bool ReleaseThunk(void* owner,MeshRelayRecordIdentity identity)noexcept{return static_cast<MeshRelayCapacityDomain*>(owner)->ReleaseRecord(identity);}
+    std::array<RecordSlot,TRecordCount> _records{};
+    TByteArena _bytes{};
+    System::Synchronization::Mutex _mutex;
+    MeshRelayCapacityWakeTarget _wake{};
+    std::uint64_t _releaseGeneration{0};
+    static bool ReleaseThunk(void* owner,MeshRelayRecordIdentity identity)noexcept{
+        return static_cast<MeshRelayCapacityDomain*>(owner)->ReleaseRecord(identity);
+    }
     bool ReleaseRecord(MeshRelayRecordIdentity identity)noexcept{
-        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);if(identity.Slot>=_records.size())return false;
-        auto& slot=_records[identity.Slot];if(!slot.Occupied||slot.Generation!=identity.Generation)return false;slot.Occupied=false;
-        for(auto& b:slot.Workspace)b=0;if(_releaseGeneration!=std::numeric_limits<std::uint64_t>::max())++_releaseGeneration;
-        if(_wake.Wake)_wake.Wake(_wake.Context);return true;
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+        if(identity.Slot>=_records.size()) return false;
+        auto& slot=_records[identity.Slot];
+        if(!slot.Occupied||slot.Generation!=identity.Generation) return false;
+        slot.Occupied=false;
+        for(auto& b:slot.Workspace) b=0;
+        if(_releaseGeneration!=std::numeric_limits<std::uint64_t>::max()) ++_releaseGeneration;
+        if(_wake.Wake) _wake.Wake(_wake.Context);
+        return true;
     }
 public:
     static constexpr std::size_t RecordCount=TRecordCount;
     static constexpr std::size_t WorkspaceBytes=TWorkspaceBytes;
     using ByteArena=TByteArena;
-    void Initialize(MeshRelayCapacityWakeTarget wake={})noexcept{_wake=wake;_bytes.Initialize();std::lock_guard<System::Synchronization::Mutex> lock(_mutex);}
+    void Initialize(MeshRelayCapacityWakeTarget wake={})noexcept{
+        _wake=wake;
+        _bytes.Initialize();
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+    }
     std::uint64_t ReleaseGeneration()const noexcept{return _releaseGeneration;}
     MeshRelayResourceStatus TryAcquire(MeshRelayDirection direction,MeshRelayCapacityDomainKind kind,std::size_t byteCount,MeshRelayCapacityBundle& output)noexcept{
-        if(output)return MeshRelayResourceStatus::InvalidLease;
-        std::uint16_t recordIndex=std::numeric_limits<std::uint16_t>::max();std::uint64_t generation=0;std::uint8_t* workspace=nullptr;
+        if(output) return MeshRelayResourceStatus::InvalidLease;
+        std::uint16_t recordIndex=std::numeric_limits<std::uint16_t>::max();
+        std::uint64_t generation=0;
+        std::uint8_t* workspace=nullptr;
         {
-            std::unique_lock<System::Synchronization::Mutex> lock(_mutex,std::try_to_lock);if(!lock.owns_lock())return MeshRelayResourceStatus::Busy;
-            bool generationBlocked=false;for(std::size_t i=0;i<_records.size();++i){auto& slot=_records[i];if(slot.Occupied)continue;
-                if(slot.Generation==std::numeric_limits<std::uint64_t>::max()){generationBlocked=true;continue;}
-                ++slot.Generation;slot.Occupied=true;recordIndex=static_cast<std::uint16_t>(i);generation=slot.Generation;workspace=slot.Workspace.data();break;}
-            if(recordIndex==std::numeric_limits<std::uint16_t>::max())return generationBlocked?MeshRelayResourceStatus::GenerationExhausted:MeshRelayResourceStatus::Exhausted;
+            std::unique_lock<System::Synchronization::Mutex> lock(_mutex,std::try_to_lock);
+            if(!lock.owns_lock()) return MeshRelayResourceStatus::Busy;
+            bool generationBlocked=false;
+            for(std::size_t i=0;i<_records.size();++i){
+                auto& slot=_records[i];
+                if(slot.Occupied) continue;
+                if(slot.Generation==std::numeric_limits<std::uint64_t>::max()){
+                    generationBlocked=true;
+                    continue;
+                }
+                ++slot.Generation;
+                slot.Occupied=true;
+                recordIndex=static_cast<std::uint16_t>(i);
+                generation=slot.Generation;
+                workspace=slot.Workspace.data();
+                break;
+            }
+            if(recordIndex==std::numeric_limits<std::uint16_t>::max())
+                return generationBlocked?MeshRelayResourceStatus::GenerationExhausted:MeshRelayResourceStatus::Exhausted;
         }
-        MeshRelayByteLease bytes;const auto status=_bytes.TryAcquire(byteCount,bytes);
-        if(status!=MeshRelayResourceStatus::Success){ReleaseRecord({direction,kind,recordIndex,generation});return status;}
-        output.Bytes=std::move(bytes);output.BindRecord(this,&ReleaseThunk,{direction,kind,recordIndex,generation},workspace,TWorkspaceBytes);return MeshRelayResourceStatus::Success;
+        MeshRelayByteLease bytes;
+        const auto status=_bytes.TryAcquire(byteCount,bytes);
+        if(status!=MeshRelayResourceStatus::Success){
+            ReleaseRecord({direction,kind,recordIndex,generation});
+            return status;
+        }
+        output.Bytes=std::move(bytes);
+        output.BindRecord(this,&ReleaseThunk,{direction,kind,recordIndex,generation},workspace,TWorkspaceBytes);
+        return MeshRelayResourceStatus::Success;
     }
 };
 
 template<MeshRelayDirection TDirection,class TInfrastructure,class TClock,class TCritical,class TResponsive,
          class TConvergent,class TBestEffort,class TShared,class TUntrusted=void>
 class MeshRelayCapacityPlane final {
-    TInfrastructure _infrastructure{};TClock _clock{};TCritical _critical{};TResponsive _responsive{};
-    TConvergent _convergent{};TBestEffort _bestEffort{};TShared _shared{};
+    TInfrastructure _infrastructure{};
+    TClock _clock{};
+    TCritical _critical{};
+    TResponsive _responsive{};
+    TConvergent _convergent{};
+    TBestEffort _bestEffort{};
+    TShared _shared{};
     std::conditional_t<std::is_void_v<TUntrusted>,std::array<std::uint8_t,0>,TUntrusted> _untrusted{};
     template<class TDomain> MeshRelayResourceStatus Acquire(TDomain& domain,MeshRelayCapacityDomainKind kind,std::size_t bytes,MeshRelayCapacityBundle& output)noexcept{
         return domain.TryAcquire(TDirection,kind,bytes,output);
@@ -285,10 +373,10 @@ public:
     void Initialize(MeshRelayCapacityWakeTarget wake={})noexcept{
         _infrastructure.Initialize(wake);_clock.Initialize(wake);_critical.Initialize(wake);_responsive.Initialize(wake);
         _convergent.Initialize(wake);_bestEffort.Initialize(wake);_shared.Initialize(wake);
-        if constexpr(!std::is_void_v<TUntrusted>)_untrusted.Initialize(wake);
+        if constexpr(!std::is_void_v<TUntrusted>) _untrusted.Initialize(wake);
     }
     MeshRelayResourceStatus TryAcquireTrusted(MeshRelayServiceClass service,std::size_t bytes,MeshRelayCapacityBundle& output)noexcept{
-        if(!IsMeshRelayServiceClass(service))return MeshRelayResourceStatus::InvalidConfiguration;
+        if(!IsMeshRelayServiceClass(service)) return MeshRelayResourceStatus::InvalidConfiguration;
         MeshRelayResourceStatus status=MeshRelayResourceStatus::InvalidConfiguration;
         switch(service){
             case MeshRelayServiceClass::Infrastructure:status=Acquire(_infrastructure,MeshRelayCapacityDomainKind::InfrastructurePrivate,bytes,output);break;
@@ -298,11 +386,11 @@ public:
             case MeshRelayServiceClass::Convergent:status=Acquire(_convergent,MeshRelayCapacityDomainKind::ConvergentPrivate,bytes,output);break;
             case MeshRelayServiceClass::BestEffort:status=Acquire(_bestEffort,MeshRelayCapacityDomainKind::BestEffortPrivate,bytes,output);break;
         }
-        if(status==MeshRelayResourceStatus::Success||status==MeshRelayResourceStatus::Busy||status==MeshRelayResourceStatus::TooLarge)return status;
+        if(status==MeshRelayResourceStatus::Success||status==MeshRelayResourceStatus::Busy||status==MeshRelayResourceStatus::TooLarge) return status;
         return Acquire(_shared,MeshRelayCapacityDomainKind::SharedOverflow,bytes,output);
     }
     MeshRelayResourceStatus TryAcquireUntrusted(std::size_t bytes,MeshRelayCapacityBundle& output)noexcept{
-        if constexpr(std::is_void_v<TUntrusted>)return MeshRelayResourceStatus::InvalidConfiguration;
+        if constexpr(std::is_void_v<TUntrusted>) return MeshRelayResourceStatus::InvalidConfiguration;
         else return Acquire(_untrusted,MeshRelayCapacityDomainKind::UntrustedIngress,bytes,output);
     }
 };
