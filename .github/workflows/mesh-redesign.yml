@@ -1,0 +1,33 @@
+name: Mesh redesign contracts
+
+on:
+  push:
+    branches:
+      - primitives_redesign
+  pull_request:
+
+jobs:
+  host-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: primitives_redesign
+          path: System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: primitives_redesign
+          path: Primitive
+      - name: Compile neutral M1 receiver registry contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src
+          Mesh/tests/primitive_receiver_registry_test.cpp
+          -o primitive_receiver_registry_test -pthread
+      - name: Run neutral M1 receiver registry contract
+        run: ./primitive_receiver_registry_test
