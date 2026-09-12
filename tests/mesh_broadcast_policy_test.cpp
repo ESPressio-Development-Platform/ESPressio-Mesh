@@ -63,17 +63,20 @@ int main(){
     constexpr auto privateStateful=Mesh::MakeMeshBroadcastBindingPolicy<FireAndForget>(Primitive::FamilyIds::ApplicationPrivateFirst,false,true);
     static_assert(Mesh::ValidateMeshBroadcastPolicy(privateStateful)==Mesh::MeshBroadcastPolicyDisposition::StatefulOrSessionBased);
 
-    Mesh::MeshBroadcastBindingTable<2> bindings;
-    const Mesh::MeshBroadcastBindingDescriptor eventBinding{eventNoEvidence,Mesh::MeshRelayServiceClass::Responsive};
-    assert(bindings.Register(eventBinding)==Mesh::MeshBroadcastBindingRegistrationResult::Registered);
-    assert(bindings.Register(eventBinding)==Mesh::MeshBroadcastBindingRegistrationResult::FamilyAlreadyRegistered);
-    assert(bindings.Find(Primitive::FamilyIds::Event)==nullptr);
-    assert(bindings.Freeze());
-    assert(!bindings.Freeze());
-    const auto* frozen=bindings.Find(Primitive::FamilyIds::Event);
-    assert(frozen!=nullptr&&frozen->Service==Mesh::MeshRelayServiceClass::Responsive);
-    assert(bindings.Register({commandNoResponse,Mesh::MeshRelayServiceClass::Critical})==
-           Mesh::MeshBroadcastBindingRegistrationResult::Frozen);
+    constexpr auto responsiveEvent=Mesh::MakeMeshBroadcastSubmissionPolicy<FireAndForget>(
+        Primitive::FamilyIds::Event,Mesh::MeshRelayServiceClass::Responsive);
+    static_assert(responsiveEvent.IsValid());
+    static_assert(responsiveEvent.Broadcast.Family==Primitive::FamilyIds::Event);
+    static_assert(responsiveEvent.Service==Mesh::MeshRelayServiceClass::Responsive);
+
+    constexpr auto bestEffortEvent=Mesh::MakeMeshBroadcastSubmissionPolicy<FireAndForget>(
+        Primitive::FamilyIds::Event,Mesh::MeshRelayServiceClass::BestEffort);
+    static_assert(bestEffortEvent.IsValid());
+    static_assert(bestEffortEvent.Service!=responsiveEvent.Service);
+
+    constexpr auto invalidCommand=Mesh::MakeMeshBroadcastSubmissionPolicy<FireAndForget>(
+        Primitive::FamilyIds::Command,Mesh::MeshRelayServiceClass::Responsive,true,false);
+    static_assert(!invalidCommand.IsValid());
 
     return 0;
 }
