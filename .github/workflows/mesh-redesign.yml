@@ -31,3 +31,11 @@ jobs:
           -o primitive_receiver_registry_test -pthread
       - name: Run neutral M1 receiver registry contract
         run: ./primitive_receiver_registry_test
+      - name: Compile atomic Mesh relay Q1 capacity contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src
+          Mesh/tests/mesh_relay_capacity_test.cpp
+          -o mesh_relay_capacity_test -pthread
+      - name: Run atomic Mesh relay Q1 capacity contract
+        run: ./mesh_relay_capacity_test
