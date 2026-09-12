@@ -99,3 +99,11 @@ jobs:
           -o mesh_radio_submission_test -pthread
       - name: Run managed Mesh-to-Radio submission mapping
         run: ./mesh_radio_submission_test
+      - name: Compile replacement M2 broadcast coordinator
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src -IRadio/src -ITask/src -ITiming/src -IUnits/src
+          Mesh/tests/mesh_v1_broadcast_m2_test.cpp
+          -o mesh_v1_broadcast_m2_test -pthread
+      - name: Run replacement M2 broadcast coordinator
+        run: ./mesh_v1_broadcast_m2_test
