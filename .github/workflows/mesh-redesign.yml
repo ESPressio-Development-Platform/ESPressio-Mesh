@@ -23,6 +23,26 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Primitive
           ref: primitives_redesign
           path: Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: primitives_redesign
+          path: Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Task
+          ref: primitives_redesign
+          path: Task
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: primitives_redesign
+          path: Timing
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Units
+          ref: primitives_redesign
+          path: Units
       - name: Compile neutral M1 receiver registry contract
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
@@ -71,3 +91,11 @@ jobs:
           -o mesh_broadcast_policy_test
       - name: Run family-neutral Mesh broadcast policy gate
         run: ./mesh_broadcast_policy_test
+      - name: Compile managed Mesh-to-Radio submission mapping
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IRadio/src -ITask/src -ITiming/src -IUnits/src
+          Mesh/tests/mesh_radio_submission_test.cpp
+          -o mesh_radio_submission_test -pthread
+      - name: Run managed Mesh-to-Radio submission mapping
+        run: ./mesh_radio_submission_test
