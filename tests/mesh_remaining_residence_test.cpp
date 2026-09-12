@@ -39,12 +39,13 @@ int main(){
     header.SourceIncarnation=Incarnation(2);
     header.MessageId=0x0102030405060708ULL;
     header.RemainingResidenceMilliseconds=0x01020304U;
+    header.MaximumAdapterAdmissionWaitNanoseconds=0x0102030405060708ULL;
     header.RelayService=MeshRelayServiceClass::Responsive;
     header.PrimitiveFamily=ESPressio::Primitive::FamilyIds::ApplicationPrivateFirst;
     header.PrimitiveVersion=1;
     header.PayloadBytes=3;
     assert(header.IsValid());
-    static_assert(MeshV1BroadcastFrameCodec::OriginAuthenticatedHeaderBytes==77);
+    static_assert(MeshV1BroadcastFrameCodec::OriginAuthenticatedHeaderBytes==85);
 
     const auto packetBytes=MeshV1BroadcastFrameCodec::OriginPacketBytes(header.PayloadBytes);
     std::array<std::uint8_t,256> wire{};
@@ -61,12 +62,16 @@ int main(){
     assert(wire[residenceOffset+1]==0x02);
     assert(wire[residenceOffset+2]==0x03);
     assert(wire[residenceOffset+3]==0x04);
-    assert(wire[residenceOffset+4]==static_cast<std::uint8_t>(MeshRelayServiceClass::Responsive));
+    constexpr std::size_t admissionWaitOffset=residenceOffset+4;
+    assert(wire[admissionWaitOffset+0]==0x01);
+    assert(wire[admissionWaitOffset+7]==0x08);
+    assert(wire[admissionWaitOffset+8]==static_cast<std::uint8_t>(MeshRelayServiceClass::Responsive));
 
     MeshV1BroadcastOriginHeader decoded{};
     MeshV1BroadcastOriginView view{};
     assert(MeshV1BroadcastFrameCodec::DecodeOrigin(wire.data(),packetBytes,decoded,view));
     assert(decoded.RemainingResidenceMilliseconds==header.RemainingResidenceMilliseconds);
+    assert(decoded.MaximumAdapterAdmissionWaitNanoseconds==header.MaximumAdapterAdmissionWaitNanoseconds);
     assert(decoded.RelayService==header.RelayService);
     assert(decoded.MessageId==header.MessageId);
     assert(view.PayloadByteCount==3&&view.Payload[0]==7&&view.Payload[2]==9);
