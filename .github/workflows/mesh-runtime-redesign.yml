@@ -1,0 +1,53 @@
+name: Mesh clock and runtime redesign
+
+on:
+  push:
+    branches:
+      - primitives_redesign
+  pull_request:
+
+jobs:
+  host-runtime-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: primitives_redesign
+          path: System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: primitives_redesign
+          path: Timing
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Threads
+          ref: primitives_redesign
+          path: Threads
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Task
+          ref: primitives_redesign
+          path: Task
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Units
+          ref: primitives_redesign
+          path: Units
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: primitives_redesign
+          path: Radio
+      - name: Compile Mesh clock reference ownership contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -ITiming/src -IRadio/src -ITask/src -IThreads/src -IUnits/src
+          Mesh/tests/mesh_clock_reference_orchestration_test.cpp
+          -o mesh_clock_reference_orchestration_test -pthread
+      - name: Run Mesh clock reference ownership contract
+        run: ./mesh_clock_reference_orchestration_test
