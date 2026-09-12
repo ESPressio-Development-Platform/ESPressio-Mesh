@@ -55,3 +55,11 @@ jobs:
           -o mesh_remaining_residence_test -pthread
       - name: Run Mesh remaining-residence broadcast contract
         run: ./mesh_remaining_residence_test
+      - name: Compile Mesh Seen/Forwarded and DeferredLocal lifecycle
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src
+          Mesh/tests/mesh_broadcast_lifecycle_test.cpp
+          -o mesh_broadcast_lifecycle_test -pthread
+      - name: Run Mesh Seen/Forwarded and DeferredLocal lifecycle
+        run: ./mesh_broadcast_lifecycle_test
