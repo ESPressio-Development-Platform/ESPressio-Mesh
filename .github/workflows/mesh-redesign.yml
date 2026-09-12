@@ -39,3 +39,11 @@ jobs:
           -o mesh_relay_capacity_test -pthread
       - name: Run atomic Mesh relay Q1 capacity contract
         run: ./mesh_relay_capacity_test
+      - name: Compile Mesh relay membership capacity profile
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src
+          Mesh/tests/mesh_relay_capacity_profile_test.cpp
+          -o mesh_relay_capacity_profile_test -pthread
+      - name: Run Mesh relay membership capacity profile
+        run: ./mesh_relay_capacity_profile_test
