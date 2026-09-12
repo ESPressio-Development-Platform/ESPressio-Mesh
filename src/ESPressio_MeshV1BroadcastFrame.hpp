@@ -20,6 +20,7 @@ struct MeshV1BroadcastOriginHeader final {
     MembershipIncarnation SourceIncarnation{};
     MeshMessageId MessageId{0U};
     std::uint32_t RemainingResidenceMilliseconds{0U};
+    std::uint64_t MaximumAdapterAdmissionWaitNanoseconds{0U};
     MeshRelayServiceClass RelayService{MeshRelayServiceClass::BestEffort};
     Primitive::PrimitiveFamilyId PrimitiveFamily{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersion PrimitiveVersion{0U};
@@ -77,11 +78,11 @@ struct MeshV1BroadcastHopView final {
 
 /// <summary>Canonical signed-origin and pairwise Hop-protected Mesh v1 Broadcast framing.</summary>
 /// <remarks>
-/// The immutable origin frame is signed by its claimed DeviceIdentifier and establishes the maximum residence budget
-/// plus the trusted frozen relay service selected before network admission. Every transition additionally
-/// encrypts/authenticates that complete origin frame for one direct neighbour and carries the current same-or-lower
-/// RemainingResidenceMilliseconds in the pairwise-authenticated hop header. The hop value may never exceed the signed
-/// origin maximum or a previously retained local expiry. No synchronized System time participates in delivery lifetime.
+/// The immutable origin frame is signed by its claimed DeviceIdentifier and establishes the maximum residence budget,
+/// current-attempt adapter-admission-wait ceiling and trusted frozen relay service selected before network admission.
+/// Every transition encrypts/authenticates that complete origin frame for one direct neighbour and carries the current
+/// same-or-lower RemainingResidenceMilliseconds in the pairwise-authenticated hop header. No synchronized System time
+/// participates in delivery lifetime.
 /// </remarks>
 class MeshV1BroadcastFrameCodec final {
     static constexpr std::array<std::uint8_t,4> Magic{{0x45U,0x53U,0x4DU,0x31U}};
@@ -126,7 +127,7 @@ class MeshV1BroadcastFrameCodec final {
     }
 public:
     static constexpr std::size_t CommonHeaderBytes=10U;
-    static constexpr std::size_t OriginFixedBodyBytes=67U;
+    static constexpr std::size_t OriginFixedBodyBytes=75U;
     static constexpr std::size_t OriginAuthenticatedHeaderBytes=CommonHeaderBytes+OriginFixedBodyBytes;
     static constexpr std::size_t HopFixedBodyBytes=151U;
     static constexpr std::size_t HopAuthenticatedHeaderBytes=CommonHeaderBytes+HopFixedBodyBytes;
@@ -150,6 +151,7 @@ public:
         Copy(cursor,header.Source.Bytes().data(),header.Source.Bytes().size());
         Copy(cursor,header.SourceIncarnation.Bytes().data(),header.SourceIncarnation.Bytes().size());
         WriteU64(cursor,header.MessageId);cursor+=8U;WriteU32(cursor,header.RemainingResidenceMilliseconds);cursor+=4U;
+        WriteU64(cursor,header.MaximumAdapterAdmissionWaitNanoseconds);cursor+=8U;
         *cursor++=static_cast<std::uint8_t>(header.RelayService);
         WriteU16(cursor,header.PrimitiveFamily);cursor+=2U;WriteU16(cursor,header.PrimitiveVersion);cursor+=2U;WriteU16(cursor,header.PayloadBytes);
         return true;
@@ -165,6 +167,7 @@ public:
         Read(cursor,source.data(),source.size());header.Source=System::DeviceIdentifier{source};
         Read(cursor,sourceIncarnation.data(),sourceIncarnation.size());header.SourceIncarnation=MembershipIncarnation{sourceIncarnation};
         header.MessageId=ReadU64(cursor);cursor+=8U;header.RemainingResidenceMilliseconds=ReadU32(cursor);cursor+=4U;
+        header.MaximumAdapterAdmissionWaitNanoseconds=ReadU64(cursor);cursor+=8U;
         header.RelayService=static_cast<MeshRelayServiceClass>(*cursor++);
         header.PrimitiveFamily=ReadU16(cursor);cursor+=2U;header.PrimitiveVersion=ReadU16(cursor);cursor+=2U;
         header.PayloadBytes=ReadU16(cursor);cursor+=2U;
@@ -213,7 +216,7 @@ public:
     }
 };
 
-static_assert(MeshV1BroadcastFrameCodec::OriginAuthenticatedHeaderBytes==77U);
+static_assert(MeshV1BroadcastFrameCodec::OriginAuthenticatedHeaderBytes==85U);
 static_assert(MeshV1BroadcastFrameCodec::HopAuthenticatedHeaderBytes==161U);
 
 } // namespace ESPressio::Mesh
