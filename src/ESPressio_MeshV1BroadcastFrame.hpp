@@ -13,13 +13,12 @@
 
 namespace ESPressio::Mesh {
 
-
 struct MeshV1BroadcastOriginHeader final {
     MeshIdentifier Mesh{};
     System::DeviceIdentifier Source{};
     MembershipIncarnation SourceIncarnation{};
     MeshMessageId MessageId{0U};
-    std::uint64_t AbsoluteDeadlineMilliseconds{0U};
+    std::uint32_t RemainingResidenceMilliseconds{0U};
     Primitive::PrimitiveFamilyId PrimitiveFamily{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersion PrimitiveVersion{0U};
     std::uint16_t PayloadBytes{0U};
@@ -27,12 +26,11 @@ struct MeshV1BroadcastOriginHeader final {
     constexpr bool IsValid() const noexcept {
         return static_cast<bool>(Mesh) && static_cast<bool>(Source) &&
                static_cast<bool>(SourceIncarnation) && MessageId != 0U &&
-               AbsoluteDeadlineMilliseconds != 0U &&
+               RemainingResidenceMilliseconds != 0U &&
                Primitive::FamilyIds::IsUsable(PrimitiveFamily) &&
                PrimitiveFamily != Primitive::FamilyIds::MeshControl && PayloadBytes != 0U;
     }
 };
-
 
 struct MeshV1BroadcastHopHeader final {
     MeshIdentifier Mesh{};
@@ -57,7 +55,6 @@ struct MeshV1BroadcastHopHeader final {
     }
 };
 
-
 struct MeshV1BroadcastOriginView final {
     const std::uint8_t* SignedBytes{nullptr};
     std::size_t SignedByteCount{0U};
@@ -65,7 +62,6 @@ struct MeshV1BroadcastOriginView final {
     std::size_t PayloadByteCount{0U};
     MeshIdentitySignature Signature{};
 };
-
 
 struct MeshV1BroadcastHopView final {
     const std::uint8_t* AuthenticatedHeader{nullptr};
@@ -80,9 +76,10 @@ struct MeshV1BroadcastHopView final {
 /// The immutable origin frame is signed by its claimed DeviceIdentifier and is never rewritten by relays. It provides
 /// origin authentication and integrity, not secrecy from participating Mesh members. Every transition additionally
 /// encrypts/authenticates that complete origin frame for one direct neighbour using the existing Hop session purpose.
-/// Broadcast has no destination identity, end-to-end session, acknowledgement or shared delivery-success claim.
+/// Primitive-delivery lifetime is a finite monotonic remaining-residence budget, never synchronized absolute System time.
+/// Relays retain the signed origin maximum and separately enforce a same-or-lower effective remaining residence before
+/// forwarding; no duplicate, retry or hop may recreate a larger budget.
 /// </remarks>
-
 class MeshV1BroadcastFrameCodec final {
     static constexpr std::array<std::uint8_t, 4> Magic{{0x45U, 0x53U, 0x4DU, 0x31U}};
     static constexpr std::uint8_t Version = 1U;
@@ -91,6 +88,12 @@ class MeshV1BroadcastFrameCodec final {
         output[0] = static_cast<std::uint8_t>(value >> 8U);
         output[1] = static_cast<std::uint8_t>(value);
     }
+    static void WriteU32(std::uint8_t* output, std::uint32_t value) noexcept {
+        output[0] = static_cast<std::uint8_t>(value >> 24U);
+        output[1] = static_cast<std::uint8_t>(value >> 16U);
+        output[2] = static_cast<std::uint8_t>(value >> 8U);
+        output[3] = static_cast<std::uint8_t>(value);
+    }
     static void WriteU64(std::uint8_t* output, std::uint64_t value) noexcept {
         for (std::size_t index = 0U; index < 8U; ++index) {
             output[index] = static_cast<std::uint8_t>(value >> ((7U - index) * 8U));
@@ -98,6 +101,12 @@ class MeshV1BroadcastFrameCodec final {
     }
     static std::uint16_t ReadU16(const std::uint8_t* input) noexcept {
         return static_cast<std::uint16_t>((static_cast<std::uint16_t>(input[0]) << 8U) | input[1]);
+    }
+    static std::uint32_t ReadU32(const std::uint8_t* input) noexcept {
+        return (static_cast<std::uint32_t>(input[0]) << 24U) |
+               (static_cast<std::uint32_t>(input[1]) << 16U) |
+               (static_cast<std::uint32_t>(input[2]) << 8U) |
+               static_cast<std::uint32_t>(input[3]);
     }
     static std::uint64_t ReadU64(const std::uint8_t* input) noexcept {
         std::uint64_t value = 0U;
@@ -143,7 +152,7 @@ class MeshV1BroadcastFrameCodec final {
 
 public:
     static constexpr std::size_t CommonHeaderBytes = 10U;
-    static constexpr std::size_t OriginFixedBodyBytes = 70U;
+    static constexpr std::size_t OriginFixedBodyBytes = 66U;
     static constexpr std::size_t OriginAuthenticatedHeaderBytes = CommonHeaderBytes + OriginFixedBodyBytes;
     static constexpr std::size_t HopFixedBodyBytes = 147U;
     static constexpr std::size_t HopAuthenticatedHeaderBytes = CommonHeaderBytes + HopFixedBodyBytes;
@@ -173,7 +182,7 @@ public:
         Copy(cursor, header.Source.Bytes().data(), header.Source.Bytes().size());
         Copy(cursor, header.SourceIncarnation.Bytes().data(), header.SourceIncarnation.Bytes().size());
         WriteU64(cursor, header.MessageId); cursor += 8U;
-        WriteU64(cursor, header.AbsoluteDeadlineMilliseconds); cursor += 8U;
+        WriteU32(cursor, header.RemainingResidenceMilliseconds); cursor += 4U;
         WriteU16(cursor, header.PrimitiveFamily); cursor += 2U;
         WriteU16(cursor, header.PrimitiveVersion); cursor += 2U;
         WriteU16(cursor, header.PayloadBytes);
@@ -199,7 +208,7 @@ public:
         Read(cursor, sourceIncarnation.data(), sourceIncarnation.size());
         header.SourceIncarnation = MembershipIncarnation{sourceIncarnation};
         header.MessageId = ReadU64(cursor); cursor += 8U;
-        header.AbsoluteDeadlineMilliseconds = ReadU64(cursor); cursor += 8U;
+        header.RemainingResidenceMilliseconds = ReadU32(cursor); cursor += 4U;
         header.PrimitiveFamily = ReadU16(cursor); cursor += 2U;
         header.PrimitiveVersion = ReadU16(cursor); cursor += 2U;
         header.PayloadBytes = ReadU16(cursor); cursor += 2U;
@@ -283,7 +292,7 @@ public:
     }
 };
 
-static_assert(MeshV1BroadcastFrameCodec::OriginAuthenticatedHeaderBytes == 80U);
+static_assert(MeshV1BroadcastFrameCodec::OriginAuthenticatedHeaderBytes == 76U);
 static_assert(MeshV1BroadcastFrameCodec::HopAuthenticatedHeaderBytes == 157U);
 
 } // namespace ESPressio::Mesh
