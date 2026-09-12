@@ -6,6 +6,7 @@
 #include <limits>
 
 #include <ESPressio_DeviceIdentifier.hpp>
+#include <ESPressio_PrimitiveAdmission.hpp>
 #include <ESPressio_PrimitiveFamilyRegistry.hpp>
 #include <ESPressio_PrimitiveTypes.hpp>
 
@@ -15,7 +16,6 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Borrowed immutable primitive-family payload delivered synchronously at the Mesh receiver boundary.</summary>
-
 struct PrimitivePayloadView final {
     const std::uint8_t* Data{nullptr};
     std::size_t Size{0};
@@ -24,7 +24,6 @@ struct PrimitivePayloadView final {
 };
 
 /// <summary>Authenticated Mesh-specific provenance accompanying one primitive-family delivery.</summary>
-
 struct MeshReceiveContext final {
     System::DeviceIdentifier Source{};
     MembershipIncarnation SourceIncarnation{};
@@ -37,33 +36,13 @@ struct MeshReceiveContext final {
     }
 };
 
-/// <summary>Local semantic disposition returned by one primitive-family receiver.</summary>
-/// <remarks>
-/// These values never redefine Mesh delivery success and never implicitly generate a NACK or reciprocal primitive.
-/// Only TemporarilyUnavailable and ResourceUnavailable are retryable by the inbound-delivery coordinator; every
-/// other disposition is definitive for duplicate-suppression purposes.
-/// </remarks>
-
-enum
-class PrimitiveReceiveDisposition : std::uint8_t {
-    Accepted,
-    UnsupportedVersion,
-    Malformed,
-    RejectedByLocalPolicy,
-    TemporarilyUnavailable,
-    ResourceUnavailable
-};
-
 /// <summary>Whether a registered family implementation is advertised in the authenticated NodeProfile.</summary>
-
-enum
-class PrimitiveReceiverExposure : std::uint8_t {
+enum class PrimitiveReceiverExposure : std::uint8_t {
     Hidden,
     Advertised
 };
 
 /// <summary>Bounded semantic support descriptor owned by one registered external primitive receiver.</summary>
-
 struct PrimitiveReceiverDescriptor final {
     Primitive::PrimitiveFamilyId Family{Primitive::FamilyIds::Invalid};
     Primitive::PrimitiveProtocolVersionRange Versions{};
@@ -76,15 +55,17 @@ struct PrimitiveReceiverDescriptor final {
 };
 
 /// <summary>Receives one short bounded external primitive-family handoff from Mesh.</summary>
-
+/// <remarks>
+/// The return value is the exact neutral M1 destination-family admission fact. Accepted and AlreadyAccepted are the
+/// only outcomes which establish DestinationPrimitiveAdmission. Transient outcomes are merely local retry candidates;
+/// no Mesh forwarding/ACK/evidence meaning is inferred from them here. The receiver must transfer any retained state
+/// out of the borrowed payload before returning and must not run application callbacks inline.
+/// </remarks>
 class IPrimitiveReceiver {
 public:
     virtual ~IPrimitiveReceiver() = default;
 
-    /// <summary>
-    /// Validates/accepts one family payload. Heavy work must be transferred into the owning subsystem's bounded execution path.
-    /// </summary>
-    virtual PrimitiveReceiveDisposition Receive(
+    virtual Primitive::PrimitiveAdmissionDisposition Receive(
         const MeshReceiveContext& context,
         Primitive::PrimitiveProtocolVersion version,
         PrimitivePayloadView payload
@@ -92,7 +73,6 @@ public:
 };
 
 /// <summary>Generation-safe registration handle for one external primitive-family receiver.</summary>
-
 struct PrimitiveReceiverHandle final {
     std::uint16_t Slot{std::numeric_limits<std::uint16_t>::max()};
     std::uint16_t Generation{0};
@@ -104,42 +84,36 @@ struct PrimitiveReceiverHandle final {
 };
 
 /// <summary>Result of bounded external primitive receiver registration.</summary>
-
-enum
-class PrimitiveReceiverRegistrationResult : std::uint8_t {
+enum class PrimitiveReceiverRegistrationResult : std::uint8_t {
     Registered,
     FamilyAlreadyRegistered,
     ResourceUnavailable,
     Invalid
 };
 
-/// <summary>Result of dispatching one external primitive family at the destination Mesh endpoint.</summary>
-
-enum
-class PrimitiveDispatchResult : std::uint8_t {
+/// <summary>Structural result of dispatching one external primitive family at the destination Mesh endpoint.</summary>
+/// <remarks>The semantic M1 result is always returned separately through PrimitiveAdmissionDisposition.</remarks>
+enum class PrimitiveDispatchResult : std::uint8_t {
     Dispatched,
     UnsupportedFamily,
     UnsupportedVersion,
     Invalid
 };
 
-/// <summary>
-/// Fixed-capacity heap-free PrimitiveFamilyId-to-receiver dispatch registry.
-/// </summary>
+/// <summary>Fixed-capacity heap-free PrimitiveFamilyId-to-receiver dispatch registry.</summary>
 /// <remarks>
 /// Exactly one active external receiver may own a family. Registration is deterministic and lifetime-safe via a
-/// generation handle. MeshControl is owned internally by Mesh and cannot be registered through this external receiver
-/// boundary. Command, Event, State and application/private families may be registered by their owning integration.
+/// generation handle. MeshControl is owned internally by Mesh and cannot be registered through this external boundary.
+/// The registry adds no Mesh-specific semantic result vocabulary: all destination admission semantics are the locked
+/// Primitive::PrimitiveAdmissionDisposition contract.
 /// </remarks>
-
 template<std::size_t Capacity = Limits::MaxPrimitiveReceivers>
 class PrimitiveReceiverRegistry final {
     static_assert(Capacity > 0, "Primitive receiver capacity must be non-zero.");
     static_assert(Capacity < std::numeric_limits<std::uint16_t>::max(),
                   "Primitive receiver slots must fit the generation-safe handle.");
 
-
-struct Slot final {
+    struct Slot final {
         PrimitiveReceiverDescriptor Descriptor{};
         IPrimitiveReceiver* Receiver{nullptr};
         std::uint16_t Generation{0};
@@ -200,20 +174,13 @@ public:
         return true;
     }
 
-    const PrimitiveReceiverDescriptor* FindDescriptor(
-        Primitive::PrimitiveFamilyId family
-    ) const noexcept {
+    const PrimitiveReceiverDescriptor* FindDescriptor(Primitive::PrimitiveFamilyId family) const noexcept {
         for (const auto& slot : _slots) {
             if (slot.Occupied && slot.Descriptor.Family == family) return &slot.Descriptor;
         }
         return nullptr;
     }
 
-    /// <summary>Enumerates current receiver support descriptors synchronously without allocating a snapshot.</summary>
-    /// <remarks>
-    /// Enumeration is bounded by Capacity. The visitor must not structurally mutate the registry while enumeration is
-    /// active. This surface allows profile-support composition without exposing receiver implementation pointers.
-    /// </remarks>
     template<typename TVisitor>
     void ForEachDescriptor(TVisitor&& visitor) const {
         for (const auto& slot : _slots) {
@@ -226,21 +193,23 @@ public:
         Primitive::PrimitiveProtocolVersion version,
         const MeshReceiveContext& context,
         PrimitivePayloadView payload,
-        PrimitiveReceiveDisposition& disposition
+        Primitive::PrimitiveAdmissionDisposition& disposition
     ) noexcept {
         if (!Primitive::FamilyIds::IsUsable(family) || !context.IsValid() || !payload.IsValid()) {
+            disposition = Primitive::PrimitiveAdmissionDisposition::Malformed;
             return PrimitiveDispatchResult::Invalid;
         }
 
         for (auto& slot : _slots) {
             if (!slot.Occupied || slot.Descriptor.Family != family) continue;
             if (!slot.Descriptor.Versions.Contains(version)) {
-                disposition = PrimitiveReceiveDisposition::UnsupportedVersion;
+                disposition = Primitive::PrimitiveAdmissionDisposition::Unsupported;
                 return PrimitiveDispatchResult::UnsupportedVersion;
             }
             disposition = slot.Receiver->Receive(context, version, payload);
             return PrimitiveDispatchResult::Dispatched;
         }
+        disposition = Primitive::PrimitiveAdmissionDisposition::Unsupported;
         return PrimitiveDispatchResult::UnsupportedFamily;
     }
 };
