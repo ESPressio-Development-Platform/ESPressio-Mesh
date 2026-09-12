@@ -41,13 +41,15 @@ public:
     bool GenerateEphemeralKey(Mesh::MeshEphemeralKeyHandle&,Mesh::MeshEphemeralPublicKey&) noexcept override{return false;}
     bool GenerateHandshakeNonce(Mesh::MeshHandshakeNonce&) noexcept override{return false;}
     bool Hash(const std::uint8_t* bytes,std::size_t size,Mesh::MeshSecurityDigest& digest) noexcept override {
-        if(bytes==nullptr||size==0)return false;digest={};
+        if(bytes==nullptr||size==0) return false;
+        digest={};
         for(std::size_t i=0;i<size;++i) digest.Value[i%digest.Value.size()]^=static_cast<std::uint8_t>(bytes[i]+static_cast<std::uint8_t>(i));
         digest.Value[0]^=0xA5U;return true;
     }
     bool SignIdentityDigest(const System::DeviceIdentifier& device,const Mesh::MeshSecurityDigest& digest,
         Mesh::MeshIdentitySignature& signature) noexcept override {
-        if(!device||!digest)return false;signature={};
+        if(!device||!digest) return false;
+        signature={};
         std::memcpy(signature.Value.data(),digest.Value.data(),digest.Value.size());
         std::memcpy(signature.Value.data()+digest.Value.size(),device.Bytes().data(),device.Bytes().size());
         signature.Value.back()=0x5AU;return true;
@@ -177,7 +179,7 @@ int main(){
     const auto submitted=coordinatorA.Submit(policy,{Primitive::FamilyIds::Event,1},payload,
         1'000'000'000ULL,250,2,planA);
     assert(submitted.Disposition==Mesh::MeshV1BroadcastDisposition::Completed);
-    assert(receiverB.Calls==0); // source submission never feeds any local receiver
+    assert(receiverB.Calls==0);
     assert(radioA.Calls==1&&radioA.Service==Mesh::MeshRelayServiceClass::Responsive&&radioA.PacketBytes!=0);
 
     const auto received=coordinatorB.Receive(radioA.Packet.data(),radioA.PacketBytes,1'010'000'000ULL,10,emptyPlan);
@@ -186,7 +188,6 @@ int main(){
     assert(received.Admission==Primitive::PrimitiveAdmissionDisposition::TemporarilyUnavailable);
     assert(receiverB.Calls==1);
 
-    // Build another authenticated hop carrying the identical immutable origin under a new pairwise sequence.
     Mesh::MeshV1BroadcastHopHeader firstHop{};Mesh::MeshV1BroadcastHopView firstView{};
     assert(Mesh::MeshV1BroadcastFrameCodec::DecodeHop(radioA.Packet.data(),radioA.PacketBytes,firstHop,firstView));
     Mesh::MeshV1BroadcastHopHeader duplicateHop=firstHop;duplicateHop.Sequence=2;
@@ -200,7 +201,7 @@ int main(){
 
     const auto duplicate=coordinatorB.Receive(duplicatePacket.data(),radioA.PacketBytes,1'020'000'000ULL,10,emptyPlan);
     assert(duplicate.Disposition==Mesh::MeshV1BroadcastDisposition::Duplicate);
-    assert(receiverB.Calls==1); // duplicate neither redispatches nor allocates another DeferredLocal record
+    assert(receiverB.Calls==1);
 
     Primitive::PrimitiveAdmissionDisposition retryDisposition{};
     assert(coordinatorB.ServiceDeferredLocal(10,1'030'000'000ULL,retryDisposition)==Mesh::MeshDeferredLocalServiceResult::NoWork);
