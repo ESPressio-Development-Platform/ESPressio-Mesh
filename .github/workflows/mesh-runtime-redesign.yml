@@ -51,3 +51,27 @@ jobs:
           -o mesh_clock_reference_orchestration_test -pthread
       - name: Run Mesh clock reference ownership contract
         run: ./mesh_clock_reference_orchestration_test
+      - name: Compile generic Thread Mesh runtime worker
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IThreads/src -ITask/src
+          Mesh/tests/mesh_runtime_worker_redesign_test.cpp
+          -o mesh_runtime_worker_redesign_test -pthread
+      - name: Run generic Thread Mesh runtime worker surface
+        run: ./mesh_runtime_worker_redesign_test
+      - name: Reject predecessor Mesh worker mechanisms
+        run: |
+          ! grep -E 'PrecisionThread|std::function|<functional>|MaintenancePeriodMilliseconds|catch[[:space:]]*\(' Mesh/src/ESPressio_MeshRuntimeWorker.hpp
+      - name: Compile fixed Mesh lifecycle sink
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src
+          Mesh/tests/mesh_lifecycle_sink_test.cpp
+          -o mesh_lifecycle_sink_test -pthread
+      - name: Run fixed Mesh lifecycle sink
+        run: ./mesh_lifecycle_sink_test
+      - name: Reject Observable from canonical Mesh core and manifest
+        run: |
+          ! grep -R -E 'ESPressio_Observable|ThreadSafeObservable|Observable::|ObserverHandle' Mesh/src Mesh/library.json
+          ! grep -E 'ESPressio-Observable|ESPressio-Event|ESPressio-Command|ESPressio-State|ESPressio-Adapters' Mesh/library.json
+          grep -q '"version": "1.0.0"' Mesh/library.json
