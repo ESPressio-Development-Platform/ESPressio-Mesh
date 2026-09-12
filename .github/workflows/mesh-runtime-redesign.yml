@@ -46,7 +46,7 @@ jobs:
       - name: Compile Mesh clock reference ownership contract
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
-          -IMesh/src -ISystem/src -ITiming/src -IRadio/src -ITask/src -IThreads/src -IUnits/src
+          -IMesh/src -ISystem/src -ITiming/src -IRadio/src -ITask/src -IThreads/src -IUnits/src -IUnits/tests/stubs
           Mesh/tests/mesh_clock_reference_orchestration_test.cpp
           -o mesh_clock_reference_orchestration_test -pthread
       - name: Run Mesh clock reference ownership contract
