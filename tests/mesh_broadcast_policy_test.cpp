@@ -54,7 +54,6 @@ int main(){
     constexpr auto commandAdmission=Mesh::MakeMeshBroadcastBindingPolicy<AdmissionRequired>(Primitive::FamilyIds::Command,false,false);
     static_assert(Mesh::ValidateMeshBroadcastPolicy(commandAdmission)==Mesh::MeshBroadcastPolicyDisposition::RequiresRemoteEvidence);
 
-    // Canonical State is not a stateless generic broadcast surface even if a malformed binding tried to describe it so.
     constexpr auto fakeStatelessState=Mesh::MakeMeshBroadcastBindingPolicy<FireAndForget>(Primitive::FamilyIds::State,false,false);
     static_assert(Mesh::ValidateMeshBroadcastPolicy(fakeStatelessState)==Mesh::MeshBroadcastPolicyDisposition::StateBroadcastUnsupported);
 
@@ -63,6 +62,18 @@ int main(){
 
     constexpr auto privateStateful=Mesh::MakeMeshBroadcastBindingPolicy<FireAndForget>(Primitive::FamilyIds::ApplicationPrivateFirst,false,true);
     static_assert(Mesh::ValidateMeshBroadcastPolicy(privateStateful)==Mesh::MeshBroadcastPolicyDisposition::StatefulOrSessionBased);
+
+    Mesh::MeshBroadcastBindingTable<2> bindings;
+    const Mesh::MeshBroadcastBindingDescriptor eventBinding{eventNoEvidence,Mesh::MeshRelayServiceClass::Responsive};
+    assert(bindings.Register(eventBinding)==Mesh::MeshBroadcastBindingRegistrationResult::Registered);
+    assert(bindings.Register(eventBinding)==Mesh::MeshBroadcastBindingRegistrationResult::FamilyAlreadyRegistered);
+    assert(bindings.Find(Primitive::FamilyIds::Event)==nullptr);
+    assert(bindings.Freeze());
+    assert(!bindings.Freeze());
+    const auto* frozen=bindings.Find(Primitive::FamilyIds::Event);
+    assert(frozen!=nullptr&&frozen->Service==Mesh::MeshRelayServiceClass::Responsive);
+    assert(bindings.Register({commandNoResponse,Mesh::MeshRelayServiceClass::Critical})==
+           Mesh::MeshBroadcastBindingRegistrationResult::Frozen);
 
     return 0;
 }
