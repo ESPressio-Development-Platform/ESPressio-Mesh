@@ -26,7 +26,7 @@ public:
         LastPeer=peer;LastProfile=profile;LastTiming=timing;LastPayloadBytes=payloadBytes;
         for(std::size_t i=0;i<payloadBytes&&i<LastPayload.size();++i) LastPayload[i]=payload[i];
         return {Accept?Radio::RadioSchedulerStatus::Success:Radio::RadioSchedulerStatus::ResourceUnavailable,
-                Accept?NextId:0};
+                Accept?NextId:Radio::RadioTransferId{0}};
     }
 };
 
@@ -51,7 +51,7 @@ int main(){
         const auto result=target.SubmitPeer(peer,meshClasses[i],expiry,bytes.data(),bytes.size());
         assert(result.Accepted&&result.TransferId==runtime.NextId);
         assert(runtime.LastPeer==peer);
-        assert(runtime.LastProfile.Service==radioClasses[i]);
+        assert(runtime.LastProfile.Class==radioClasses[i]);
         assert(runtime.LastProfile.RequiredDirectLinkEvidence==Radio::RadioDirectLinkEvidenceRequirement::TransmissionCompletion);
         assert(runtime.LastTiming.ExpiryNanoseconds==expiry);
         if(meshClasses[i]==Mesh::MeshRelayServiceClass::Clock){
