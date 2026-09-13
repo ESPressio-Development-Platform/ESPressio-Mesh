@@ -76,7 +76,24 @@ jobs:
 
       - name: Reject predecessor runtime worker mechanisms
         run: |
-          ! grep -R -E 'PrecisionThread|std::function|<functional>|MaintenancePeriodMilliseconds|SetDesiredIterationPeriod' Mesh/src
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          text = '\n'.join(p.read_text(errors='ignore') for p in Path('Mesh/src').glob('*.hpp'))
+          text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+          text = re.sub(r'//.*', '', text)
+          forbidden = (
+              r'\bPrecisionThread\b',
+              r'\bstd::function\b',
+              r'#\s*include\s*<functional>',
+              r'\bMaintenancePeriodMilliseconds\b',
+              r'\bSetDesiredIterationPeriod\b',
+          )
+          found = [pattern for pattern in forbidden if re.search(pattern, text)]
+          if found:
+              raise SystemExit(f'predecessor runtime mechanisms remain: {found}')
+          PY
 
       - name: Build exact M1 admission registry contract
         run: >-
@@ -110,6 +127,14 @@ jobs:
       - name: Run remaining-residence contract
         run: ./mesh_remaining_residence_test
 
+      - name: Build broadcast lifecycle and DeferredLocal contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src
+          Mesh/tests/mesh_broadcast_lifecycle_test.cpp -o mesh_broadcast_lifecycle_test -pthread
+      - name: Run broadcast lifecycle and DeferredLocal contract
+        run: ./mesh_broadcast_lifecycle_test
+
       - name: Build family broadcast policy contract
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
@@ -117,6 +142,22 @@ jobs:
           Mesh/tests/mesh_broadcast_policy_test.cpp -o mesh_broadcast_policy_test -pthread
       - name: Run family broadcast policy contract
         run: ./mesh_broadcast_policy_test
+
+      - name: Build source broadcast no-feedback contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src -IRadio/src -ITask/src -ITiming/src -IUnits/src
+          Mesh/tests/mesh_broadcast_source_no_feedback_test.cpp -o mesh_broadcast_source_no_feedback_test -pthread
+      - name: Run source broadcast no-feedback contract
+        run: ./mesh_broadcast_source_no_feedback_test
+
+      - name: Build logical-transfer Radio handoff contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IRadio/src -ITask/src -ITiming/src -IUnits/src
+          Mesh/tests/mesh_radio_submission_test.cpp -o mesh_radio_submission_test -pthread
+      - name: Run logical-transfer Radio handoff contract
+        run: ./mesh_radio_submission_test
 
       - name: Build security contract
         run: >-
