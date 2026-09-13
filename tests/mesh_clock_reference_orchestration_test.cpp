@@ -91,12 +91,12 @@ int main(){
     assert(coordinator.Converge(second,&bindingB,1,excessive)==Mesh::MeshSystemClockConvergenceDisposition::ReferenceLineageInvalid);
     assert(timing.Selected==202&&transport.SelectCalls==2);
 
-    transport.Accept=false;
-    assert(coordinator.Converge(first,&bindingA,1,qualified)==Mesh::MeshSystemClockConvergenceDisposition::TransportRejected);
-    transport.Accept=true;
+    Mesh::ClockCoordinationSelection localRoot{local,{}, {},Mesh::ClockRootStratum};
+    assert(coordinator.Converge(localRoot,nullptr,1)==Mesh::MeshSystemClockConvergenceDisposition::ReferenceConfigured);
+    assert(coordinator.Role()==Mesh::MeshSystemClockRole::Reference);
+    assert(!timing.Acquiring&&timing.ReferenceAvailable&&timing.Resets==1);
 
-    assert(coordinator.Converge({},nullptr,0,{})==Mesh::MeshSystemClockConvergenceDisposition::ReferenceCleared);
-    assert(coordinator.Role()==Mesh::MeshSystemClockRole::ReferenceOnly);
-    assert(transport.Clears==1&&timing.Resets==1&&!timing.Acquiring&&!timing.ReferenceAvailable);
+    assert(coordinator.Converge({},nullptr,0)==Mesh::MeshSystemClockConvergenceDisposition::Disabled);
+    assert(!timing.Acquiring&&!timing.ReferenceAvailable&&timing.Resets==2);
     return 0;
 }
