@@ -11,6 +11,7 @@
 #include <ESPressio_PrimitiveTypes.hpp>
 
 #include "ESPressio_MeshLimits.hpp"
+#include "ESPressio_MeshRelayCapacity.hpp"
 #include "ESPressio_MeshTypes.hpp"
 
 namespace ESPressio::Mesh {
@@ -30,9 +31,11 @@ struct MeshReceiveContext final {
     MeshMessageId DeliveryMessageId{0};
     RemainingHopLimit RemainingHops{0};
     bool Broadcast{false};
+    MeshRelayServiceClass Service{MeshRelayServiceClass::BestEffort};
 
     constexpr bool IsValid() const noexcept {
-        return static_cast<bool>(Source) && static_cast<bool>(SourceIncarnation) && DeliveryMessageId != 0U;
+        return static_cast<bool>(Source) && static_cast<bool>(SourceIncarnation) && DeliveryMessageId != 0U &&
+               IsMeshRelayServiceClass(Service);
     }
 };
 
