@@ -197,6 +197,9 @@ int main(){
            Mesh::AuthenticatedMembershipInsertResult::Inserted);
     assert(membersC.UpsertAuthenticated(deviceB,incB,Mesh::MembershipState::Active,Mesh::ReachabilityState::Reachable)==
            Mesh::AuthenticatedMembershipInsertResult::Inserted);
+    // C knows the authenticated original source A from mesh membership, but A is not a direct C neighbour.
+    assert(membersC.UpsertAuthenticated(deviceA,incA,Mesh::MembershipState::Active,Mesh::ReachabilityState::Unreachable)==
+           Mesh::AuthenticatedMembershipInsertResult::Inserted);
 
     Mesh::AuthenticatedDirectPeerBindingTable<Bindings> bindingsA,bindingsB,bindingsC;
     assert(bindingsA.Bind({deviceB,incB,1,peerAB})==Mesh::DirectPeerBindingResult::Bound);
