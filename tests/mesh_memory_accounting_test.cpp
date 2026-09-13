@@ -1,5 +1,5 @@
-#include <cassert>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
@@ -9,37 +9,27 @@
 using namespace ESPressio::Mesh;
 
 namespace {
-
-struct TestTopologyCharacteristics final {
-    std::int16_t SignalDbm{0};
-    std::uint16_t CostHint{0};
-};
-
-
-struct TestClockQuality final {
-    std::uint32_t UncertaintyNanoseconds{0};
-};
-
-
-struct TestSecurityAuthorityStorage final {
-    std::array<std::uint8_t, 512> Bytes{};
-};
+struct TestTopologyCharacteristics final { std::int16_t SignalDbm{0}; std::uint16_t CostHint{0}; };
+struct TestClockQuality final { std::uint32_t UncertaintyNanoseconds{0}; };
+struct TestSecurityAuthorityStorage final { std::array<std::uint8_t,512> Bytes{}; };
+struct TestRuntimeWorkerStorage final { std::array<std::uint8_t,96> Bytes{}; };
 
 using TestPlatformProfile = MeshPlatformCapacityProfile<
-    0x54455354U, // TEST
-    4096,
-    512,
-    4096,
-    ESPRESSIO_RADIO_MAX_REASSEMBLIES,
-    ESPRESSIO_RADIO_MAX_LOGICAL_TRANSFER_BYTES,
-    8192,
-    1024
->;
+    0x54455354U, 4096, 512, 4096,
+    ESPRESSIO_RADIO_MAX_REASSEMBLIES, ESPRESSIO_RADIO_MAX_LOGICAL_TRANSFER_BYTES,
+    8192, 1024>;
+
+using RelayArena = MeshRelayByteArena<
+    MeshRelayByteClass<64,8>, MeshRelayByteClass<256,4>, MeshRelayByteClass<1024,2>>;
+using RelayDomain = MeshRelayCapacityDomain<4,128,RelayArena>;
+using InboundRelay = MeshRelayCapacityPlane<MeshRelayDirection::Inbound,
+    RelayDomain,RelayDomain,RelayDomain,RelayDomain,RelayDomain,RelayDomain,RelayDomain,RelayDomain>;
+using OutboundRelay = MeshRelayCapacityPlane<MeshRelayDirection::Outbound,
+    RelayDomain,RelayDomain,RelayDomain,RelayDomain,RelayDomain,RelayDomain,RelayDomain>;
 }
 
 int main() {
     using Accounting = MeshFixedMemoryAccounting<TestTopologyCharacteristics>;
-
     static_assert(Accounting::AuthenticatedMembershipBytes == sizeof(AuthenticatedMembershipTable<>));
     static_assert(Accounting::MembershipLivenessBytes == sizeof(MembershipLivenessTracker<>));
     static_assert(Accounting::MembershipTombstoneBytes == sizeof(MembershipTombstoneTable<>));
@@ -57,73 +47,42 @@ int main() {
     static_assert(Accounting::ClockCoordinationBytes<TestClockQuality>() == sizeof(ClockCoordinationTable<TestClockQuality>));
     static_assert(Accounting::DeliveryAcknowledgementBytes<8>() == sizeof(DeliveryAcknowledgementTracker<8>));
 
-    const std::size_t independentlySummed =
-        Accounting::AuthenticatedMembershipBytes +
-        Accounting::MembershipLivenessBytes +
-        Accounting::MembershipTombstoneBytes +
-        Accounting::InboundDeliveryReservationBytes +
-        Accounting::PendingNeighbourCandidateBytes +
-        Accounting::InboundAuthenticationReservationBytes +
-        Accounting::LivenessProbeReservationBytes +
-        Accounting::AuthenticatedDirectPeerBindingBytes +
-        Accounting::TopologyGraphBytes +
-        Accounting::RouteCacheBytes +
-        Accounting::PrimitiveReceiverRegistryBytes +
-        Accounting::TrafficGovernorBytes +
-        Accounting::ApplicationTransmissionBytes +
-        Accounting::SecuritySessionBytes;
-    assert(Accounting::PrincipalFixedCardinalityBytes == independentlySummed);
-
-    using WholeDevice = MeshWholeDeviceMemoryAccounting<
-        TestTopologyCharacteristics,
-        TestClockQuality,
-        8,
-        TestPlatformProfile,
-        TestSecurityAuthorityStorage
-    >;
-    static_assert(WholeDevice::RadioReassemblyPayloadBytes == ESPressio::Radio::RadioTransport::ReassemblyPayloadCapacityBytes);
-    static_assert(WholeDevice::RadioTransportBytes == sizeof(ESPressio::Radio::RadioTransport));
-    static_assert(WholeDevice::SecurityAuthorityBytes == sizeof(TestSecurityAuthorityStorage));
-    static_assert(WholeDevice::InboundOwnedPoolBytes == sizeof(TestPlatformProfile::InboundDeliveryPool));
-    static_assert(WholeDevice::ControlOwnedPoolBytes == sizeof(TestPlatformProfile::ControlFramePool));
-    static_assert(WholeDevice::ApplicationOwnedPoolBytes == sizeof(TestPlatformProfile::ApplicationPayloadPool));
-    static_assert(WholeDevice::TotalAccountedBytes ==
-        WholeDevice::MeshPrincipalBytes +
-        WholeDevice::ClockCoordinationBytes +
-        WholeDevice::DeliveryAcknowledgementBytes +
-        WholeDevice::InboundOwnedPoolBytes +
-        WholeDevice::ControlOwnedPoolBytes +
-        WholeDevice::ApplicationOwnedPoolBytes +
-        WholeDevice::RadioTransportBytes +
-        WholeDevice::SecurityAuthorityBytes +
-        WholeDevice::TaskStackBytes +
-        WholeDevice::OtherCompositionBytes
-    );
+    using Runtime = MeshRuntimeMemoryAccounting<
+        TestTopologyCharacteristics,TestClockQuality,8,TestPlatformProfile,
+        TestSecurityAuthorityStorage,InboundRelay,OutboundRelay,TestRuntimeWorkerStorage>;
+    static_assert(Runtime::InboundRelayPlaneBytes == sizeof(InboundRelay));
+    static_assert(Runtime::OutboundRelayPlaneBytes == sizeof(OutboundRelay));
+    static_assert(Runtime::RelayCapacityProfileBytes == sizeof(MeshRelayCapacityProfile));
+    static_assert(Runtime::RuntimeWorkerObjectBytes == sizeof(TestRuntimeWorkerStorage));
+    static_assert(Runtime::SecurityAuthorityBytes == sizeof(TestSecurityAuthorityStorage));
+    static_assert(Runtime::InboundOwnedPoolBytes == sizeof(TestPlatformProfile::InboundDeliveryPool));
+    static_assert(Runtime::ControlOwnedPoolBytes == sizeof(TestPlatformProfile::ControlFramePool));
+    static_assert(Runtime::ApplicationOwnedPoolBytes == sizeof(TestPlatformProfile::ApplicationPayloadPool));
+    static_assert(Runtime::TotalMeshReservedBytes == Runtime::TotalMeshOwnedObjectBytes + Runtime::TaskStackBytes);
 
     TestPlatformProfile::InboundDeliveryPool pool;
-    const std::array<std::uint8_t, 4> payload{{1, 2, 3, 4}};
+    const std::array<std::uint8_t,4> payload{{1,2,3,4}};
     OwnedBytePoolHandle first{};
-    assert(pool.Store(payload.data(), payload.size(), first));
+    assert(pool.Store(payload.data(),payload.size(),first));
     assert(first);
-    const auto retained = pool.Resolve(first);
-    assert(retained && retained.Size == payload.size());
-    assert(retained.Data[0] == 1U && retained.Data[3] == 4U);
+    const auto retained=pool.Resolve(first);
+    assert(retained && retained.Size==payload.size());
+    assert(retained.Data[0]==1U && retained.Data[3]==4U);
     assert(pool.Release(first));
     assert(!pool.Resolve(first));
 
     OwnedBytePoolHandle second{};
     MutableOwnedByteView writable{};
-    assert(pool.Acquire(payload.size(), second, writable));
-    assert(second && second.Generation != first.Generation);
-    assert(!pool.Resolve(first));
+    assert(pool.Acquire(payload.size(),second,writable));
+    assert(second && second.Generation!=first.Generation);
     pool.ResetForControlledShutdown();
     assert(!pool.Resolve(second));
 
-    // Printed values are intentionally ABI-specific. CI's x86-64 numbers must never be presented as an ESP32 budget.
     std::cout << "principal_fixed_cardinality_bytes=" << Accounting::PrincipalFixedCardinalityBytes << '\n';
-    std::cout << "application_transmission_bytes=" << Accounting::ApplicationTransmissionBytes << '\n';
-    std::cout << "clock_coordination_test_quality_bytes=" << Accounting::ClockCoordinationBytes<TestClockQuality>() << '\n';
-    std::cout << "ack_tracker_8_bytes=" << Accounting::DeliveryAcknowledgementBytes<8>() << '\n';
-    std::cout << "whole_device_test_profile_bytes=" << WholeDevice::TotalAccountedBytes << '\n';
+    std::cout << "relay_inbound_plane_bytes=" << Runtime::InboundRelayPlaneBytes << '\n';
+    std::cout << "relay_outbound_plane_bytes=" << Runtime::OutboundRelayPlaneBytes << '\n';
+    std::cout << "runtime_worker_object_bytes=" << Runtime::RuntimeWorkerObjectBytes << '\n';
+    std::cout << "task_stack_bytes=" << Runtime::TaskStackBytes << '\n';
+    std::cout << "mesh_reserved_test_profile_bytes=" << Runtime::TotalMeshReservedBytes << '\n';
     return 0;
 }

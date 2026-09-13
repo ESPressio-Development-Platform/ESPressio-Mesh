@@ -20,6 +20,11 @@ jobs:
           path: System
       - uses: actions/checkout@v4
         with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: primitives_redesign
+          path: Primitive
+      - uses: actions/checkout@v4
+        with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
           ref: primitives_redesign
           path: Timing
@@ -70,8 +75,17 @@ jobs:
           -o mesh_lifecycle_sink_test -pthread
       - name: Run fixed Mesh lifecycle sink
         run: ./mesh_lifecycle_sink_test
-      - name: Reject Observable from canonical Mesh core and manifest
+      - name: Compile Mesh Q1/runtime resource accounting against current Radio surface
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src -IRadio/src -ITask/src -ITiming/src -IThreads/src -IUnits/src -IUnits/tests/stubs
+          Mesh/tests/mesh_memory_accounting_test.cpp
+          -o mesh_memory_accounting_test -pthread
+      - name: Run Mesh Q1/runtime resource accounting
+        run: ./mesh_memory_accounting_test
+      - name: Reject predecessor dependencies and deleted RadioTransport accounting
         run: |
           ! grep -R -E 'ESPressio_Observable|ThreadSafeObservable|Observable::|ObserverHandle' Mesh/src Mesh/library.json
+          ! grep -R -E 'ESPressio_RadioTransport|Radio::RadioTransport|RadioTransportBytes|RadioReassemblyPayloadBytes' Mesh/src/ESPressio_MeshMemoryAccounting.hpp Mesh/tests/mesh_memory_accounting_test.cpp
           ! grep -E 'ESPressio-Observable|ESPressio-Event|ESPressio-Command|ESPressio-State|ESPressio-Adapters' Mesh/library.json
           grep -q '"version": "1.0.0"' Mesh/library.json
