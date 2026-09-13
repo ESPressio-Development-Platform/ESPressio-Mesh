@@ -41,7 +41,10 @@ public:
     std::size_t Clears{0};
     bool Accept{true};
     bool SelectDirectReference(const Mesh::MeshClockReferenceRelationship& r) noexcept override{
-        if(!Accept||!r.IsValid()) return false;Last=r;++SelectCalls;return true;
+        if(!Accept||!r.IsValid()) return false;
+        Last=r;
+        ++SelectCalls;
+        return true;
     }
     void ClearDirectReference() noexcept override{Last={};++Clears;}
 };
@@ -88,12 +91,12 @@ int main(){
     assert(coordinator.Converge(second,&bindingB,1,excessive)==Mesh::MeshSystemClockConvergenceDisposition::ReferenceLineageInvalid);
     assert(timing.Selected==202&&transport.SelectCalls==2);
 
-    Mesh::ClockCoordinationSelection localRoot{local,{}, {},Mesh::ClockRootStratum};
-    assert(coordinator.Converge(localRoot,nullptr,1)==Mesh::MeshSystemClockConvergenceDisposition::ReferenceConfigured);
-    assert(coordinator.Role()==Mesh::MeshSystemClockRole::Reference);
-    assert(!timing.Acquiring&&timing.ReferenceAvailable&&timing.Resets==1);
+    transport.Accept=false;
+    assert(coordinator.Converge(first,&bindingA,1,qualified)==Mesh::MeshSystemClockConvergenceDisposition::TransportRejected);
+    transport.Accept=true;
 
-    assert(coordinator.Converge({},nullptr,0)==Mesh::MeshSystemClockConvergenceDisposition::Disabled);
-    assert(!timing.Acquiring&&!timing.ReferenceAvailable&&timing.Resets==2);
+    assert(coordinator.Converge({},nullptr,0,{})==Mesh::MeshSystemClockConvergenceDisposition::ReferenceCleared);
+    assert(coordinator.Role()==Mesh::MeshSystemClockRole::ReferenceOnly);
+    assert(transport.Clears==1&&timing.Resets==1&&!timing.Acquiring&&!timing.ReferenceAvailable);
     return 0;
 }
