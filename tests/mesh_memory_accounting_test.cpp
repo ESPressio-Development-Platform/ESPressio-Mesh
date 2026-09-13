@@ -14,9 +14,13 @@ struct TestClockQuality final { std::uint32_t UncertaintyNanoseconds{0}; };
 struct TestSecurityAuthorityStorage final { std::array<std::uint8_t,512> Bytes{}; };
 struct TestRuntimeWorkerStorage final { std::array<std::uint8_t,96> Bytes{}; };
 
+// Mesh owns only the immutable expectation recorded by its platform profile. The corresponding
+// Radio-owned R3/reassembly resources are published and validated by Radio, not re-accounted here.
+constexpr std::size_t TestExpectedRadioReassemblies=4;
+constexpr std::size_t TestExpectedRadioLogicalTransferBytes=4096;
 using TestPlatformProfile = MeshPlatformCapacityProfile<
     0x54455354U, 4096, 512, 4096,
-    ESPRESSIO_RADIO_MAX_REASSEMBLIES, ESPRESSIO_RADIO_MAX_LOGICAL_TRANSFER_BYTES,
+    TestExpectedRadioReassemblies, TestExpectedRadioLogicalTransferBytes,
     8192, 1024>;
 
 using RelayArena = MeshRelayByteArena<
