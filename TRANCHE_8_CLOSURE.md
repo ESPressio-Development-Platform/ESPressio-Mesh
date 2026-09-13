@@ -2,7 +2,7 @@
 
 Date: 2026-09-13
 Branch: `primitives_redesign`
-Status: Closure candidate pending final cross-repository MeshAdapters integration rerun
+Status: **CLOSED**
 
 ## Scope
 
@@ -23,34 +23,65 @@ The authoritative Primitive Platform Redesign architecture remains the source of
 
 The replacement family integration is implemented in `ESPressio-MeshAdapters` over the neutral Mesh/A2 boundaries. Event, Command and State no longer require Event-only Mesh transport/submission runtimes.
 
-Promoted MeshAdapters checkpoint before this report:
-- commit `fbef3eedb8d4396461e7d02e8073eccea982d99a`
-- combined contracts workflow `34750952418` — SUCCESS
-- State outbound A2 workflow `34750952358` — SUCCESS
-- Command recovered-response A2 workflow `34750952335` — SUCCESS
+Final MeshAdapters integration checkpoint:
+- commit `ce0a745498216248279aafc70d6603e49b10a6ab` — `Record Tranche 8 final integration gate`
+- combined contracts workflow `34753328372` — SUCCESS
+- State outbound A2 workflow `34753328259` — SUCCESS
+- Command recovered-response A2 workflow `34753328297` — SUCCESS
+
+Those exact final runs resolved the live finalized `ESPressio-Mesh/primitives_redesign` branch and the live `ESPressio-Adapters/primitives_redesign` branch, proving the Event/Command/State replacement contracts against the completed Mesh M8-23/M8-24 state.
+
+They cover neutral ingress/lower transport, Event ingress/outbound and no re-egress, Command ingress/idempotency/local egress/terminal request-delivery failure/recovered response, State ingress/outbound convergence feedback, opaque route-token/provenance rules and predecessor Event-path removal.
 
 ## M8-23 evidence hardening
 
 Exact Mesh implementation checkpoint `5f36b51f6ce570e97e4f95f975f039d61e2287cd` is green in:
-- Tranche 8 Mesh closure workflow `34753038491`
-- Mesh redesign contracts workflow `34753038532`
-- Mesh clock and runtime redesign workflow `34753038454`
+- Tranche 8 Mesh closure workflow `34753038491` — SUCCESS
+- Mesh redesign contracts workflow `34753038532` — SUCCESS
+- Mesh clock and runtime redesign workflow `34753038454` — SUCCESS
 
-The closure workflow proves dependency/version guards, exact M1 admission/evidence, complete relay ownership, capacity compatibility, finite remaining residence, forward-once plus DeferredLocal without re-fan, family Broadcast policy, source no-feedback, logical Mesh-to-Radio handoff, security/replay, deterministic codec fuzz, three-node forwarding, clock ownership/failover, generic Thread worker behavior and deterministic Mesh-owned resource accounting.
+The closure workflow proves:
+
+1. Mesh core dependency boundary and unchanged manifest version `1.0.0`.
+2. Absence of predecessor worker mechanisms after comments are removed from guard input.
+3. Exact seven-disposition M1 receiver admission and evidence semantics.
+4. Complete relay record + byte + workspace ownership before responsibility acceptance.
+5. Relay membership/capacity compatibility.
+6. Finite and non-increasing remaining residence.
+7. Forward-once Broadcast lifecycle with bounded `DeferredLocal` retry and no re-fan.
+8. Family-neutral Broadcast policy restrictions.
+9. Source Broadcast no-feedback / no own-family runtime loop.
+10. Logical Mesh-to-Radio transfer handoff without physical-fragment ownership leakage.
+11. Mesh v1 authentication/replay/security contract.
+12. Deterministic Mesh v1 codec fuzz coverage.
+13. Three-node A -> B -> C forward-once behavior, including authenticated original-source membership at C without inventing an A-C direct link/session.
+14. Clock ownership and conservative source/failover behavior.
+15. Generic Thread runtime-worker behavior.
+16. Deterministic Mesh-owned memory/resource accounting.
+
+The three-node fixture intentionally distinguishes authenticated Mesh membership from direct-neighbour reachability: C knows A as an Active authenticated Mesh member but receives the protected Broadcast only from direct sender B.
 
 ## M8-24 documentation and resource accounting
 
-- predecessor-code guards strip comments before checking executable code;
-- Mesh accounting no longer imports deleted Radio reassembly/logical-transfer macros;
-- README documents the current `primitives_redesign` architecture and ownership boundaries;
-- `library.json` remains `1.0.0` and family-neutral;
-- no compatibility shim or predecessor Event-only runtime is retained.
+Following the fully green M8-23 implementation checkpoint:
 
-## Final integration gate
+- `.github/workflows/mesh-runtime-redesign.yml` was corrected so predecessor-code guards strip comments before testing executable-code patterns; prohibited runtime mechanisms remain prohibited.
+- `tests/mesh_memory_accounting_test.cpp` no longer imports deleted Radio reassembly/logical-transfer macros. Radio-owned R3 resources remain Radio-owned and separately published; Mesh accounting covers Mesh-owned state only.
+- `README.md` was rewritten against current `primitives_redesign` contracts: neutral Primitive-family boundary, exact admission evidence, Broadcast semantics, generic Thread worker, current clock ownership, Mesh-only resource accounting and current dependency boundaries.
+- `library.json` remains version `1.0.0` and depends only on `ESPressio-System`, `ESPressio-Threads`, `ESPressio-Primitive`, `ESPressio-Radio`, `ESPressio-Timing` and `ESPressio-Security`, all on `primitives_redesign`.
+- No compatibility shim or predecessor Event-only runtime was reintroduced.
 
-This is a closure candidate. Before formal closure, current `ESPressio-MeshAdapters` family contracts must run once more while resolving the finalized Mesh `primitives_redesign` tip. The Primitive live handoff must then record both exact repository tips and workflow IDs.
+## Adapters native-CI caveat
 
-The separate Adapters native workflow for `b8a17228bb3d5e87ae622dbab782a308326bf543` is tracked separately if GitHub still does not allocate a runner; exact-tip integration evidence remains required.
+The final successful MeshAdapters integration uses the live `ESPressio-Adapters/primitives_redesign` tip `b8a17228bb3d5e87ae622dbab782a308326bf543` containing the mixed-policy evidence correction.
+
+Its native workflow `34748737223` has remained queued without job allocation. This is recorded as an infrastructure/native-runner caveat, not an integration failure: the exact Adapters tip is compiled and exercised successfully by the final MeshAdapters integration workflows above.
+
+## Closure decision
+
+All locked Tranche-8 structural implementation and validation gates are satisfied. Tranche 8 is therefore **CLOSED**.
+
+This closure authorizes continuation to structural Tranche 9 under the existing implementation authorization. It does not authorize release work.
 
 ## Release boundary
 
