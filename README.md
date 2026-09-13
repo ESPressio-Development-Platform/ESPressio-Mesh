@@ -2,158 +2,166 @@
 
 Bounded, hardware-agnostic multi-radio membership, topology, routing and delivery orchestration for the ESPressio Development Platform.
 
-**Release target:** ``
-
-ESPressio Mesh sits above `ESPressio-Radio`. Radio moves one opaque logical transfer across one direct link; Mesh decides membership, topology, next-hop routing, retries, end-to-end delivery semantics, controlled broadcast dissemination, selective multicast resolution, and distributed control-plane behavior. Mesh does not contain hardware-specific Radio implementations and does not depend on Command, Event or State semantics.
-
 ## Architectural position
 
-- `ESPressio-System` supplies permanent platform identity and low-level platform-neutral services.
-- `ESPressio-Primitive` supplies dependency-neutral conceptual-message vocabulary.
-- `ESPressio-Radio` supplies direct-link Radio abstractions.
-- `ESPressio-Timing` supplies clock mathematics/discipline while Mesh coordinates distributed root/parent selection.
-- `ESPressio-Security` supplies authentication/security abstractions used by admission policy.
-- `ESPressio-MeshAdapters` is the optional layer that integrates Command, Event, State and future conceptual primitive families with Mesh.
+`ESPressio-Mesh` sits above `ESPressio-Radio` and below optional Primitive-family integration in `ESPressio-MeshAdapters`.
 
-Mesh itself remains unaware of Command/Event/State payload semantics. Non-Mesh primitive-family payloads are opaque to the Mesh core and are dispatched only to the receiver registered for their `PrimitiveFamilyId` at the final destination.
+- `ESPressio-System` owns permanent device identity and platform-neutral system services.
+- `ESPressio-Primitive` supplies family-neutral conceptual-message vocabulary and delivery-policy contracts.
+- `ESPressio-Radio` owns direct-link logical-transfer transport, R3 physical fragmentation/reassembly/arbitration and precision direct-neighbour timestamp exchange.
+- `ESPressio-Timing` owns clock estimation, filtering, discipline, uncertainty, reliability and adaptive synchronization scheduling.
+- `ESPressio-Security` supplies cryptographic/security abstractions.
+- `ESPressio-Mesh` owns mesh membership, authenticated topology, next-hop routing, bounded forwarding, admission, broadcast dissemination and clock-reference topology selection.
+- `ESPressio-MeshAdapters` optionally integrates Event, Command, State and future conceptual Primitive families. Mesh core does not depend on those family runtimes and does not inspect their payload semantics.
 
-Every accepted application transmission retains a wire-neutral `ApplicationPrimitiveDescriptor` alongside its immutable payload reference. The descriptor carries the non-Mesh `PrimitiveFamilyId` and family protocol version needed by later framing and destination dispatch; it deliberately defines no packet layout. Mesh Control cannot enter through this application path.
+Non-Mesh Primitive-family payloads remain opaque to Mesh. At a destination, Mesh dispatches bytes only through the receiver registered for the corresponding `PrimitiveFamilyId`; the family runtime alone decides the exact M1 admission disposition.
 
-## Current implementation tranche
+## Current redesign branch
 
-The `structural_realignment_propagation` branch is the coordinated implementation branch for the finalized  Mesh architecture. Its `TRANCHE_HANDOFF.MD` is the authoritative, self-contained frozen specification and chronological implementation record. The generic Mesh tranche is complete; shipping platform capacity profiles and application-specific composition remain explicit downstream work rather than hidden library defaults.
+The active implementation branch for the Primitive Platform Redesign is `primitives_redesign`.
 
-The current foundation now includes bounded authenticated-membership and tombstone storage, delivery deduplication and InProgress exclusion, policy-driven liveness/retention, separately bounded pre-authentication and authentication resources, authenticated admission promotion, generation-safe Radio peer bindings, incarnation-scoped `RadioIdentifier` allocation, peer-bound neighbour discovery, bounded primitive-family receiver registration, protected traffic-governor capacities, directed topology/routing foundations, authenticated forwarding/delivery lifecycle, aggregate-aware selective application delivery, and bounded clock root/parent coordination. All of these components remain narrow services intended to compose inside the serialized Mesh execution domain rather than becoming independent scheduling layers.
+The authoritative cross-repository architecture/governance document is the Primitive Platform Redesign handoff. The current live continuation state is maintained in `ESPressio-Primitive/primitives_redesign/TRANCHE_HANDOFF_CURRENT.md`. This repository's historical `TRANCHE_HANDOFF.MD` remains useful implementation history, but it does not override the locked cross-repository architecture or current branch tips.
 
-Control work is also required to have a finite lifetime. `IControlWorkLifetimePolicy` supplies those local operational lifetimes, while `FixedControlWorkLifetimePolicy` provides an explicit composition-root implementation without inventing universal timeout values. Application deliveries are deliberately excluded because they retain their own immutable delivery deadline.
+The library version remains `1.0.0`; the redesign does not authorize a version change.
 
-## Core identity rules
+## Identity and addressing
 
-`DeviceIdentifier` is owned by `ESPressio-System` and permanently identifies the device. Mesh adds separate identities for Mesh domain and participation lifecycle:
+`DeviceIdentifier` is owned by `ESPressio-System` and permanently identifies a device. Mesh adds separate domain and participation identities:
 
-- `MeshIdentifier`: exact 16-byte application-supplied Mesh identity; all-zero is invalid/unspecified.
-- `GroupIdentifier`: exact non-zero opaque 16-byte Group identity scoped by the containing `MeshIdentifier`.
-- `MembershipIncarnation`: exact 16-byte participation-instance identity; a partition does not change it.
-- `MeshNodeAlias`: 16-bit Mesh-local routing handle only; it is never authority or permanent identity.
-- `RadioIdentifier`: 8-bit node-local Radio handle; 1–254 are usable and are never recycled within one `MembershipIncarnation`.
-- `MeshMessageId`: 64-bit identity of one independently routable delivery or one Broadcast.
-- `ProfileGeneration` and `TopologyGeneration`: independent 64-bit generation domains.
+- `MeshIdentifier` — exact 16-byte application-supplied Mesh identity.
+- `MembershipIncarnation` — exact participation-instance identity; it is never a System runtime incarnation.
+- `GroupIdentifier` — non-zero opaque group identity scoped by the containing Mesh.
+- `MeshNodeAlias` — Mesh-local routing handle only, never authority or permanent identity.
+- `RadioIdentifier` — node-local Radio handle, separate from every Mesh identity.
+- `MeshMessageId` — identity of one independently routable Mesh delivery or Broadcast.
 
-`CanonicalName` is a mandatory bounded human-readable profile property, not identity. Its semantic representation is one length byte plus 32 bytes of backing storage. Valid names contain 1–32 printable ASCII bytes, compare exactly/case-sensitively, and cannot begin/end with a space.
+Radio-owned `RadioPeerHandle` values are generation-safe direct-link facts. They are not distributed semantic identity and must never be substituted for `DeviceIdentifier` or `MembershipIncarnation`.
 
-`GroupIdentifier` is not an integer and has no endianness conversion: its 16 stored bytes are copied unchanged in index order whenever encoded. Group display names are mutable diagnostic/application data and never participate in identity. Reusing the same 16 bytes in a different `MeshIdentifier` denotes a different scoped Group.
+## Primitive admission and evidence
 
-Radio-owned `RadioPeerHandle` values are deliberately separate from every Mesh identity. They are process-local, generation-safe direct-link handles supplied by `ESPressio-Radio`; Mesh may retain them beside a `RadioIdentifier` as link evidence, but they are never distributed or treated as authenticated node identity.
+Mesh uses the exact family-neutral M1 result set:
 
-## Mesh v1 security profile
+- `Accepted`
+- `AlreadyAccepted`
+- `TemporarilyUnavailable`
+- `ResourceUnavailable`
+- `Unsupported`
+- `Rejected`
+- `Malformed`
 
-Mesh v1 authenticates provisioned long-term device identities while deriving fresh ephemeral pairwise sessions. The frozen suite is ECDSA P-256/SHA-256 for identity signatures, ephemeral ECDH P-256, HKDF-SHA-256 for session derivation, and AES-256-GCM with a 96-bit nonce and 128-bit tag for protected traffic. This follows the key-establishment, signature, derivation and authenticated-encryption constructions specified by NIST SP 800-56A Rev. 3, FIPS 186-5, RFC 5869 and NIST SP 800-38D respectively.
+Only `Accepted` and `AlreadyAccepted` establish `DestinationPrimitiveAdmission`. Queue ownership, Radio acceptance, forwarding, physical transmission and local scheduling are never promoted into Primitive admission evidence.
 
-`MeshV1SecurityHandshakeCodec` defines canonical network-byte-order frames rather than serializing native C++ layout. Its exact v1 packets are a 219-byte signed InitiatorHello, 267-byte signed and key-confirmed ResponderHello, and 58-byte InitiatorFinish key confirmation. Both signed hellos bind `MeshIdentifier`, device identity, membership incarnation, an uncompressed ephemeral P-256 public key and a 32-byte nonce; the responder also binds the complete initiator-hello digest. Both sides explicitly confirm the digest of the signed hellos under distinct directional confirmation material. Unknown suites, wrong lengths, trailing bytes, zero identities and malformed public-key encodings are rejected.
+The destination family receives authenticated semantic provenance separately from immediate transport/peer facts. Mesh membership incarnation is not a substitute for `System::RuntimeIncarnationId`.
 
-`IMeshV1CryptographicProvider` is the only private-key/algorithm boundary. It resolves registered device keys, owns ephemeral secrets and derived traffic keys behind generation-safe handles, and supplies entropy, hashing, signing, verification, derivation and AEAD operations. Mesh never treats `DeviceIdentifier` as a credential and never receives raw private/session keys. HKDF context binds the Mesh, an application-configured 32-byte `MeshSecurityChannelBinding`, ordered authenticated identities/incarnations, both nonces, roles and full signed transcript; distinct directional Hop, EndToEnd and KeyConfirmation keys and base IVs prevent cross-purpose key/nonce reuse. The channel binding is not transmitted: changing the mesh-wide Channel changes key derivation and causes confirmation to fail between differently configured nearby meshes, while physical channel mapping remains platform/Radio policy.
+## Bounded forwarding and relay ownership
 
-`MeshSecuritySessionTable` retains at most one current pairwise session per Mesh member by default. Hop and end-to-end traffic have independent non-wrapping outbound sequences and 64-position inbound replay windows. Replay state is preflighted before decryption but committed only after successful AEAD authentication. Replacing an incarnation/session and controlled shutdown synchronously release provider-owned secret state; stale handles cannot address the replacement.
+Mesh forwarding is bounded and ownership-based.
 
-`MeshV1ResponderAdmissionCoordinator` and `MeshV1InitiatorAdmissionCoordinator` are the two bounded handshake directions. Their record counts each equal the active inbound-authentication bound because a remote identity claim remains untrusted regardless of which node initiated the exchange. The responder verifies the signed InitiatorHello before deriving a session and admits only after the InitiatorFinish confirms the complete transcript. The initiator emits its canonical signed hello, verifies the signed and key-confirmed ResponderHello, and exposes an immutable InitiatorFinish. Composition must call `MarkInitiatorFinishSubmitted` only after the exact finish has been accepted for outbound submission; this permits local admission but does not claim peer receipt or remote promotion.
+A relay accepts responsibility only after it has atomically acquired the complete local resources required for retained work: relay record, byte storage and workspace. It never accepts metadata while deferring byte ownership to an unbounded or hidden allocation path.
 
-Both directions use `CompleteMeshV1AdmissionTransaction` for the same serialized admission-policy, membership/session-capacity and ownership-transfer commit. A derived provider session remains staged until that transaction succeeds. Deferral, rejection, timeout and terminal failure release it before changing pre-authentication state; session saturation retains exact authenticated work for retry; successful promotion alone transfers it into `MeshSecuritySessionTable` and may return the exact authenticated direct-peer binding. Failed provider cleanup retains the owning state and reservation so expiry or controlled reset can retry without losing a secret handle. `MeshPendingAuthenticationResetGroup` composes both directional owners behind the runtime reset's single pending-authentication boundary; staged secrets are released before the provider-wide reset, after which stale records are unconditionally forgotten because the provider has erased all secret slots.
+Relay capacity is described by explicit `MeshRelayCapacityProfile` values. Membership admission must reject incompatible peers when their advertised minimum relay-capacity requirements cannot be met.
 
-`MeshV1ProtectedApplicationSubmissionCoordinator` is the only application-payload forwarding surface. It resolves the frozen recipient and route, requires the exact active per-recipient delivery plus established destination and next-hop sessions, authenticates the immutable absolute deadline inside the EndToEnd header, and wraps that frame in the current Hop session. The complete opaque packet is submitted through `ApplicationRadioSubmissionCoordinator`, so route-attempt policy, bounded Radio-terminal correlation, exact next-hop acceptance and aggregate terminalization remain one authoritative lifecycle rather than a parallel protected path.
+Remaining residence is finite and non-increasing. A forwarded/retried item cannot gain lifetime during duplication, relay or retry processing.
 
-`MeshV1RelayCoordinator` authenticates and removes only the incoming Hop layer, then acquires the local Application or protected Infrastructure Response traffic class and retains the unchanged opaque EndToEnd frame in an explicitly sized fixed slot before accepting responsibility. Saturation admits no state and does not poison replay, so the same authenticated packet may be retried after pressure clears. A relay rewraps the frame for the next authenticated hop and retains both frame and traffic reservation across downstream Radio failure/pending acceptance; exact authenticated next-hop acceptance, deadline expiry or controlled reset alone releases them. It never receives EndToEnd plaintext.
+Radio remains the sole owner of physical fragmentation, reassembly and arbitration. Mesh hands Radio one logical transfer and does not implement a competing fragment scheduler.
 
-`MeshV1ProtectedDestinationCoordinator` authenticates Hop before EndToEnd, commits each purpose-specific replay window only after successful opening, then applies authenticated membership/deduplication reservation before synchronous primitive dispatch. Receiver backpressure releases only the semantic reservation; definitive dispatch, unsupported family/version and authenticated deadline expiry commit deduplication. Each membership record retains a second fixed 128-position bitmap for the accepted subset, preventing duplicates of rejected/unsupported deliveries from fabricating a positive ACK while allowing duplicates of accepted deliveries to regenerate one. The earlier plaintext forwarding/staging surface has been removed.
+## Broadcast semantics
 
-Mesh v1 control acknowledgements use a canonical fixed 56-byte payload. Next-hop responsibility acceptance is direct-hop and Hop protected for the exact previous neighbour. Final destination-framework acknowledgement is a distinct Mesh Control frame protected EndToEnd for the original source and Hop protected along its current route; relays retain and forward it opaquely like any other EndToEnd frame. Both bind the relevant original source identity/incarnation, message identity and immutable deadline. Their synchronous protection/submission work must acquire the protected Infrastructure Response traffic class and releases that reservation after Radio accepts ownership or the attempt returns. Receiving an EndToEnd control frame returns a separate next-hop acceptance intent, so an ACK relay also retains ownership until its downstream node returns real authenticated responsibility evidence. Authenticated duplicate application delivery re-emits acknowledgement intent so a lost final ACK does not require unbounded destination retry state. Neither control message can be fabricated from Radio completion or primitive-operation completion.
+Broadcast is one bounded controlled flood with one source-scoped `MeshMessageId`.
 
-Mesh v1 Broadcast uses a different protected shape because a pairwise EndToEnd destination session cannot represent a flood. The origin signs one immutable canonical frame containing Mesh identity, source device/incarnation, one source-scoped `MeshMessageId`, immutable deadline, primitive identity/version and payload. Each sender or relay then encrypts/authenticates that complete signed frame separately for every selected direct neighbour with the existing pairwise Hop purpose. The origin signature provides integrity and source authentication across relays; Broadcast deliberately makes no confidentiality claim against participating Mesh relays or recipients.
+The network `Seen`/`Forwarded` lifecycle is independent of local Primitive-family admission. A verified unseen Broadcast is committed to the bounded deduplication lifecycle before fan-out. If local family admission is temporarily unavailable, Mesh may retain only bounded `DeferredLocal` state; servicing that deferred local delivery must not re-fan the Broadcast.
 
-## Frozen default bounds
+A source-originated outbound Primitive is never fed back into its own family runtime by Mesh. Local dispatch belongs to the originating family/composition and is explicitly excluded when already performed.
 
-The baseline  configuration is intentionally bounded. Among the locked defaults are 32 Mesh members, four Radios per member, eight Groups per member, eight primitive receivers, eight active application transmission aggregates, 96 topology links, 16 route hops, a 16-hop initial forwarding limit, 32 cached routes, 32 maximum recipients in one selective-multicast aggregate and 64 membership tombstones.
+Generic Broadcast is permitted only where the family policy makes it legal. In particular:
 
-Traffic governance protects four independent local capacities: eight Infrastructure Responses, four Clock Control items, eight General Control items and eight Application transmission aggregates. Application saturation cannot borrow from the control reserves. Control items additionally receive finite lifetimes through `IControlWorkLifetimePolicy`; no control queue is permitted to retain work indefinitely.
+- response-bearing Command requests/responses are not generic Broadcast traffic;
+- canonical State V1 traffic is not generic Broadcast traffic;
+- a family occurrence requiring destination Primitive admission evidence cannot obtain that evidence from generic Broadcast.
 
-These bounds are semantic defaults rather than permission to allocate unbounded dynamic storage elsewhere. Every retained queue, retry set, reassembly set and control-work pool must remain finite and expose deterministic backpressure/exhaustion behavior.
+## Mesh v1 security
 
-## Clock coordination
+Mesh v1 authenticates provisioned device identities and derives pairwise sessions without exposing private/session keys to Mesh core.
 
-Mesh coordinates distributed clock root and parent choice while leaving synchronization mathematics and discipline to `ESPressio-Timing` and precision direct-link timestamp mechanics to `ESPressio-Radio`.
+The security boundary is `IMeshV1CryptographicProvider`. Mesh v1 protects direct-hop and End-to-End purposes separately, uses replay windows committed only after successful authentication, and binds security state to the exact Mesh/device/membership context.
 
-`ClockCoordinationTable<TQuality>` is a fixed-capacity informational store, bounded by `MaxMeshNodes` by default. The quality representation is deliberately application/composition-defined rather than imposed by Mesh. Root eligibility, quality comparison, root election and parent selection are injected independently through `IClockEligibilityPolicy`, `IClockQualityPolicy`, `IClockRootElectionPolicy` and `IClockParentSelectionPolicy`.
+For multi-hop Broadcast, each hop authenticates the direct sender while the signed immutable origin frame authenticates the original source. A relay/destination must know the original source as an active authenticated Mesh member; this does not imply that the original source is a direct neighbour.
 
-The supplied default election behavior is quality-first with deterministic `DeviceIdentifier` tie-breaking. Parent choice prefers a lower stratum, then better root quality, then `DeviceIdentifier`. A node which elects itself as root has no parent; a non-root parent candidate must advertise the same elected root and becomes the upstream node from which the local stratum is derived. New authenticated membership incarnations replace old informational observations; monotonic observation time cannot regress within one incarnation.
+## Clock ownership
 
-`MeshSystemClockSynchronizationCoordinator` is the execution boundary which was previously missing between that selection and the system timeline. It accepts only a structurally valid elected relationship, requires the exact authenticated direct-peer binding for a non-local parent, configures the Radio-owned precision synchronizer, consumes its independently serviced synchronization status, and exposes disciplined System Clock milliseconds. Clock request cadence and response processing belong to Radio's control lifecycle rather than the serialized Mesh composition loop. Initial deadline-clock readiness requires ESPressio-Timing to reach `Synchronized`. Once established, a fresh clock remains usable during transient phase-slew `Acquiring` states and becomes unavailable only when Timing reports `Unsynchronized` or Mesh resets/changes the root relationship. A local elected root is immediately usable as a reference timeline. A root change resets Timing's accumulated synchronization relationship before acquiring the new root; changing parent beneath the same root preserves the existing discipline and established readiness.
+Clock responsibilities are deliberately split:
 
-`RadioMeshSystemClockSynchronizationTransport` resolves the selected generation-safe peer through `RadioTransport` and configures `RadioClockSynchronizer` as `Reference` or `ClientAndReference`. Radio retains the direct T1/T2/T3/T4 exchange and receive-timestamp mechanics. Timing retains offset/delay validation, filtering, startup stepping, monotonic slewing, drift learning and synchronization state. Deadline-bearing Mesh composition must use the coordinator's clock only while `IsDeadlineClockReady()` is true.
+- Mesh owns authenticated root/parent/reference topology selection.
+- Radio owns precision direct-neighbour timestamp exchange.
+- Timing owns estimator state, offset/delay validation, filtering, drift learning, uncertainty, reliability and clock discipline.
 
-Clock advertisements still define no universal quality schema: they must arrive through authenticated Mesh control composition before `ClockMembershipCoordinator::ObserveAuthenticated()` is called. The precision exchange remains link-local and does not become ordinary Mesh forwarding traffic.
+`MeshSystemClockSynchronizationCoordinator` accepts a selected root/parent relationship and configures a fixed `IMeshClockReferenceTransportControl`. Radio-backed composition implements that control surface and feeds direct-link observations into Timing. Mesh never runs the timestamp exchange, chooses estimator cadence, computes clock offset, or invents `TimeReliability`.
 
-## Memory accounting
+`MeshClockReferenceLineage` carries the authenticated upstream reference identity, reliability and uncertainty required to prevent a node from presenting itself as a better reference than its upstream evidence permits. Changing synchronization source selects a new Timing reference; root/source changes therefore discard source-specific estimator history rather than blending independent clock sources.
 
-`MeshFixedMemoryAccounting<TTopologyCharacteristics>` exposes target-native `sizeof` accounting for the principal stores whose cardinalities are already frozen: authenticated membership/liveness/tombstones, inbound delivery reservations, pending neighbour candidates, inbound authentications, liveness probes, authenticated direct-peer bindings, pairwise security sessions, the global topology graph, route cache, primitive receiver registry and default traffic governor.
+Deadline-bearing Mesh work may rely on the system clock only while the composed Timing state says it is usable.
 
-The values are deliberately evaluated by the target compiler. A host x86-64 result is useful for regression but is **not** an ESP32 memory budget because pointer width/alignment and application-selected representations can differ. Delivery-acknowledgement storage is reported only after the composition root supplies an explicit finite acknowledgement capacity, and clock-coordination storage is reported only after the composition supplies its `TClockQuality` representation. No universal capacity or quality structure is invented by the library.
+## Runtime worker
 
-The dedicated ESP32 accounting probe uses PlatformIO `espressif32` 7.1.0, Arduino-ESP32 `3.20017.241212+sha.dcc1105b` and the Xtensa ESP32 GCC 8.4.0 toolchain. It emits a distinct retained symbol for every principal store—including application aggregate metadata and pairwise Mesh security sessions—plus the representative clock-quality table and eight-entry delivery-acknowledgement tracker. The workflow derives the target-native totals from the resulting ELF so newly added retained state cannot remain absent from a hard-coded subtotal.
+The canonical Mesh runtime worker is `MeshRuntimeThread`, built on the generic ESPressio Thread/Task substrate. It uses wake/deadline driven service and bounded work callbacks.
 
-The corresponding x86-64 values remain ABI-specific regression data rather than ESP32 estimates. These measurements describe retained structure/cardinality storage only, not complete runtime or whole-device RAM usage.
+The redesign does not retain the predecessor `PrecisionThread`, `std::function` callback storage, maintenance-period polling loop, or catch-all exception wrapper. CI strips comments before checking that those predecessor mechanisms are absent from executable code.
 
-Whole-device planning must add task stacks, RadioTransport/provider storage, payload/reassembly/control buffers, protected-frame workspace, retained opaque relay frames, security-authority private state and application objects. The ESP32 probe firmware's aggregate framework/build RAM figure is intentionally not used as a Mesh budget, because it also includes Arduino/framework runtime and the deliberately materialized probe arrays. This keeps the memory model measurable without disguising unresolved application capacity choices as architectural defaults.
+## Resource and memory accounting
 
-`MeshPlatformCapacityProfile` now makes those retained-byte choices build-visible. A platform composition supplies a stable non-zero profile identifier, maximum bytes for each of the eight inbound delivery slots, each protected control slot and each of the eight bounded-owned application payload slots, the Radio reassembly settings expected from that build, and explicit task-stack/other-composition reserves. The resulting `InboundDeliveryPool`, `ControlFramePool` and `ApplicationPayloadPool` are fixed arrays with generation-safe handles, explicit exhaustion and no heap fallback.
+Mesh accounting reports resources that Mesh itself owns. Radio-owned R3 fragmentation/reassembly/scheduler/provider resources are deliberately not repeated as Mesh memory.
 
-`MeshWholeDeviceMemoryAccounting` accepts that profile plus the concrete bounded security-composition owner and actual `RadioTransport` type. That owner must cover the provider, signer/registered-identity storage and pending-handshake records when separately composed. The accounting rejects a build when the profile's Radio values differ from the macros compiled into Radio, and reports one target-native total covering principal Mesh stores, clock and ACK state, all three owned pools, the complete Radio transport object, concrete security state, task stacks and other reserved composition storage. `RadioTransport::ReassemblyPayloadCapacityBytes` remains separately visible within that total for diagnostics; it is not double-counted.
+`MeshFixedMemoryAccounting<TTopologyCharacteristics>` exposes target-native `sizeof` accounting for the principal fixed-cardinality Mesh stores, including authenticated membership/liveness/tombstones, admission reservations, direct-peer bindings, security sessions, topology, route cache, Primitive receiver registry and traffic governance.
 
-## Selective multicast and Broadcast
+`MeshRuntimeMemoryAccounting` composes those principal stores with the selected clock/acknowledgement state, Mesh-owned byte pools, relay planes, frame/workspace ownership, security-composition storage, the generic runtime-worker object and explicit Task stack reserve. `TotalMeshReservedBytes` is therefore a deterministic Mesh-owned reserve for the selected composition profile; it is not a whole-device RAM figure and does not double-count Radio-owned resources.
 
-`MeshNodeProfile` retains a verified non-zero profile generation, Mesh-unique canonical name and alias, application-defined capability mask, and at most eight unique opaque Group identities in canonical byte order. A profile update applies only to the exact authenticated device/incarnation; generations cannot regress, and an equal generation is accepted only when the complete profile is unchanged.
+`MeshPlatformCapacityProfile` makes Mesh-owned byte capacities and composition reserves explicit. Any Radio capability values recorded by a platform profile are compatibility expectations for composition, not permission for Mesh to account or manage Radio's physical resources.
 
-`MeshDestinationResolver` resolves Group and CapabilitySelector destinations once from authenticated `Active` remote-member profiles into a canonical frozen set of exact `DeviceIdentifier` + `MembershipIncarnation` pairs. Capability selection requires every requested bit. Reachability is deliberately not a membership filter because route planning and the immutable delivery deadline own temporary unreachability. If the selected set exceeds its composition capacity, resolution returns `ResourceUnavailable` with an empty result; it never truncates. Each resolved recipient then receives an independent Node delivery with its own `MeshMessageId` and outcome state, while all recipient deliveries may share one immutable payload backing. Local sender dispatch, when its own profile matches, is a separate composition action and is not represented as an authenticated remote Node delivery.
-
-Broadcast is different: it is one bounded best-effort controlled flood with one `MeshMessageId`, no frozen recipient set and no promise of delivery to every member. `MeshBroadcastFanoutPlan` is a composition-selected canonical set containing at most one authenticated direct-peer binding per neighbour. `MeshV1BroadcastCoordinator` validates every target, attempts it once, excludes the previous sender, decrements the hop limit at each relay and retains no retry or acknowledgement state. Originating submissions include local primitive dispatch by default; a family adapter whose own manager has already dispatched locally can pass `MeshBroadcastLocalDispatch::Exclude` to prevent a duplicate without changing remote delivery. Each authenticated member record has an independent 128-position Broadcast deduplication window; a verified unseen flood is committed before local dispatch and fan-out, so cycles, temporary receiver pressure and failed links cannot amplify it. Application traffic capacity protects only the synchronous processing interval, and saturation/authentication-resource pressure commits neither Hop replay nor Broadcast deduplication. Applications requiring per-member delivery knowledge use selective multicast rather than reliable Broadcast.
-
-## Application delivery lifecycle
-
-Selective application delivery deliberately keeps aggregate authority, direct-link evidence, forwarding acceptance and final destination acceptance separate.
-
-`ApplicationTransmissionTable` and `ApplicationTransmissionCoordinator` own the sender-local bounded aggregate: the immutable deadline, frozen recipients, one independent `MeshMessageId` and outcome per recipient, and one shared immutable `ApplicationPayload`. Per-recipient routing, Radio correlation and acknowledgement machinery remains outside the aggregate and is reconciled through aggregate-aware coordinators.
-
-Protection uses a composition-sized `MeshV1FrameWorkspace` with distinct inner/packet regions so a provider never has to support overlapping plaintext and ciphertext. Stable payloads seal directly from their immutable backing; repeatable sources materialize temporarily in the packet region before it is overwritten by the outer Hop frame. The serialized call clears both regions on every return. Mesh supplies no default workspace byte size; the concrete workspace belongs in the platform's whole-device composition reserve.
-
-`ApplicationRadioSubmissionCoordinator` preflights the authoritative aggregate/message pair before submitting one recipient's next-hop work. The protected Mesh v1 source path is composed through this boundary. Immediate deadline/permanent/attempt-limit stop conditions are committed to that exact recipient before composed delivery state is retired; retry and replan decisions leave the recipient pending.
-
-`ApplicationRadioTerminalCoordinator` applies the same rule to deferred Radio evidence. Physical transmission completion and peer acknowledgement are direct-link facts only. They do not mean final destination delivery and do not by themselves consume the Mesh forwarding transition.
-
-`ApplicationNextHopAcceptanceCoordinator` accepts only authenticated evidence for the exact expected next-hop device, membership incarnation and `MeshMessageId`. A valid next-hop acceptance commits exactly one forwarding transition and decrements `RemainingHopLimit` exactly once. The application recipient still remains pending because forwarding responsibility has merely moved to the next Mesh node. Wrong/stale evidence is non-mutating, and an already-terminal aggregate remains authoritative over late acceptance.
-
-`ApplicationDeliveryAcknowledgementCoordinator` handles the distinct final-destination acknowledgement path. Its ACK means that the authenticated destination Mesh framework accepted the delivery; it does **not** imply that a requested Command/application operation completed successfully.
-
-This separation prevents Radio submission, physical transmission, one-hop acknowledgement, Mesh next-hop acceptance and final destination delivery from being accidentally collapsed into the same success state.
+Host accounting remains ABI-specific regression evidence. Target builds must evaluate the same templates with the target compiler when a target-native RAM budget is required.
 
 ## Controlled runtime reset
 
-`MeshRuntimeResetCoordinator` provides deterministic local teardown for the principal non-application Mesh runtime stores: remote membership/liveness/tombstones, admission and probe reservations, inbound delivery reservations, direct-peer bindings, topology, route cache, pending destination acknowledgements, deferred Radio-terminal correlations, pairwise security sessions/provider secrets, clock observations and traffic reservations.
+`MeshRuntimeResetCoordinator` provides deterministic local teardown for Mesh-owned membership, reservations, topology, route, acknowledgement/correlation, security-session, clock-observation and traffic-governor state.
 
-Shutdown ordering is explicit. Radio transports must first be stopped so provider callbacks cannot repopulate correlation state; application composition must then reset every exact per-recipient lifecycle and aggregate through `ApplicationRecipientLifecycleCoordinator`; the runtime reset coordinator can then clear the remaining Mesh state and reset the injected traffic governor last. This cleanup emits no wire cancellation and fabricates no delivery, Radio-terminal, membership, reachability or clock evidence.
-
-Composition configuration is intentionally retained. Registered primitive receivers, injected policies and registered local Radio interfaces are not abandoned by a Mesh-service reset. Local `MembershipIncarnation`, `MeshMessageIdGenerator` continuity and incarnation-scoped `RadioIdentifier` allocation are managed by `LocalMeshIdentityLifecycleCoordinator`. Starting a genuinely new incarnation resets MessageId issuance and invalidates every local RadioIdentifier binding together, requiring Radio re-registration. Authenticated continuation preserves Radio bindings and accepts only an equal or advancing MessageId high-water mark; an older persistence snapshot is rejected rather than permitting identifier reuse.
+Shutdown ordering remains explicit: lower/direct-link transports stop first so callbacks cannot repopulate Mesh state; application composition retires exact per-recipient work; Mesh then clears its remaining bounded state. Reset does not fabricate delivery, admission, Radio-terminal, membership or clock evidence.
 
 ## Platform independence
 
-Mesh contains no Arduino, ESP-IDF, FreeRTOS or Radio-hardware API calls. ESP32 Raw80211, NRF24 and future Radio concretes belong in their platform/technology repositories. ESP32-specific shared-Wi-Fi-PHY arbitration belongs in `ESPressio-ESP32`; channel changes appear to Mesh only as link/topology availability changes.
+Mesh contains no Arduino, ESP-IDF, FreeRTOS or Radio-hardware API calls. ESP32/NRF24/other Radio concretes remain in their platform/technology repositories. Platform-specific coexistence/arbitration remains below Mesh and appears to Mesh only through authenticated link/topology and Radio service availability.
 
-## Development dependencies
+## Dependencies
 
-During this coordinated implementation tranche, Mesh consumes the matching propagation branches of repositories whose contracts are changing:
+The `primitives_redesign` manifest intentionally depends only on the family-neutral/core contracts required by Mesh:
 
-```ini
-lib_deps =
-    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#structural_realignment_propagation_ESPressio-Mesh
-    https://github.com/ESPressio-Development-Platform/ESPressio-Primitive.git#structural_realignment_propagation_ESPressio-Mesh
-    https://github.com/ESPressio-Development-Platform/ESPressio-Radio.git#structural_realignment_propagation_ESPressio-Mesh
+```text
+ESPressio-System
+ESPressio-Threads
+ESPressio-Primitive
+ESPressio-Radio
+ESPressio-Timing
+ESPressio-Security
 ```
 
-Other dependencies remain on their current `structural_realignment` Working Branch until this tranche actually requires a reciprocal propagation change.
+Mesh core must not acquire dependencies on `ESPressio-Event`, `ESPressio-Command`, `ESPressio-State`, `ESPressio-Observable` or `ESPressio-Adapters`. Optional Primitive-family composition belongs in `ESPressio-MeshAdapters`.
+
+## Tranche-8 validation
+
+The Tranche-8 closure workflow validates the locked replacement architecture as contracts rather than as predecessor-API compatibility tests. It covers:
+
+- exact M1 admission/evidence behavior;
+- complete relay record+byte+workspace ownership;
+- relay-capacity compatibility;
+- finite remaining residence;
+- forward-once and bounded `DeferredLocal` behavior;
+- family Broadcast legality and source no-feedback;
+- logical Mesh-to-Radio handoff without physical-fragment ownership leakage;
+- security/replay/authentication behavior;
+- deterministic codec fuzzing;
+- a three-node forward-once fixture;
+- clock ownership/failover;
+- the generic Thread runtime worker;
+- deterministic Mesh resource accounting;
+- dependency and predecessor-runtime guards;
+- unchanged `1.0.0` manifest version.
+
+See `TRANCHE_8_CLOSURE.md` for the exact closure evidence and workflow identifiers once the tranche is formally closed.
