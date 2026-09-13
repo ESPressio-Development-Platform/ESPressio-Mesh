@@ -65,8 +65,19 @@ jobs:
       - name: Run generic Thread Mesh runtime worker surface
         run: ./mesh_runtime_worker_redesign_test
       - name: Reject predecessor Mesh worker mechanisms
+        shell: bash
         run: |
-          ! grep -E 'PrecisionThread|std::function|<functional>|MaintenancePeriodMilliseconds|catch[[:space:]]*\(' Mesh/src/ESPressio_MeshRuntimeWorker.hpp
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text=Path('Mesh/src/ESPressio_MeshRuntimeWorker.hpp').read_text()
+          text=re.sub(r'/\*.*?\*/','',text,flags=re.S)
+          text=re.sub(r'//.*','',text)
+          forbidden=re.compile(r'PrecisionThread|std::function|<functional>|MaintenancePeriodMilliseconds|catch\s*\(')
+          match=forbidden.search(text)
+          if match:
+              raise SystemExit(f'forbidden predecessor worker mechanism remains in code: {match.group(0)}')
+          PY
       - name: Compile fixed Mesh lifecycle sink
         run: >-
           g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
