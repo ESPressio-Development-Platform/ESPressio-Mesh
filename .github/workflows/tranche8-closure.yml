@@ -1,0 +1,168 @@
+name: Tranche 8 Mesh closure
+
+on:
+  push:
+    branches:
+      - primitives_redesign
+  pull_request:
+
+jobs:
+  closure-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Mesh
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: primitives_redesign
+          path: System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: primitives_redesign
+          path: Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: primitives_redesign
+          path: Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Task
+          ref: primitives_redesign
+          path: Task
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Threads
+          ref: primitives_redesign
+          path: Threads
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: primitives_redesign
+          path: Timing
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Units
+          ref: primitives_redesign
+          path: Units
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Observable
+          ref: primitives_redesign
+          path: Observable
+
+      - name: Enforce Mesh core dependency boundary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path('Mesh/library.json').read_text())
+          dependencies = {item['name'] for item in manifest.get('dependencies', [])}
+          forbidden = {'ESPressio-Observable','ESPressio-Event','ESPressio-Command','ESPressio-State'}
+          leaked = sorted(dependencies & forbidden)
+          if leaked:
+              raise SystemExit(f'forbidden Mesh manifest dependencies: {leaked}')
+
+          source = '\n'.join(p.read_text(errors='ignore') for p in Path('Mesh/src').glob('*.hpp'))
+          forbidden_includes = ('ESPressio_Observable','ESPressio_Event','ESPressio_Command','ESPressio_State')
+          found = [name for name in forbidden_includes if name in source]
+          if found:
+              raise SystemExit(f'forbidden Mesh core family/Observable includes: {found}')
+          PY
+
+      - name: Reject predecessor runtime worker mechanisms
+        run: |
+          ! grep -R -E 'PrecisionThread|std::function|<functional>|MaintenancePeriodMilliseconds|SetDesiredIterationPeriod' Mesh/src
+
+      - name: Build exact M1 admission registry contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src
+          Mesh/tests/primitive_receiver_registry_test.cpp -o primitive_receiver_registry_test -pthread
+      - name: Run exact M1 admission registry contract
+        run: ./primitive_receiver_registry_test
+
+      - name: Build complete relay resource bundle contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src
+          Mesh/tests/mesh_relay_capacity_test.cpp -o mesh_relay_capacity_test -pthread
+      - name: Run complete relay resource bundle contract
+        run: ./mesh_relay_capacity_test
+
+      - name: Build relay membership capacity compatibility contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src
+          Mesh/tests/mesh_relay_capacity_profile_test.cpp -o mesh_relay_capacity_profile_test -pthread
+      - name: Run relay membership capacity compatibility contract
+        run: ./mesh_relay_capacity_profile_test
+
+      - name: Build remaining-residence contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src
+          Mesh/tests/mesh_remaining_residence_test.cpp -o mesh_remaining_residence_test -pthread
+      - name: Run remaining-residence contract
+        run: ./mesh_remaining_residence_test
+
+      - name: Build family broadcast policy contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src
+          Mesh/tests/mesh_broadcast_policy_test.cpp -o mesh_broadcast_policy_test -pthread
+      - name: Run family broadcast policy contract
+        run: ./mesh_broadcast_policy_test
+
+      - name: Build security contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -IMesh/tests -ISystem/src -IPrimitive/src
+          Mesh/tests/mesh_v1_security_test.cpp -o mesh_v1_security_test -pthread
+      - name: Run security contract
+        run: ./mesh_v1_security_test
+
+      - name: Build deterministic codec fuzz contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src
+          Mesh/tests/mesh_v1_codec_fuzz_test.cpp -o mesh_v1_codec_fuzz_test -pthread
+      - name: Run deterministic codec fuzz contract
+        run: ./mesh_v1_codec_fuzz_test
+
+      - name: Build three-node forward-once contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src -IRadio/src -ITask/src -ITiming/src -IUnits/src
+          Mesh/tests/mesh_v1_three_node_forwarding_test.cpp -o mesh_v1_three_node_forwarding_test -pthread
+      - name: Run three-node forward-once contract
+        run: ./mesh_v1_three_node_forwarding_test
+
+      - name: Build clock ownership and failover contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -ITiming/src -IRadio/src -ITask/src -IThreads/src -IUnits/src -IUnits/tests/stubs
+          Mesh/tests/mesh_clock_reference_orchestration_test.cpp -o mesh_clock_reference_orchestration_test -pthread
+      - name: Run clock ownership and failover contract
+        run: ./mesh_clock_reference_orchestration_test
+
+      - name: Build generic Thread runtime-worker contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IThreads/src -ITask/src
+          Mesh/tests/mesh_runtime_worker_redesign_test.cpp -o mesh_runtime_worker_redesign_test -pthread
+      - name: Run generic Thread runtime-worker contract
+        run: ./mesh_runtime_worker_redesign_test
+
+      - name: Build deterministic Mesh memory-accounting contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src -IPrimitive/src -IRadio/src -ITask/src -IThreads/src
+          -ITiming/src -IUnits/src -IObservable/src
+          Mesh/tests/mesh_memory_accounting_test.cpp -o mesh_memory_accounting_test -pthread
+      - name: Run and publish deterministic Mesh memory accounting
+        run: ./mesh_memory_accounting_test | tee mesh_memory_accounting.txt
