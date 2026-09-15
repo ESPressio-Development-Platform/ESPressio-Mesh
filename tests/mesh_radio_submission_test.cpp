@@ -49,7 +49,8 @@ int main(){
 
     for(std::size_t i=0;i<meshClasses.size();++i){
         const auto result=target.SubmitPeer(peer,meshClasses[i],expiry,bytes.data(),bytes.size());
-        assert(result.Accepted&&result.TransferId==runtime.NextId);
+        assert(result.Status==Radio::RadioSchedulerStatus::Success&&result.TransferId==runtime.NextId);
+        assert(static_cast<bool>(result));
         assert(runtime.LastPeer==peer);
         assert(runtime.LastProfile.Class==radioClasses[i]);
         assert(runtime.LastProfile.RequiredDirectLinkEvidence==Radio::RadioDirectLinkEvidenceRequirement::TransmissionCompletion);
@@ -66,8 +67,11 @@ int main(){
 
     runtime.Accept=false;
     const auto rejected=target.SubmitPeer(peer,Mesh::MeshRelayServiceClass::Responsive,expiry,bytes.data(),bytes.size());
-    assert(!rejected.Accepted&&rejected.TransferId==0);
-    assert(!target.SubmitPeer({},Mesh::MeshRelayServiceClass::Responsive,expiry,bytes.data(),bytes.size()).Accepted);
-    assert(!target.SubmitPeer(peer,Mesh::MeshRelayServiceClass::Responsive,0,bytes.data(),bytes.size()).Accepted);
+    assert(rejected.Status==Radio::RadioSchedulerStatus::ResourceUnavailable&&rejected.TransferId==0);
+    assert(!static_cast<bool>(rejected));
+    const auto invalidPeer=target.SubmitPeer({},Mesh::MeshRelayServiceClass::Responsive,expiry,bytes.data(),bytes.size());
+    assert(invalidPeer.Status==Radio::RadioSchedulerStatus::InvalidConfiguration&&!invalidPeer);
+    const auto invalidExpiry=target.SubmitPeer(peer,Mesh::MeshRelayServiceClass::Responsive,0,bytes.data(),bytes.size());
+    assert(invalidExpiry.Status==Radio::RadioSchedulerStatus::InvalidConfiguration&&!invalidExpiry);
     return 0;
 }
