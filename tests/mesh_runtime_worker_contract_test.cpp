@@ -7,14 +7,8 @@
 using namespace ESPressio;
 
 static_assert(
-    std::is_base_of<
-        Threads::PrecisionThread<
-            Units::NanoSeconds<std::uint64_t>,
-            Threads::PrecisionThreadTraits<Units::NanoSeconds<std::uint64_t>>
-        >,
-        Mesh::MeshRuntimeWorker
-    >::value,
-    "Mesh runtime must retain PrecisionThread monotonic scheduling ownership"
+    std::is_base_of<Threads::Thread, Mesh::MeshRuntimeWorker>::value,
+    "Mesh runtime must use exactly one generic Thread root for serialized execution"
 );
 
 static_assert(
@@ -22,33 +16,29 @@ static_assert(
     "Mesh runtime must remain directly signalable by bounded ingress producers"
 );
 
+using MeshServiceThunk = Mesh::MeshRuntimeServiceResult (*)(void*, std::size_t, std::uint64_t) noexcept;
 static_assert(
-    std::is_same<
-        Mesh::MeshRuntimeWorker::IngressHandler,
-        std::function<Mesh::MeshRuntimeServiceResult(std::size_t)>
-    >::value,
-    "Mesh ingress handler must expose a bounded quantum contract"
+    std::is_same<decltype(Mesh::MeshRuntimeWorkerService::Service), MeshServiceThunk>::value,
+    "Mesh runtime service must remain a fixed noexcept owner/thunk contract"
 );
 
 static_assert(
-    std::is_same<
-        Mesh::MeshRuntimeWorker::MaintenanceHandler,
-        std::function<void(std::uint64_t)>
-    >::value,
-    "Mesh maintenance handler must receive local monotonic milliseconds"
+    std::is_same<decltype(Mesh::MeshRuntimeWorkerService::Owner), void*>::value,
+    "Mesh runtime service must retain fixed owner identity without heap-backed callback state"
 );
 
 int main() {
     const Mesh::MeshRuntimeWorkerConfiguration defaults{};
-    if (defaults.MaintenancePeriodMilliseconds != 10U) return 1;
-    if (defaults.IngressQuantum != 8U) return 2;
-    if (defaults.Priority != 3U) return 3;
-    if (defaults.Core != -1) return 4;
-    if (defaults.StackSize != 8192U) return 5;
+    if (defaults.WorkQuantum != 8U) return 1;
+    if (defaults.Priority != 3U) return 2;
+    if (defaults.Core != -1) return 3;
+    if (defaults.StackSize != 8192U) return 4;
+    if (defaults.Name == nullptr) return 5;
 
-    const Mesh::MeshRuntimeServiceResult drained{4U, false};
-    const Mesh::MeshRuntimeServiceResult continuing{8U, true};
-    if (drained.WorkItemsProcessed != 4U || drained.WorkRemaining) return 6;
-    if (continuing.WorkItemsProcessed != 8U || !continuing.WorkRemaining) return 7;
+    const Mesh::MeshRuntimeServiceResult drained{4U, false, 0U};
+    const Mesh::MeshRuntimeServiceResult continuing{8U, true, 2500000U};
+    if (drained.WorkItemsProcessed != 4U || drained.WorkRemaining || drained.NextDeadlineNanoseconds != 0U) return 6;
+    if (continuing.WorkItemsProcessed != 8U || !continuing.WorkRemaining ||
+        continuing.NextDeadlineNanoseconds != 2500000U) return 7;
     return 0;
 }
