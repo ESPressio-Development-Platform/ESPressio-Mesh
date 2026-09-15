@@ -134,10 +134,12 @@ public:
         RadioDelivery& delivery,
         const ResolvedRoute<HopCapacity>& route,
         RemainingHopLimit remainingHopLimit,
+        MeshRelayServiceClass service,
         std::uint64_t nowMilliseconds
     ) {
         MeshV1WorkspaceResetGuard<decltype(_workspace)> reset(_workspace);
-        if (!_mesh || !_localDevice || !_localIncarnation || !_transmissions.Contains(transmission)) {
+        if (!_mesh || !_localDevice || !_localIncarnation || !_transmissions.Contains(transmission) ||
+            !IsMeshRelayServiceClass(service)) {
             return {_transmissions.Contains(transmission)
                         ? MeshV1ProtectedApplicationSubmissionDisposition::Invalid
                         : MeshV1ProtectedApplicationSubmissionDisposition::UnknownTransmission,
@@ -170,7 +172,7 @@ public:
         }
         if (nowMilliseconds >= deadline || remainingHopLimit == 0U) {
             return Map(_applicationSubmission.Submit(
-                transmission, delivery, _localDevice, route, remainingHopLimit,
+                transmission, delivery, _localDevice, route, remainingHopLimit, service,
                 nullptr, 0U, nowMilliseconds));
         }
         const auto* nextHopMembership = _memberships.FindDevice(nextHop->Neighbour);
@@ -249,7 +251,7 @@ public:
         }
         std::memcpy(packet + packetBytes - hopTag.Value.size(), hopTag.Value.data(), hopTag.Value.size());
         return Map(_applicationSubmission.Submit(
-            transmission, delivery, _localDevice, route, remainingHopLimit,
+            transmission, delivery, _localDevice, route, remainingHopLimit, service,
             packet, packetBytes, nowMilliseconds));
     }
 };

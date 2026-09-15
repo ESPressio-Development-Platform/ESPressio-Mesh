@@ -9,9 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Application-level interpretation of one deferred outbound Radio-terminal processing step.</summary>
-
-enum
-class ApplicationRadioTerminalDisposition : std::uint8_t {
+enum class ApplicationRadioTerminalDisposition : std::uint8_t {
     NoTerminalEvidence,
     AwaitingNextHopAcceptance,
     RetryCurrentRoute,
@@ -25,19 +23,13 @@ class ApplicationRadioTerminalDisposition : std::uint8_t {
 };
 
 /// <summary>
-/// Composes deferred Radio/route terminal processing with authoritative application-recipient aggregate state.
+/// Composes final managed-Radio terminal processing with authoritative application-recipient aggregate state.
 /// </summary>
 /// <remarks>
-/// Aggregate authority is inspected before Radio terminal evidence is consumed. Unknown aggregate/message state therefore
-/// cannot mutate the outbound Radio correlation, route-attempt state or pending next-hop acceptance. If the aggregate is
-/// already terminal, the exact composed outbound lifecycle is retired without consuming late Radio evidence.
-///
-/// For a known Pending recipient, Radio completion/peer acknowledgement still means only AwaitingNextHopAcceptance.
-/// RetryCurrentRoute and ReplanDistinctRoute remain non-terminal. Only a definitive deadline stop or exhaustion/permanent
-/// failure terminalizes the aggregate recipient. `StopAttemptLimit` is mapped to PermanentFailure because all policy-
-/// permitted attempts/routes for that delivery are exhausted; it does not imply any application operation completed.
+/// Aggregate authority is inspected before Radio terminal evidence is consumed. Successful physical completion remains
+/// only direct-link evidence and leaves the delivery waiting for authenticated Mesh next-hop acceptance. Terminal Radio
+/// failure may enter bounded route retry/replan policy; no Radio fact is promoted into destination Primitive admission.
 /// </remarks>
-
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t CorrelationCapacity,
@@ -85,7 +77,7 @@ public:
         ApplicationTransmissionHandle transmission,
         RadioDelivery& delivery,
         std::uint64_t nowMilliseconds,
-        Radio::LogicalTransferTerminalEvidence* terminal = nullptr
+        Radio::RadioRuntimeTransferResult* terminal = nullptr
     ) noexcept {
         if (!transmission || !delivery.IsActive() || delivery.MessageId() == 0U) {
             return ApplicationRadioTerminalDisposition::Invalid;

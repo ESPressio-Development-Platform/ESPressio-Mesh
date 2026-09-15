@@ -2,33 +2,31 @@
 
 #include <cstddef>
 
-#include <ESPressio_RadioTransport.hpp>
+#include <ESPressio_IRadio.hpp>
 
 #include "ESPressio_DirectPeerBindings.hpp"
 
 namespace ESPressio::Mesh {
 
-/// <summary>Converges local authenticated direct-peer execution bindings with Radio peer lifecycle.</summary>
+/// <summary>Converges local authenticated direct-peer execution bindings with final Radio peer lifecycle.</summary>
 /// <remarks>
-/// Invalidating a RadioPeerHandle removes only the executable local binding. It deliberately does not remove or alter
-/// authenticated membership, deduplication, liveness or tombstones because loss of one direct link is not authoritative
-/// evidence that the Mesh member has left. Topology/liveness convergence remains owned by their respective services.
+/// Final Radio deliberately exposes no semantic peer-observer graph. The composition root that owns peer creation/removal
+/// calls this coordinator explicitly. Invalidating a RadioPeerHandle removes only the executable local binding; it does
+/// not alter authenticated membership, liveness, deduplication or tombstones because direct-link loss is not authoritative
+/// evidence that the Mesh member has left.
 /// </remarks>
-
 template<std::size_t BindingCapacity = Limits::MaxTopologyLinks>
-class DirectPeerLifecycleCoordinator final : public Radio::IRadioTransportPeerObserver {
+class DirectPeerLifecycleCoordinator final {
     AuthenticatedDirectPeerBindingTable<BindingCapacity>& _bindings;
 
 public:
     explicit DirectPeerLifecycleCoordinator(AuthenticatedDirectPeerBindingTable<BindingCapacity>& bindings) noexcept
         : _bindings(bindings) {}
 
-    void OnRadioPeerObserved(Radio::RadioTransport&, Radio::IRadio&, Radio::RadioPeerHandle,
-                             const Radio::RadioAddress&) override {}
+    void RadioPeerObserved(Radio::RadioPeerHandle) noexcept {}
 
-    void OnRadioPeerInvalidated(Radio::RadioTransport&, Radio::IRadio&, Radio::RadioPeerHandle peer,
-                                const Radio::RadioAddress&, Radio::RadioPeerInvalidationReason) override {
-        (void)_bindings.RemovePeer(peer);
+    void RadioPeerInvalidated(Radio::RadioPeerHandle peer) noexcept {
+        if (peer) (void)_bindings.RemovePeer(peer);
     }
 };
 

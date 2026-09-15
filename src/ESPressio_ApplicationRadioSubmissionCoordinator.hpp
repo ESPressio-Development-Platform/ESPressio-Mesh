@@ -9,9 +9,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Application-level disposition after one outbound Radio-backed submission step.</summary>
-
-enum
-class ApplicationRadioSubmissionDisposition : std::uint8_t {
+enum class ApplicationRadioSubmissionDisposition : std::uint8_t {
     AwaitingNextHopAcceptance,
     RetryCurrentRoute,
     ReplanDistinctRoute,
@@ -24,24 +22,21 @@ class ApplicationRadioSubmissionDisposition : std::uint8_t {
 };
 
 /// <summary>Combined Radio submission detail plus aggregate-aware application disposition.</summary>
-
 struct ApplicationRadioSubmissionResult final {
     ApplicationRadioSubmissionDisposition Disposition{ApplicationRadioSubmissionDisposition::Invalid};
     OutboundRadioForwardingResult Radio{};
 };
 
 /// <summary>
-/// Preflights authoritative application-recipient state before one outbound Radio-backed submission and atomically
+/// Preflights authoritative application-recipient state before one outbound managed-Radio submission and atomically
 /// reconciles any synchronous definitive stop action with the aggregate.
 /// </summary>
 /// <remarks>
-/// This coordinator owns no route, payload, Radio or aggregate storage. It prevents callers from submitting work for an
-/// unknown/already-terminal aggregate recipient and then forgetting to reconcile immediate forwarding stop outcomes.
-/// AwaitingNextHopAcceptance, RetryCurrentRoute and ReplanDistinctRoute remain non-terminal. StopDeadlineExpired commits
-/// DeadlineExpired; StopPermanentFailure and StopAttemptLimit commit PermanentFailure. Radio admission/completion and
-/// destination delivery acknowledgement retain their independent meanings.
+/// The neutral relay service class is supplied by the frozen adapter policy and is propagated unchanged into Radio/R3;
+/// this coordinator never infers QoS from Primitive family or type. AwaitingNextHopAcceptance, RetryCurrentRoute and
+/// ReplanDistinctRoute remain non-terminal. Radio scheduler admission and terminal physical evidence remain distinct from
+/// authenticated Mesh next-hop acceptance and destination Primitive admission.
 /// </remarks>
-
 template<
     std::size_t AcknowledgementCapacity,
     std::size_t CorrelationCapacity,
@@ -91,12 +86,13 @@ public:
         const System::DeviceIdentifier& localDevice,
         const ResolvedRoute<HopCapacity>& route,
         RemainingHopLimit remainingHopLimit,
+        MeshRelayServiceClass service,
         const std::uint8_t* payload,
         std::size_t payloadSize,
         std::uint64_t nowMilliseconds
-    ) {
+    ) noexcept {
         ApplicationRadioSubmissionResult result{};
-        if (!transmission || !delivery.IsActive() || delivery.MessageId() == 0U) return result;
+        if (!transmission || !delivery.IsActive() || delivery.MessageId() == 0U || !IsMeshRelayServiceClass(service)) return result;
 
         const MeshMessageId messageId = delivery.MessageId();
         const auto inspection = _recipients.Inspect(transmission, messageId);
@@ -124,6 +120,7 @@ public:
             localDevice,
             route,
             remainingHopLimit,
+            service,
             payload,
             payloadSize,
             nowMilliseconds

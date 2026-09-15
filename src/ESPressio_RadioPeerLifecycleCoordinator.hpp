@@ -3,66 +3,37 @@
 #include <array>
 #include <cstddef>
 
-#include <ESPressio_RadioTransport.hpp>
+#include <ESPressio_IRadio.hpp>
 
 #include "ESPressio_AdmissionResources.hpp"
 #include "ESPressio_MeshLimits.hpp"
-#include "ESPressio_MeshRadioRegistry.hpp"
+#include "ESPressio_MeshTypes.hpp"
 
 namespace ESPressio::Mesh {
 
-/// <summary>
-/// Removes pre-authentication neighbour work when its Radio-owned peer binding ceases to exist.
-/// </summary>
+/// <summary>Removes pre-authentication neighbour work when an explicitly identified final-Radio peer ceases to exist.</summary>
 /// <remarks>
-/// This coordinator observes only Radio peer lifecycle. It never mutates authenticated membership, liveness,
-/// deduplication or tombstones: link-local peer loss is not authoritative membership loss. Matching pending
-/// candidates are removed because their process-local RadioPeerHandle is no longer resolvable, and any expensive
-/// inbound-authentication reservation held for those candidates is released first.
-///
-/// The coordinator is intended for the serialized Mesh execution domain. Cleanup is bounded by CandidateCapacity
-/// and uses a fixed local handle array rather than allocating a snapshot.
+/// Final Radio deliberately exposes no semantic peer-observer graph. The composition root supplies the local
+/// RadioIdentifier together with the invalidated RadioPeerHandle. Cleanup is bounded by CandidateCapacity and affects only
+/// pre-authentication candidate/reservation state; authenticated membership and distributed liveness remain independent.
 /// </remarks>
-
 template<
     std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates,
-    std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications,
-    std::size_t RadioCapacity = Limits::MaxRadiosPerNode
+    std::size_t AuthenticationCapacity = Limits::MaxActiveInboundAuthentications
 >
-class RadioPeerLifecycleCoordinator final : public Radio::IRadioTransportPeerObserver {
-    MeshRadioRegistry<RadioCapacity>& _radios;
+class RadioPeerLifecycleCoordinator final {
     PendingNeighbourCandidateTable<CandidateCapacity>& _candidates;
     InboundAuthenticationReservationTable<AuthenticationCapacity>& _authentications;
 
 public:
     RadioPeerLifecycleCoordinator(
-        MeshRadioRegistry<RadioCapacity>& radios,
         PendingNeighbourCandidateTable<CandidateCapacity>& candidates,
         InboundAuthenticationReservationTable<AuthenticationCapacity>& authentications
-    ) noexcept :
-        _radios(radios),
-        _candidates(candidates),
-        _authentications(authentications) {}
+    ) noexcept : _candidates(candidates), _authentications(authentications) {}
 
-    /// <summary>Peer observation itself does not create Mesh admission state; discovery payload processing does that.</summary>
-    void OnRadioPeerObserved(
-        Radio::RadioTransport&,
-        Radio::IRadio&,
-        Radio::RadioPeerHandle,
-        const Radio::RadioAddress&
-    ) override {}
+    void RadioPeerObserved(RadioIdentifier, Radio::RadioPeerHandle) noexcept {}
 
-    /// <summary>
-    /// Releases every pre-auth candidate bound to the invalidated RadioIdentifier + RadioPeerHandle pair.
-    /// </summary>
-    void OnRadioPeerInvalidated(
-        Radio::RadioTransport&,
-        Radio::IRadio& radio,
-        Radio::RadioPeerHandle peer,
-        const Radio::RadioAddress&,
-        Radio::RadioPeerInvalidationReason
-    ) override {
-        const RadioIdentifier radioIdentifier = _radios.IdentifierOf(radio);
+    void RadioPeerInvalidated(RadioIdentifier radioIdentifier, Radio::RadioPeerHandle peer) noexcept {
         if (radioIdentifier == 0U || !peer) return;
 
         std::array<NeighbourCandidateHandle, CandidateCapacity> removals{};

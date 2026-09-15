@@ -7,12 +7,17 @@
 #include <ESPressio_RadioServiceProfile.hpp>
 
 #include "ESPressio_MeshRelayCapacity.hpp"
+#include "ESPressio_MeshTypes.hpp"
 
 namespace ESPressio::Mesh {
 
 struct MeshRadioSubmissionResult final {
-    bool Accepted{false};
+    Radio::RadioSchedulerStatus Status{Radio::RadioSchedulerStatus::InvalidConfiguration};
     Radio::RadioTransferId TransferId{0};
+
+    constexpr explicit operator bool() const noexcept {
+        return Status==Radio::RadioSchedulerStatus::Success&&TransferId!=0;
+    }
 };
 
 /// <summary>Fixed family-opaque Mesh -> managed Radio submission thunk.</summary>
@@ -33,6 +38,17 @@ struct MeshRadioSubmissionTarget final {
         if(!*this||!peer||!IsMeshRelayServiceClass(service)||expiryMonotonicNanoseconds==0||bytes==nullptr||byteCount==0)
             return {};
         return Submit(Context,peer,service,expiryMonotonicNanoseconds,bytes,byteCount);
+    }
+};
+
+/// <summary>Fixed Mesh-owned resolver from a local RadioIdentifier to its final Radio contention domain.</summary>
+struct MeshRadioDomainResolver final {
+    void* Context{nullptr};
+    Radio::RadioContentionDomainId (*Resolve)(void*,RadioIdentifier) noexcept{nullptr};
+
+    constexpr explicit operator bool() const noexcept { return Context!=nullptr&&Resolve!=nullptr; }
+    Radio::RadioContentionDomainId ResolveLocalRadio(RadioIdentifier radio) const noexcept {
+        return *this&&radio!=0U?Resolve(Context,radio):Radio::RadioContentionDomainId{};
     }
 };
 
@@ -68,7 +84,18 @@ MeshRadioSubmissionTarget MakeMeshRadioSubmissionTarget(TRadioRuntime& runtime) 
                 service==MeshRelayServiceClass::Clock?expiry:0
             };
             const auto submitted=static_cast<TRadioRuntime*>(context)->SubmitPeer(peer,profile,timing,bytes,byteCount);
-            return {submitted.Status==Radio::RadioSchedulerStatus::Success,submitted.TransferId};
+            return {submitted.Status,submitted.TransferId};
+        }
+    };
+}
+
+template<class TRadioRegistry>
+MeshRadioDomainResolver MakeMeshRadioDomainResolver(TRadioRegistry& registry) noexcept {
+    return MeshRadioDomainResolver{
+        &registry,
+        [](void* context,RadioIdentifier identifier) noexcept -> Radio::RadioContentionDomainId {
+            auto* radio=static_cast<TRadioRegistry*>(context)->Resolve(identifier);
+            return radio!=nullptr?radio->ContentionDomain():Radio::RadioContentionDomainId{};
         }
     };
 }
