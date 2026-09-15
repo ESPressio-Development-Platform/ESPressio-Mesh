@@ -154,7 +154,7 @@ struct CaptureRadio final {
         self.PacketBytes=byteCount;
         ++self.Calls;
         std::memcpy(self.Packet.data(),bytes,byteCount);
-        return {true,static_cast<Radio::RadioTransferId>(70U+self.Calls)};
+        return {Radio::RadioSchedulerStatus::Success,static_cast<Radio::RadioTransferId>(70U+self.Calls)};
     }
 
     Mesh::MeshRadioSubmissionTarget Target() noexcept{return {this,&Submit};}
