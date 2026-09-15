@@ -52,7 +52,7 @@ class MeshV1ProtectedDestinationDisposition : std::uint8_t {
 struct MeshV1ProtectedDestinationResult final {
     MeshV1ProtectedDestinationDisposition Disposition{MeshV1ProtectedDestinationDisposition::Invalid};
     PrimitiveDispatchResult Dispatch{PrimitiveDispatchResult::Invalid};
-    PrimitiveReceiveDisposition ReceiverDisposition{PrimitiveReceiveDisposition::Malformed};
+    Primitive::PrimitiveAdmissionDisposition ReceiverDisposition{Primitive::PrimitiveAdmissionDisposition::Malformed};
     DeliveryAcknowledgementIntent Acknowledgement{};
     MeshV1NextHopAcceptanceIntent NextHopAcceptance{};
 };
@@ -365,7 +365,7 @@ public:
         switch (_inbound.TryBegin(identity)) {
             case InboundDeliveryBeginResult::Duplicate:
                 return {MeshV1ProtectedDestinationDisposition::Duplicate,
-                        PrimitiveDispatchResult::Invalid, PrimitiveReceiveDisposition::Malformed,
+                        PrimitiveDispatchResult::Invalid, Primitive::PrimitiveAdmissionDisposition::Malformed,
                         _inbound.WasAccepted(identity) == InboundDeliveryAcceptanceResult::Accepted
                             ? DeliveryAcknowledgementIntent{
                                   endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
@@ -398,18 +398,17 @@ public:
         const MeshReceiveContext receiveContext{
             endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
             static_cast<RemainingHopLimit>(hop.HopLimit - 1U), false};
-        PrimitiveReceiveDisposition receiverDisposition{PrimitiveReceiveDisposition::Malformed};
+        Primitive::PrimitiveAdmissionDisposition receiverDisposition{Primitive::PrimitiveAdmissionDisposition::Malformed};
         const auto dispatch = _receivers.Dispatch(
             endToEnd.PrimitiveFamily, endToEnd.PrimitiveVersion, receiveContext,
             {plaintext, endToEndFrame.CiphertextBytes}, receiverDisposition);
         if (dispatch == PrimitiveDispatchResult::Dispatched &&
-            (receiverDisposition == PrimitiveReceiveDisposition::TemporarilyUnavailable ||
-             receiverDisposition == PrimitiveReceiveDisposition::ResourceUnavailable)) {
+            Primitive::IsAdmissionRetryCandidate(receiverDisposition)) {
             _inbound.ReleaseRetryable(identity);
             return {MeshV1ProtectedDestinationDisposition::RetryableReceiver, dispatch, receiverDisposition};
         }
         const auto committed = dispatch == PrimitiveDispatchResult::Dispatched &&
-                                       receiverDisposition == PrimitiveReceiveDisposition::Accepted
+                                       Primitive::EstablishesDestinationAdmission(receiverDisposition)
             ? _inbound.CommitAccepted(identity)
             : _inbound.CommitDefinitive(identity);
         if (committed != InboundDeliveryCommitResult::Committed &&
@@ -432,7 +431,7 @@ public:
             return {MeshV1ProtectedDestinationDisposition::Invalid, dispatch, receiverDisposition};
         }
         return {MeshV1ProtectedDestinationDisposition::Dispatched, dispatch, receiverDisposition,
-                receiverDisposition == PrimitiveReceiveDisposition::Accepted
+                Primitive::EstablishesDestinationAdmission(receiverDisposition)
                     ? DeliveryAcknowledgementIntent{
                           endToEnd.Source, endToEnd.SourceIncarnation, endToEnd.MessageId,
                           endToEnd.AbsoluteDeadlineMilliseconds}
