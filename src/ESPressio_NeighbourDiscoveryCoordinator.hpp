@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include <ESPressio_RadioTransport.hpp>
+#include <ESPressio_RadioRuntime.hpp>
 
 #include "ESPressio_AdmissionResources.hpp"
 #include "ESPressio_MeshRadioRegistry.hpp"
@@ -11,9 +11,7 @@
 namespace ESPressio::Mesh {
 
 /// <summary>Result of accepting one pre-authentication membership claim from a direct Radio peer.</summary>
-
-enum
-class NeighbourDiscoveryResult : std::uint8_t {
+enum class NeighbourDiscoveryResult : std::uint8_t {
     Inserted,
     Refreshed,
     CandidateResourceUnavailable,
@@ -22,16 +20,12 @@ class NeighbourDiscoveryResult : std::uint8_t {
     InvalidClaim
 };
 
-/// <summary>
-/// Narrow bridge from Radio-owned direct-peer evidence into bounded Mesh pre-authentication candidate storage.
-/// </summary>
+/// <summary>Narrow bridge from final Radio direct-peer evidence into bounded Mesh pre-authentication candidate storage.</summary>
 /// <remarks>
-/// This component performs no parsing, cryptography or admission decision. The caller supplies an untrusted claim
-/// extracted from Mesh discovery/control content, while the direct source peer comes from RadioTransport. The peer
-/// handle and local RadioIdentifier establish only the link on which the claim was observed; the claimed
-/// DeviceIdentifier/MembershipIncarnation remain untrusted until external authentication succeeds.
+/// The complete inbound handle is a direct-link fact only. Provider and DirectPeer identify where the untrusted claim was
+/// observed; claimed DeviceIdentifier/MembershipIncarnation remain untrusted until the separate authentication lifecycle
+/// succeeds. This coordinator owns no Radio receive bytes, parsing, cryptography or semantic admission authority.
 /// </remarks>
-
 template<
     std::size_t RadioCapacity = Limits::MaxRadiosPerNode,
     std::size_t CandidateCapacity = Limits::MaxPendingNeighbourCandidates
@@ -46,27 +40,25 @@ public:
         PendingNeighbourCandidateTable<CandidateCapacity>& candidates
     ) noexcept : _radios(radios), _candidates(candidates) {}
 
-    /// <summary>
-    /// Records one untrusted membership claim against the exact Radio-owned source peer of a complete transfer.
-    /// </summary>
+    /// <summary>Records one untrusted membership claim against the exact final-Radio source peer.</summary>
     NeighbourDiscoveryResult ObserveClaim(
-        Radio::IRadio& ingressRadio,
-        const Radio::RadioTransportMessageView& transfer,
+        const Radio::RadioInboundTransferHandle& transfer,
         const UntrustedMembershipClaim& claim,
         std::uint64_t nowMilliseconds,
         NeighbourCandidateHandle& candidate
     ) noexcept {
         candidate = {};
-        const auto radioIdentifier = _radios.IdentifierOf(ingressRadio);
+        if (transfer.Provider == nullptr) return NeighbourDiscoveryResult::RadioNotRegistered;
+        const auto radioIdentifier = _radios.IdentifierOf(*transfer.Provider);
         if (radioIdentifier == 0U) return NeighbourDiscoveryResult::RadioNotRegistered;
-        if (!transfer.SourcePeer) return NeighbourDiscoveryResult::InvalidPeer;
+        if (!transfer.DirectPeer) return NeighbourDiscoveryResult::InvalidPeer;
         if (!claim.Device || !claim.Incarnation || nowMilliseconds == 0U) {
             return NeighbourDiscoveryResult::InvalidClaim;
         }
 
         switch (_candidates.Observe(
             radioIdentifier,
-            transfer.SourcePeer,
+            transfer.DirectPeer,
             claim,
             nowMilliseconds,
             candidate
