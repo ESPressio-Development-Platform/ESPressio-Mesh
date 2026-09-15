@@ -5,25 +5,22 @@
 #include <cstdint>
 #include <cstring>
 
-#include <ESPressio_RadioTransport.hpp>
-
 #include "ESPressio_AuthenticatedMembershipTable.hpp"
+#include "ESPressio_ControlWorkLifetimePolicy.hpp"
 #include "ESPressio_DirectPeerBindings.hpp"
 #include "ESPressio_LivenessProbeCoordinator.hpp"
+#include "ESPressio_MeshRadioSubmission.hpp"
 #include "ESPressio_MeshSecuritySessionTable.hpp"
 #include "ESPressio_MeshV1Security.hpp"
 
 namespace ESPressio::Mesh {
 
 /// <summary>Protected direct-neighbour liveness control message.</summary>
-
-enum
-class MeshV1LivenessMessageType : std::uint8_t {
+enum class MeshV1LivenessMessageType : std::uint8_t {
     Probe = 1U,
     Response = 2U,
     GracefulDisconnect = 3U
 };
-
 
 struct MeshV1LivenessHeader final {
     MeshIdentifier Mesh{};
@@ -45,7 +42,6 @@ struct MeshV1LivenessHeader final {
     }
 };
 
-
 struct MeshV1LivenessFrameView final {
     const std::uint8_t* AuthenticatedHeader{nullptr};
     std::size_t AuthenticatedHeaderBytes{0U};
@@ -56,15 +52,12 @@ struct MeshV1LivenessFrameView final {
 
 /// <summary>Compact pairwise-session-protected Mesh v1 liveness/control codec.</summary>
 /// <remarks>
-/// Liveness deliberately uses a distinct control-plane frame rather than application Broadcast traffic. The
-/// pairwise Hop traffic key authenticates the immediate sender, while the independent sequence/replay window in
-/// MeshSecuritySessionTable prevents replay from manufacturing fresh liveness. The encrypted eight-byte token is
-/// echoed by a response and has no authority beyond correlating the probe. No System Clock timestamp is required:
-/// liveness scheduling and evidence age remain monotonic-time concerns.
+/// Liveness deliberately uses a distinct control-plane frame rather than application Broadcast traffic. The pairwise Hop
+/// traffic key authenticates the immediate sender, while the independent sequence/replay window prevents replay from
+/// manufacturing fresh liveness. The encrypted eight-byte token is correlation only. No System Clock timestamp is used.
 /// </remarks>
-
 class MeshV1LivenessFrameCodec final {
-    inline static constexpr std::array<std::uint8_t, 4U> Magic{{0x45U, 0x53U, 0x4CU, 0x56U}}; // ESLV
+    inline static constexpr std::array<std::uint8_t, 4U> Magic{{0x45U, 0x53U, 0x4CU, 0x56U}};
     static constexpr std::uint8_t Version = 1U;
 
     static void WriteU16(std::uint8_t* output, std::uint16_t value) noexcept {
@@ -175,9 +168,7 @@ public:
     static std::uint64_t DecodeToken(const std::uint8_t* input) noexcept { return ReadU64(input); }
 };
 
-
-enum
-class MeshV1LivenessReceiveDisposition : std::uint8_t {
+enum class MeshV1LivenessReceiveDisposition : std::uint8_t {
     ProbeAuthenticated,
     ResponseAuthenticated,
     GracefulDisconnectAuthenticated,
@@ -189,7 +180,6 @@ class MeshV1LivenessReceiveDisposition : std::uint8_t {
     ResponseSendFailed,
     Invalid
 };
-
 
 struct MeshV1LivenessReceiveResult final {
     MeshV1LivenessReceiveDisposition Disposition{MeshV1LivenessReceiveDisposition::Invalid};
@@ -205,14 +195,21 @@ struct MeshV1LivenessReceiveResult final {
     }
 };
 
-/// <summary>Protected direct-neighbour Mesh v1 liveness probe initiator/responder.</summary>
-/// <remarks>
-/// The coordinator authenticates only the immediate neighbour using the already-established pairwise Mesh session.
-/// It neither owns membership reachability state nor manufactures liveness evidence: callers pass successful receive
-/// results to MembershipLivenessTracker only after this coordinator reports authenticated evidence. Probe scheduling
-/// remains owned by LivenessProbeCoordinator/IMeshLivenessProbePolicy.
-/// </remarks>
+enum class MeshV1LivenessSendDisposition : std::uint8_t {
+    Submitted,
+    TemporarilyUnavailable,
+    Rejected
+};
 
+/// <summary>Protected direct-neighbour Mesh v1 liveness probe initiator/responder over final managed Radio.</summary>
+/// <remarks>
+/// Proactive probes use one trusted composition-selected neutral service class. Infrastructure and Clock are rejected for
+/// proactive probing because a new liveness probe is neither an existing protocol obligation nor clock synchronization.
+/// Authenticated probe responses and graceful-disconnect release messages use Infrastructure because they discharge an
+/// existing protocol obligation. Every submission derives a finite class-specific monotonic deadline from the injected
+/// control-work lifetime policy. Radio scheduler acceptance means transport ownership only; liveness evidence is created
+/// solely by the authenticated receive path.
+/// </remarks>
 template<
     std::size_t MembershipCapacity = Limits::MaxMeshNodes,
     std::size_t BindingCapacity = Limits::MaxTopologyLinks,
@@ -223,11 +220,19 @@ class MeshV1LivenessCoordinator final : public ILivenessProbeInitiator {
     const AuthenticatedDirectPeerBindingTable<BindingCapacity>& _bindings;
     MeshSecuritySessionTable<SessionCapacity>& _sessions;
     IMeshV1CryptographicProvider& _provider;
-    Radio::RadioTransport& _transport;
+    MeshRadioSubmissionTarget _radio{};
+    const IControlWorkLifetimePolicy& _lifetimes;
+    MeshRelayServiceClass _probeService{MeshRelayServiceClass::BestEffort};
     MeshIdentifier _mesh{};
     System::DeviceIdentifier _localDevice{};
     MembershipIncarnation _localIncarnation{};
     std::uint64_t _nextToken{1U};
+
+    static bool IsValidProbeService(MeshRelayServiceClass service) noexcept {
+        return IsMeshRelayServiceClass(service) &&
+               service != MeshRelayServiceClass::Infrastructure &&
+               service != MeshRelayServiceClass::Clock;
+    }
 
     const AuthenticatedDirectPeerBinding* FindBinding(
         const System::DeviceIdentifier& device,
@@ -239,26 +244,59 @@ class MeshV1LivenessCoordinator final : public ILivenessProbeInitiator {
         return nullptr;
     }
 
-    bool Send(
+    static MeshV1LivenessSendDisposition MapSubmission(const MeshRadioSubmissionResult& result) noexcept {
+        switch (result.Status) {
+            case Radio::RadioSchedulerStatus::Success:
+                return result.TransferId != 0U ? MeshV1LivenessSendDisposition::Submitted
+                                              : MeshV1LivenessSendDisposition::Rejected;
+            case Radio::RadioSchedulerStatus::Busy:
+            case Radio::RadioSchedulerStatus::NotInitialized:
+            case Radio::RadioSchedulerStatus::Frozen:
+            case Radio::RadioSchedulerStatus::ResourceUnavailable:
+            case Radio::RadioSchedulerStatus::ProviderUnavailable:
+            case Radio::RadioSchedulerStatus::Expired:
+                return MeshV1LivenessSendDisposition::TemporarilyUnavailable;
+            case Radio::RadioSchedulerStatus::InvalidConfiguration:
+            case Radio::RadioSchedulerStatus::PayloadTooLarge:
+                return MeshV1LivenessSendDisposition::Rejected;
+        }
+        return MeshV1LivenessSendDisposition::Rejected;
+    }
+
+    MeshV1LivenessSendDisposition Send(
         MeshV1LivenessMessageType type,
         const System::DeviceIdentifier& device,
         const MembershipIncarnation& incarnation,
-        std::uint64_t token
+        std::uint64_t token,
+        std::uint64_t nowMilliseconds
     ) noexcept {
-        if (!_mesh || !_localDevice || !_localIncarnation || !device || !incarnation || token == 0U) return false;
+        if (!_mesh || !_localDevice || !_localIncarnation || !device || !incarnation || token == 0U ||
+            nowMilliseconds == 0U || !_radio) return MeshV1LivenessSendDisposition::Rejected;
+        const auto service = type == MeshV1LivenessMessageType::Probe
+            ? _probeService
+            : MeshRelayServiceClass::Infrastructure;
+        if ((type == MeshV1LivenessMessageType::Probe && !IsValidProbeService(service)) ||
+            !IsMeshRelayServiceClass(service)) return MeshV1LivenessSendDisposition::Rejected;
+
+        std::uint64_t expiryNanoseconds = 0U;
+        if (!TryControlWorkDeadlineNanoseconds(_lifetimes, service, nowMilliseconds, expiryNanoseconds))
+            return MeshV1LivenessSendDisposition::Rejected;
+
         const auto* member = _memberships.FindExact(device, incarnation);
         const auto* binding = FindBinding(device, incarnation);
         const auto session = _sessions.Find(device, incarnation);
-        if (member == nullptr || member->State != MembershipState::Active || binding == nullptr || !session) return false;
+        if (member == nullptr || member->State != MembershipState::Active || binding == nullptr || !session)
+            return MeshV1LivenessSendDisposition::Rejected;
         const auto sequence = _sessions.IssueSequence(session, MeshSecurityTrafficPurpose::Hop);
-        if (sequence == 0U) return false;
+        if (sequence == 0U) return MeshV1LivenessSendDisposition::Rejected;
 
         std::array<std::uint8_t, MeshV1LivenessFrameCodec::PacketBytes> packet{};
         const MeshV1LivenessHeader header{
             _mesh, _sessions.Identifier(session), sequence,
             _localDevice, _localIncarnation, device, incarnation, type
         };
-        if (!MeshV1LivenessFrameCodec::EncodeAuthenticatedHeader(header, packet.data(), packet.size())) return false;
+        if (!MeshV1LivenessFrameCodec::EncodeAuthenticatedHeader(header, packet.data(), packet.size()))
+            return MeshV1LivenessSendDisposition::Rejected;
         std::array<std::uint8_t, MeshV1LivenessFrameCodec::TokenBytes> plaintext{};
         MeshV1LivenessFrameCodec::EncodeToken(token, plaintext.data());
         MeshAuthenticationTag tag{};
@@ -266,11 +304,11 @@ class MeshV1LivenessCoordinator final : public ILivenessProbeInitiator {
                 _sessions.ProviderSession(session), MeshSecurityTrafficPurpose::Hop, sequence,
                 packet.data(), MeshV1LivenessFrameCodec::AuthenticatedHeaderBytes,
                 plaintext.data(), plaintext.size(),
-                packet.data() + MeshV1LivenessFrameCodec::AuthenticatedHeaderBytes, tag)) return false;
+                packet.data() + MeshV1LivenessFrameCodec::AuthenticatedHeaderBytes, tag))
+            return MeshV1LivenessSendDisposition::Rejected;
         std::memcpy(packet.data() + MeshV1LivenessFrameCodec::AuthenticatedHeaderBytes + plaintext.size(),
                     tag.Value.data(), tag.Value.size());
-        return _transport.Send(binding->Peer, packet.data(), packet.size()).Status ==
-               Radio::RadioTransportSendStatus::Accepted;
+        return MapSubmission(_radio.SubmitPeer(binding->Peer, service, expiryNanoseconds, packet.data(), packet.size()));
     }
 
     std::uint64_t IssueToken() noexcept {
@@ -286,37 +324,58 @@ public:
         const AuthenticatedDirectPeerBindingTable<BindingCapacity>& bindings,
         MeshSecuritySessionTable<SessionCapacity>& sessions,
         IMeshV1CryptographicProvider& provider,
-        Radio::RadioTransport& transport,
+        MeshRadioSubmissionTarget radio,
+        const IControlWorkLifetimePolicy& lifetimes,
+        MeshRelayServiceClass probeService,
         const MeshIdentifier& mesh,
         const System::DeviceIdentifier& localDevice,
         const MembershipIncarnation& localIncarnation
     ) noexcept :
         _memberships(memberships), _bindings(bindings), _sessions(sessions), _provider(provider),
-        _transport(transport), _mesh(mesh), _localDevice(localDevice), _localIncarnation(localIncarnation) {}
+        _radio(radio), _lifetimes(lifetimes), _probeService(probeService), _mesh(mesh),
+        _localDevice(localDevice), _localIncarnation(localIncarnation) {}
+
+    bool IsConfigurationValid() const noexcept {
+        return static_cast<bool>(_radio) && IsValidProbeService(_probeService) &&
+               _lifetimes.LifetimeMilliseconds(_probeService) != 0U &&
+               _lifetimes.LifetimeMilliseconds(MeshRelayServiceClass::Infrastructure) != 0U;
+    }
 
     LivenessProbeStartDisposition TryStartProbe(
         const System::DeviceIdentifier& device,
         const MembershipIncarnation& incarnation,
+        std::uint64_t nowMilliseconds,
         LivenessProbeReservation
     ) noexcept override {
         const auto* member = _memberships.FindExact(device, incarnation);
-        if (member == nullptr || member->State != MembershipState::Active) {
+        if (member == nullptr || member->State != MembershipState::Active || !IsConfigurationValid()) {
             return LivenessProbeStartDisposition::Rejected;
         }
-        return Send(MeshV1LivenessMessageType::Probe, device, incarnation, IssueToken())
-            ? LivenessProbeStartDisposition::Started
-            : LivenessProbeStartDisposition::TemporarilyUnavailable;
+        switch (Send(MeshV1LivenessMessageType::Probe, device, incarnation, IssueToken(), nowMilliseconds)) {
+            case MeshV1LivenessSendDisposition::Submitted: return LivenessProbeStartDisposition::Started;
+            case MeshV1LivenessSendDisposition::TemporarilyUnavailable:
+                return LivenessProbeStartDisposition::TemporarilyUnavailable;
+            case MeshV1LivenessSendDisposition::Rejected: return LivenessProbeStartDisposition::Rejected;
+        }
+        return LivenessProbeStartDisposition::Rejected;
     }
 
     bool SendGracefulDisconnect(
         const System::DeviceIdentifier& device,
-        const MembershipIncarnation& incarnation
+        const MembershipIncarnation& incarnation,
+        std::uint64_t nowMilliseconds
     ) noexcept {
-        return Send(MeshV1LivenessMessageType::GracefulDisconnect, device, incarnation, IssueToken());
+        return Send(MeshV1LivenessMessageType::GracefulDisconnect, device, incarnation, IssueToken(), nowMilliseconds) ==
+               MeshV1LivenessSendDisposition::Submitted;
     }
 
-    MeshV1LivenessReceiveResult Receive(const std::uint8_t* packet, std::size_t packetBytes) noexcept {
+    MeshV1LivenessReceiveResult Receive(
+        const std::uint8_t* packet,
+        std::size_t packetBytes,
+        std::uint64_t nowMilliseconds
+    ) noexcept {
         MeshV1LivenessReceiveResult result{};
+        if (nowMilliseconds == 0U) return result;
         MeshV1LivenessHeader header{};
         MeshV1LivenessFrameView view{};
         if (!MeshV1LivenessFrameCodec::IsFrame(packet, packetBytes)) {
@@ -364,7 +423,8 @@ public:
             case MeshV1LivenessMessageType::Probe:
                 result.Disposition = Send(
                     MeshV1LivenessMessageType::Response,
-                    header.Sender, header.SenderIncarnation, result.Token)
+                    header.Sender, header.SenderIncarnation, result.Token, nowMilliseconds) ==
+                        MeshV1LivenessSendDisposition::Submitted
                     ? MeshV1LivenessReceiveDisposition::ProbeAuthenticated
                     : MeshV1LivenessReceiveDisposition::ResponseSendFailed;
                 break;
@@ -380,7 +440,6 @@ public:
 };
 
 /// <summary>Default policy keeping authenticated direct neighbours inside the liveness floor without application traffic.</summary>
-
 class DefaultMeshLivenessProbePolicy final : public IMeshLivenessProbePolicy {
     std::uint64_t _probeIntervalMilliseconds{2000U};
 

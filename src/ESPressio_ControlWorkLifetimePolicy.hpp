@@ -1,86 +1,106 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 
-#include "ESPressio_MeshTrafficGovernor.hpp"
+#include "ESPressio_MeshRelayCapacity.hpp"
+#include "ESPressio_MeshRemainingResidence.hpp"
 
 namespace ESPressio::Mesh {
 
-/// <summary>
-/// Injectable policy supplying finite local retention/deadline lifetimes for admitted Mesh control work.
-/// </summary>
+/// <summary>Injectable finite local lifetime policy for trusted Mesh control work in the final neutral service taxonomy.</summary>
 /// <remarks>
-/// The policy is operational local configuration and does not itself define wire semantics. A zero lifetime is
-/// invalid because control work must never remain queued indefinitely. Application traffic owns its own immutable
-/// delivery deadline and is therefore deliberately outside this control-work policy.
+/// This policy owns operational retention/deadline configuration only. It does not select a service class, grant
+/// authorization or define wire semantics. The caller supplies the already-trusted MeshRelayServiceClass chosen by the
+/// owning control/admission policy. Every configured lifetime is finite and non-zero; there is no universal platform
+/// timeout and no predecessor GeneralControl/Application bucket.
 /// </remarks>
-
 class IControlWorkLifetimePolicy {
 public:
     virtual ~IControlWorkLifetimePolicy() = default;
-
-    /// <summary>Returns the finite lifetime in milliseconds for one protected control traffic class.</summary>
-    virtual std::uint64_t LifetimeMilliseconds(MeshTrafficClass trafficClass) const noexcept = 0;
+    virtual std::uint64_t LifetimeMilliseconds(MeshRelayServiceClass serviceClass) const noexcept = 0;
 };
 
-/// <summary>
-/// Explicit fixed control-work lifetime policy configured by the composition root.
-/// </summary>
-/// <remarks>
-/// No universal timeout values are imposed here: the application/platform chooses finite values appropriate to its
-/// topology, radio technology and execution budgets. Construction is valid only when every protected control class
-/// has a non-zero lifetime. Application class queries return zero because application deliveries use their own deadline.
-/// </remarks>
-
+/// <summary>Explicit six-class control-work lifetime profile configured by the composition root.</summary>
 class FixedControlWorkLifetimePolicy final : public IControlWorkLifetimePolicy {
     std::uint64_t _infrastructureMilliseconds{0};
     std::uint64_t _clockMilliseconds{0};
-    std::uint64_t _generalMilliseconds{0};
+    std::uint64_t _criticalMilliseconds{0};
+    std::uint64_t _responsiveMilliseconds{0};
+    std::uint64_t _convergentMilliseconds{0};
+    std::uint64_t _bestEffortMilliseconds{0};
 
 public:
     constexpr FixedControlWorkLifetimePolicy(
         std::uint64_t infrastructureMilliseconds,
         std::uint64_t clockMilliseconds,
-        std::uint64_t generalMilliseconds
+        std::uint64_t criticalMilliseconds,
+        std::uint64_t responsiveMilliseconds,
+        std::uint64_t convergentMilliseconds,
+        std::uint64_t bestEffortMilliseconds
     ) noexcept :
         _infrastructureMilliseconds(infrastructureMilliseconds),
         _clockMilliseconds(clockMilliseconds),
-        _generalMilliseconds(generalMilliseconds) {}
+        _criticalMilliseconds(criticalMilliseconds),
+        _responsiveMilliseconds(responsiveMilliseconds),
+        _convergentMilliseconds(convergentMilliseconds),
+        _bestEffortMilliseconds(bestEffortMilliseconds) {}
 
-    /// <summary>Returns whether all protected control classes have finite non-zero configured lifetimes.</summary>
     constexpr bool IsValid() const noexcept {
         return _infrastructureMilliseconds != 0U &&
                _clockMilliseconds != 0U &&
-               _generalMilliseconds != 0U;
+               _criticalMilliseconds != 0U &&
+               _responsiveMilliseconds != 0U &&
+               _convergentMilliseconds != 0U &&
+               _bestEffortMilliseconds != 0U;
     }
 
-    std::uint64_t LifetimeMilliseconds(MeshTrafficClass trafficClass) const noexcept override {
-        switch (trafficClass) {
-            case MeshTrafficClass::InfrastructureResponse: return _infrastructureMilliseconds;
-            case MeshTrafficClass::ClockControl: return _clockMilliseconds;
-            case MeshTrafficClass::GeneralControl: return _generalMilliseconds;
-            case MeshTrafficClass::Application: return 0U;
+    std::uint64_t LifetimeMilliseconds(MeshRelayServiceClass serviceClass) const noexcept override {
+        switch (serviceClass) {
+            case MeshRelayServiceClass::Infrastructure: return _infrastructureMilliseconds;
+            case MeshRelayServiceClass::Clock: return _clockMilliseconds;
+            case MeshRelayServiceClass::Critical: return _criticalMilliseconds;
+            case MeshRelayServiceClass::Responsive: return _responsiveMilliseconds;
+            case MeshRelayServiceClass::Convergent: return _convergentMilliseconds;
+            case MeshRelayServiceClass::BestEffort: return _bestEffortMilliseconds;
         }
         return 0U;
     }
 };
 
-/// <summary>Computes a saturating absolute monotonic deadline from a finite control-work lifetime.</summary>
+/// <summary>Computes a saturating absolute monotonic millisecond deadline for one trusted neutral service class.</summary>
 inline bool TryControlWorkDeadline(
     const IControlWorkLifetimePolicy& policy,
-    MeshTrafficClass trafficClass,
+    MeshRelayServiceClass serviceClass,
     std::uint64_t nowMilliseconds,
     std::uint64_t& deadlineMilliseconds
 ) noexcept {
     deadlineMilliseconds = 0U;
-    if (trafficClass == MeshTrafficClass::Application || nowMilliseconds == 0U) return false;
-    const auto lifetime = policy.LifetimeMilliseconds(trafficClass);
+    if (!IsMeshRelayServiceClass(serviceClass) || nowMilliseconds == 0U) return false;
+    const auto lifetime = policy.LifetimeMilliseconds(serviceClass);
     if (lifetime == 0U) return false;
-    const auto maximum = static_cast<std::uint64_t>(~std::uint64_t{0});
+    const auto maximum = std::numeric_limits<std::uint64_t>::max();
     deadlineMilliseconds = lifetime > (maximum - nowMilliseconds)
         ? maximum
         : nowMilliseconds + lifetime;
     return true;
+}
+
+/// <summary>Computes the same finite deadline in the nanosecond coordinate required by managed Radio.</summary>
+inline bool TryControlWorkDeadlineNanoseconds(
+    const IControlWorkLifetimePolicy& policy,
+    MeshRelayServiceClass serviceClass,
+    std::uint64_t nowMilliseconds,
+    std::uint64_t& deadlineNanoseconds
+) noexcept {
+    deadlineNanoseconds = 0U;
+    std::uint64_t deadlineMilliseconds = 0U;
+    if (!TryControlWorkDeadline(policy, serviceClass, nowMilliseconds, deadlineMilliseconds)) return false;
+    const auto maximum = std::numeric_limits<std::uint64_t>::max();
+    deadlineNanoseconds = deadlineMilliseconds > maximum / MeshNanosecondsPerMillisecond
+        ? maximum
+        : deadlineMilliseconds * MeshNanosecondsPerMillisecond;
+    return deadlineNanoseconds != 0U;
 }
 
 } // namespace ESPressio::Mesh

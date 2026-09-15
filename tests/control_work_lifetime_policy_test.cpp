@@ -7,33 +7,41 @@
 using namespace ESPressio::Mesh;
 
 int main() {
-    FixedControlWorkLifetimePolicy policy{1000, 250, 2000};
+    FixedControlWorkLifetimePolicy policy{1000, 250, 500, 750, 1500, 2000};
     assert(policy.IsValid());
-    assert(policy.LifetimeMilliseconds(MeshTrafficClass::InfrastructureResponse) == 1000);
-    assert(policy.LifetimeMilliseconds(MeshTrafficClass::ClockControl) == 250);
-    assert(policy.LifetimeMilliseconds(MeshTrafficClass::GeneralControl) == 2000);
-    assert(policy.LifetimeMilliseconds(MeshTrafficClass::Application) == 0);
+    assert(policy.LifetimeMilliseconds(MeshRelayServiceClass::Infrastructure) == 1000);
+    assert(policy.LifetimeMilliseconds(MeshRelayServiceClass::Clock) == 250);
+    assert(policy.LifetimeMilliseconds(MeshRelayServiceClass::Critical) == 500);
+    assert(policy.LifetimeMilliseconds(MeshRelayServiceClass::Responsive) == 750);
+    assert(policy.LifetimeMilliseconds(MeshRelayServiceClass::Convergent) == 1500);
+    assert(policy.LifetimeMilliseconds(MeshRelayServiceClass::BestEffort) == 2000);
 
     std::uint64_t deadline = 0;
-    assert(TryControlWorkDeadline(policy, MeshTrafficClass::InfrastructureResponse, 5000, deadline));
+    assert(TryControlWorkDeadline(policy, MeshRelayServiceClass::Infrastructure, 5000, deadline));
     assert(deadline == 6000);
-    assert(TryControlWorkDeadline(policy, MeshTrafficClass::ClockControl, 5000, deadline));
+    assert(TryControlWorkDeadline(policy, MeshRelayServiceClass::Clock, 5000, deadline));
     assert(deadline == 5250);
-    assert(TryControlWorkDeadline(policy, MeshTrafficClass::GeneralControl, 5000, deadline));
+    assert(TryControlWorkDeadline(policy, MeshRelayServiceClass::BestEffort, 5000, deadline));
     assert(deadline == 7000);
 
-    // Application deliveries use their own immutable deadline rather than control-work lifetime policy.
-    assert(!TryControlWorkDeadline(policy, MeshTrafficClass::Application, 5000, deadline));
-    assert(deadline == 0);
+    std::uint64_t deadlineNanoseconds = 0;
+    assert(TryControlWorkDeadlineNanoseconds(
+        policy, MeshRelayServiceClass::Responsive, 5000, deadlineNanoseconds));
+    assert(deadlineNanoseconds == 5750ULL * MeshNanosecondsPerMillisecond);
 
-    FixedControlWorkLifetimePolicy invalid{1000, 0, 2000};
+    FixedControlWorkLifetimePolicy invalid{1000, 0, 500, 750, 1500, 2000};
     assert(!invalid.IsValid());
-    assert(!TryControlWorkDeadline(invalid, MeshTrafficClass::ClockControl, 5000, deadline));
+    assert(!TryControlWorkDeadline(invalid, MeshRelayServiceClass::Clock, 5000, deadline));
 
-    // Absolute deadline computation saturates instead of wrapping monotonic time.
     const auto maximum = std::numeric_limits<std::uint64_t>::max();
-    assert(TryControlWorkDeadline(policy, MeshTrafficClass::GeneralControl, maximum - 10, deadline));
+    assert(TryControlWorkDeadline(policy, MeshRelayServiceClass::BestEffort, maximum - 10, deadline));
     assert(deadline == maximum);
+    assert(TryControlWorkDeadlineNanoseconds(
+        policy, MeshRelayServiceClass::BestEffort, maximum - 10, deadlineNanoseconds));
+    assert(deadlineNanoseconds == maximum);
+
+    assert(!TryControlWorkDeadline(policy, MeshRelayServiceClass::Infrastructure, 0, deadline));
+    assert(deadline == 0);
 
     return 0;
 }

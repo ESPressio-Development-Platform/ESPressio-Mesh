@@ -18,7 +18,6 @@ static Mesh::MembershipIncarnation Incarnation(std::uint8_t tail) {
     return Mesh::MembershipIncarnation{bytes};
 }
 
-
 class TestProbePolicy final : public Mesh::IMeshLivenessProbePolicy {
 public:
     bool ShouldProbe(const Mesh::LivenessProbeAssessment& assessment) const noexcept override {
@@ -26,22 +25,22 @@ public:
         ++Calls;
         return Eligible && assessment.Membership == Mesh::MembershipState::Active;
     }
-
     mutable Mesh::LivenessProbeAssessment Last{};
     mutable int Calls{0};
     bool Eligible{false};
 };
-
 
 class TestProbeInitiator final : public Mesh::ILivenessProbeInitiator {
 public:
     Mesh::LivenessProbeStartDisposition TryStartProbe(
         const System::DeviceIdentifier& device,
         const Mesh::MembershipIncarnation& incarnation,
+        std::uint64_t nowMilliseconds,
         Mesh::LivenessProbeReservation reservation
     ) noexcept override {
         LastDevice = device;
         LastIncarnation = incarnation;
+        LastNowMilliseconds = nowMilliseconds;
         LastReservation = reservation;
         ++Calls;
         return Next;
@@ -50,6 +49,7 @@ public:
     Mesh::LivenessProbeStartDisposition Next{Mesh::LivenessProbeStartDisposition::Started};
     System::DeviceIdentifier LastDevice{};
     Mesh::MembershipIncarnation LastIncarnation{};
+    std::uint64_t LastNowMilliseconds{0};
     Mesh::LivenessProbeReservation LastReservation{};
     int Calls{0};
 };
@@ -82,7 +82,6 @@ int main() {
     assert(probePolicy.Last.EvidenceAgeMilliseconds == 50);
     assert(initiator.Calls == 0);
 
-    // Policy, not the coordinator, decides whether degraded passive evidence warrants active work.
     probePolicy.Eligible = true;
     assert(coordinator.Consider(device1, incarnation1, 1100, probe) ==
            Mesh::LivenessProbeCoordinatorResult::Started);
@@ -92,6 +91,7 @@ int main() {
     assert(initiator.Calls == 1);
     assert(initiator.LastDevice == device1);
     assert(initiator.LastIncarnation == incarnation1);
+    assert(initiator.LastNowMilliseconds == 1100);
     assert(initiator.LastReservation.Slot == probe.Slot);
 
     Mesh::LivenessProbeReservation duplicate{};
@@ -100,7 +100,6 @@ int main() {
     assert(duplicate.Slot == probe.Slot);
     assert(initiator.Calls == 1);
 
-    // Probe initiation pressure never leaks the reservation.
     assert(coordinator.Complete(probe));
     initiator.Next = Mesh::LivenessProbeStartDisposition::TemporarilyUnavailable;
     Mesh::LivenessProbeReservation temporary{};
@@ -108,6 +107,7 @@ int main() {
            Mesh::LivenessProbeCoordinatorResult::InitiatorTemporarilyUnavailable);
     assert(!temporary);
     assert(reservations.Size() == 0);
+    assert(initiator.LastNowMilliseconds == 1200);
 
     initiator.Next = Mesh::LivenessProbeStartDisposition::Rejected;
     Mesh::LivenessProbeReservation rejected{};
@@ -116,7 +116,6 @@ int main() {
     assert(!rejected);
     assert(reservations.Size() == 0);
 
-    // Eligibility is still policy-controlled for Unreachable state; the coordinator does not stop probing by fiat.
     initiator.Next = Mesh::LivenessProbeStartDisposition::Started;
     Mesh::LivenessProbeReservation unreachable{};
     assert(coordinator.Consider(device1, incarnation1, 1300, unreachable) ==
@@ -124,7 +123,6 @@ int main() {
     assert(probePolicy.Last.Reachability == Mesh::ReachabilityState::Unreachable);
     assert(coordinator.Complete(unreachable));
 
-    // A Validating member can be deliberately excluded by policy without coordinator hard-coding that choice.
     const auto device2 = Device(2);
     const auto incarnation2 = Incarnation(2);
     assert(members.UpsertAuthenticated(

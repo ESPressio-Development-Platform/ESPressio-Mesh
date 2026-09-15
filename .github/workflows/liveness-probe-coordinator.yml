@@ -3,6 +3,7 @@ name: Liveness Probe Coordinator
 on:
   push:
     branches:
+      - primitives_redesign
       - main
       - structural_realignment
       - 'structural_realignment_propagation*'
@@ -13,8 +14,13 @@ on:
       - 'src/ESPressio_LivenessProbeReservations.hpp'
       - 'src/ESPressio_MembershipLiveness.hpp'
       - 'src/ESPressio_AuthenticatedMembershipTable.hpp'
+      - 'src/ESPressio_ControlWorkLifetimePolicy.hpp'
+      - 'src/ESPressio_MeshV1LivenessCoordinator.hpp'
+      - 'src/ESPressio_MeshRadioSubmission.hpp'
       - 'src/ESPressio_Mesh.hpp'
       - 'tests/liveness_probe_coordinator_test.cpp'
+      - 'tests/control_work_lifetime_policy_test.cpp'
+      - 'tests/mesh_v1_liveness_contract_test.cpp'
       - '.github/workflows/liveness-probe-coordinator.yml'
   pull_request:
     paths:
@@ -22,8 +28,13 @@ on:
       - 'src/ESPressio_LivenessProbeReservations.hpp'
       - 'src/ESPressio_MembershipLiveness.hpp'
       - 'src/ESPressio_AuthenticatedMembershipTable.hpp'
+      - 'src/ESPressio_ControlWorkLifetimePolicy.hpp'
+      - 'src/ESPressio_MeshV1LivenessCoordinator.hpp'
+      - 'src/ESPressio_MeshRadioSubmission.hpp'
       - 'src/ESPressio_Mesh.hpp'
       - 'tests/liveness_probe_coordinator_test.cpp'
+      - 'tests/control_work_lifetime_policy_test.cpp'
+      - 'tests/mesh_v1_liveness_contract_test.cpp'
       - '.github/workflows/liveness-probe-coordinator.yml'
 
 jobs:
@@ -32,17 +43,68 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          path: ESPressio-Mesh
+          path: Mesh
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-System
           ref: primitives_redesign
-          path: ESPressio-System
+          path: System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: primitives_redesign
+          path: Primitive
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Radio
+          ref: primitives_redesign
+          path: Radio
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: primitives_redesign
+          path: Timing
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Threads
+          ref: primitives_redesign
+          path: Threads
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Task
+          ref: primitives_redesign
+          path: Task
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Units
+          ref: primitives_redesign
+          path: Units
       - name: Build liveness probe coordinator regression
         run: >-
-          g++ -std=c++17 -Wall -Wextra -Werror
-          -IESPressio-Mesh/src -IESPressio-System/src
-          ESPressio-Mesh/tests/liveness_probe_coordinator_test.cpp
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src
+          Mesh/tests/liveness_probe_coordinator_test.cpp
           -o liveness_probe_coordinator_test
       - name: Run liveness probe coordinator regression
         run: ./liveness_probe_coordinator_test
+      - name: Build control-work lifetime regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti
+          -IMesh/src -ISystem/src
+          Mesh/tests/control_work_lifetime_policy_test.cpp
+          -o control_work_lifetime_policy_test
+      - name: Run control-work lifetime regression
+        run: ./control_work_lifetime_policy_test
+      - name: Compile concrete final-Radio liveness contract
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Werror -fno-rtti -pthread
+          -IMesh/src -ISystem/src -IPrimitive/src -IRadio/src -ITiming/src -IThreads/src -ITask/src
+          -IUnits/src -IUnits/tests/stubs
+          Mesh/tests/mesh_v1_liveness_contract_test.cpp
+          -o mesh_v1_liveness_contract_test
+      - name: Run concrete final-Radio liveness contract
+        run: ./mesh_v1_liveness_contract_test
+      - name: Reject predecessor liveness transport and traffic-class surfaces
+        run: |
+          ! grep -E 'ESPressio_RadioTransport|RadioTransportSendStatus|MeshTrafficClass|IMeshTrafficGovernor' \
+            Mesh/src/ESPressio_MeshV1LivenessCoordinator.hpp Mesh/src/ESPressio_ControlWorkLifetimePolicy.hpp
