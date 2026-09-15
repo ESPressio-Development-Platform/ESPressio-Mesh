@@ -112,7 +112,8 @@ struct CaptureRadio final {
         auto& self=*static_cast<CaptureRadio*>(context);
         if(!peer||bytes==nullptr||byteCount==0||byteCount>self.Packet.size())return {};
         self.Peer=peer;self.Service=service;self.Expiry=expiry;self.PacketBytes=byteCount;++self.Calls;
-        std::memcpy(self.Packet.data(),bytes,byteCount);return {true,77};
+        std::memcpy(self.Packet.data(),bytes,byteCount);
+        return {Radio::RadioSchedulerStatus::Success,Radio::RadioTransferId{77}};
     }
     Mesh::MeshRadioSubmissionTarget Target() noexcept{return {this,&Submit};}
 };
